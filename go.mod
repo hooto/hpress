@@ -5,7 +5,6 @@ go 1.22.0
 // replace github.com/hooto/httpsrv v0.12.2 => /opt/workspace/src/github.com/hooto/httpsrv
 
 require (
-	github.com/bamiaux/rez v0.0.0-20170731184118-29f4463c688b
 	github.com/hooto/hcaptcha v0.1.2
 	github.com/hooto/hchart v0.1.2
 	github.com/hooto/hflag4g v0.10.1
@@ -75,7 +74,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
 	golang.org/x/image v0.5.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
