@@ -1,10 +1,12 @@
 module github.com/hooto/hpress
 
-go 1.23.0
-
-toolchain go1.24.2
+go 1.25.1
 
 // replace github.com/hooto/httpsrv v0.12.2 => /opt/workspace/src/github.com/hooto/httpsrv
+
+replace github.com/lynkdb/lynksearch v0.1.0 => /opt/workspace/src/github.com/lynkdb/lynksearch
+
+replace github.com/lynkdb/lynkapi v0.0.9 => /opt/workspace/src/github.com/lynkdb/lynkapi
 
 require (
 	github.com/bamiaux/rez v0.0.0-20170731184118-29f4463c688b
@@ -20,6 +22,8 @@ require (
 	github.com/lessos/lessgo v1.0.1
 	github.com/lynkdb/iomix v0.0.0-20210408130459-cc48edfc442f
 	github.com/lynkdb/kvgo/v2 v2.0.9
+	github.com/lynkdb/lynkapi v0.0.9
+	github.com/lynkdb/lynksearch v0.1.0
 	github.com/lynkdb/mysqlgo v0.0.0-20210408130716-96edd6491cba
 	github.com/lynkdb/pgsqlgo v0.0.0-20210408130625-1c1f97eedf2c
 	github.com/microcosm-cc/bluemonday v1.0.27
@@ -34,7 +38,7 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/ServiceWeaver/weaver v0.24.6 // indirect
-	github.com/andybalholm/brotli v1.1.1 // indirect
+	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -63,7 +67,6 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/lufia/plan9stats v0.0.0-20250317134145-8bc96cf8fc35 // indirect
-	github.com/lynkdb/lynkapi v0.0.7 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
@@ -77,15 +80,16 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/image v0.26.0 // indirect
-	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250409194420-de1ac958c67a // indirect
-	google.golang.org/grpc v1.71.1 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250721164621-a45f3dfb1074 // indirect
+	google.golang.org/grpc v1.74.2 // indirect
+	google.golang.org/protobuf v1.36.9 // indirect
 )
