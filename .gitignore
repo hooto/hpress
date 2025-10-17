@@ -20,4 +20,6 @@ nginx.conf
 *.txz
 .build_tempdir
 batch-*
+webui/lynkui_data.json
+webui/lynkui_layout.json
 

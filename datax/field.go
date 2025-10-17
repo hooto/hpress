@@ -90,7 +90,7 @@ func init() {
 
 	//
 	shtmlp.AllowElements("script")
-	shtmlp.AllowElements("button", "style")
+	shtmlp.AllowElements("button")
 
 	//
 	shtmlp.AllowAttrs("class").OnElements("div")

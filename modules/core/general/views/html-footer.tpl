@@ -1,3 +1,3 @@
 <script type="text/javascript">
-window.onload = hp.Boot();
+  window.onload = hp.Boot();
 </script>

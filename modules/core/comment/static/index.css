@@ -1,33 +1,33 @@
-.hp-comment-embed > header {
-  margin: 5px 0;
+.hp-comment-embed > .header {
+  _margin: 5px 0;
   padding: 0;
   border: 0;
   font-size: 15px;
   display: block;
 }
 
-.hp-comment-embed > header > .nav-primary {
+.hp-comment-embed > .header > .nav-primary {
   padding: 0;
   border-bottom: 2px solid;
-  border-bottom-color: rgba(0,0,0,.2);
+  border-bottom-color: rgba(0, 0, 0, 0.2);
   position: relative;
   line-height: 0;
   display: block;
 }
 
-.hp-comment-embed > header > .nav-primary > ul {
+.hp-comment-embed > .header > .nav-primary > ul {
   margin: 0 auto;
   padding: 0;
   border: 0;
 }
 
-.hp-comment-embed > header > .nav-primary > ul > li {
+.hp-comment-embed > .header > .nav-primary > ul > li {
   display: inline-block;
   line-height: 0;
   position: relative;
 }
 
-.hp-comment-embed > header > .nav-primary > ul > li > span {
+.hp-comment-embed > .header > .nav-primary > ul > li > span {
   line-height: 1;
   margin: 0 15px;
   padding: 12px 0;
@@ -37,7 +37,7 @@
   font-weight: bold;
 }
 
-.hp-comment-embed > header > .nav-primary > ul > li > span:after {
+.hp-comment-embed > .header > .nav-primary > ul > li > span:after {
   content: " ";
   display: block;
   background-color: #777;
@@ -49,11 +49,9 @@
 }
 
 .hp-comment-embed .entry {
-  margin: 20px 0;
   position: relative;
   display: block;
   clear: both;
-  padding: 10px;
 }
 
 .hp-comment-embed .entry:after,
@@ -83,15 +81,17 @@
 }
 
 .hp-comment-embed .new {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
+#hp-comment-embed-new-form-ctrl,
 #hp-comment-embed-new-form {
-  padding: 0 5px 5px 5px;
+  min-width: 300px;
+  max-width: 900px;
 }
 
 #hp-comment-embed-new-form-alert {
-  margin: 5px 0;
+  margin: 10px 0;
 }
 
 #hp-comment-embed-new-form .alert {

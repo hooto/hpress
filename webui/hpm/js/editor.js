@@ -13,309 +13,340 @@
 // limitations under the License.
 
 var hpEditor = {
-    editors: {},
-    s2_bucket_default: "/deft/",
-}
+  editors: {},
+  s2_bucket_default: "/deft/",
+};
 
-hpEditor.Open = function(name, format) {
-    seajs.use([
-        "~/cm/5/lib/codemirror.css",
-        "~/cm/5/lib/codemirror.js",
-    ], function() {
+hpEditor.Open = function (name, format) {
+  seajs.use(
+    ["~/cm/5/lib/codemirror.css", "~/cm/5/lib/codemirror.js"],
+    function () {
+      seajs.use(
+        [
+          "~/cm/5/mode/markdown/markdown.js",
+          "~/cm/5/mode/xml/xml.js",
+          "~/cm/5/addon/selection/active-line.js",
+        ],
+        function () {
+          var lineNumbers = false;
+          if (format == "md" || format == "html" || format == "shtml") {
+            lineNumbers = true;
+          }
 
-        seajs.use([
-            "~/cm/5/mode/markdown/markdown.js",
-            "~/cm/5/mode/xml/xml.js",
-            "~/cm/5/addon/selection/active-line.js",
-        ], function() {
+          if (format == "md") {
+            $("#field_" + name + "_editor_mdr").show();
+          } else {
+            $("#field_" + name + "_editor_mdr").hide();
+          }
 
-            var lineNumbers = false;
-            if (format == "md" || format == "html" || format == "shtml") {
-                lineNumbers = true;
+          $("#field_" + name + "_editor_nav")
+            .find("button.active")
+            .removeClass("active");
+          $("#field_" + name + "_editor_nav")
+            .find("button.editor-nav-" + format)
+            .addClass("active");
+
+          var editor = hpEditor.editors[name];
+          if (editor) {
+            $("#field_" + name + "_attr_format").val(format);
+
+            hpEditor.editors[name].setOption("lineNumbers", lineNumbers);
+
+            if (format != "md") {
+              hpEditor.PreviewClose(name);
             }
 
-            if (format == "md") {
-                $("#field_" + name + "_editor_mdr").show();
-            } else {
-                $("#field_" + name + "_editor_mdr").hide();
-            }
+            return;
+          }
 
-            $("#field_" + name + "_editor_nav").find("button.pure-button-active").removeClass("pure-button-active");
-            $("#field_" + name + "_editor_nav").find("button.editor-nav-" + format).addClass("pure-button-active");
+          var elem_layout = $("#field_" + name + "_layout");
+          if (!elem_layout) {
+            return;
+          }
+          var bw = $(window).width();
+          var height = elem_layout.height(),
+            width = elem_layout.width();
+          if (bw - width < 100) {
+            width = width - 150;
+          }
+          $("#field_" + name + "_editor").css({
+            width: width + "px",
+          });
 
-            var editor = hpEditor.editors[name];
-            if (editor) {
+          // $(".CodeMirror-line").css({"width": (width - 200) +"px"});
+          // $("#field_"+ name).css({"width": (width - 200) +"px"});
 
-                $("#field_" + name + "_attr_format").val(format);
+          // var elem_layout_editor = document.getElementById("field_"+name+"_editor");
+          // if (!elem_layout_editor) {
+          // 	return;
+          // }
+          // elem_layout_editor.className = "hpm-nodeset-auto-height";
 
-                hpEditor.editors[name].setOption("lineNumbers", lineNumbers);
-
-                if (format != "md") {
-                    hpEditor.PreviewClose(name);
-                }
-
-                return;
-            }
-
-            var elem_layout = $("#field_" + name + "_layout");
-            if (!elem_layout) {
-                return;
-            }
-            var bw = $(window).width();
-            var height = elem_layout.height(),
-                width = elem_layout.width();
-            if (bw - width < 100) {
-                width = width - 150;
-            }
-            $("#field_" + name + "_editor").css({
-                "width": width + "px"
-            });
-
-            // $(".CodeMirror-line").css({"width": (width - 200) +"px"});
-            // $("#field_"+ name).css({"width": (width - 200) +"px"});
-
-            // var elem_layout_editor = document.getElementById("field_"+name+"_editor");
-            // if (!elem_layout_editor) {
-            // 	return;
-            // }
-            // elem_layout_editor.className = "hpm-nodeset-auto-height";
-
-            var elem = document.getElementById("field_" + name);
-            if (!elem) {
-                return;
-            }
-            hpEditor.editors[name] = CodeMirror.fromTextArea(elem, {
-                mode: "markdown",
-                lineNumbers: lineNumbers,
-                theme: "default",
-                lineWrapping: true,
-                styleActiveLine: true,
+          var elem = document.getElementById("field_" + name);
+          if (!elem) {
+            return;
+          }
+          hpEditor.editors[name] = CodeMirror.fromTextArea(elem, {
+            mode: "markdown",
+            lineNumbers: lineNumbers,
+            theme: "default",
+            lineWrapping: true,
+            styleActiveLine: true,
             // viewportMargin: Infinity,
-            });
+          });
 
-            // TODO hpEditor.editors[name].setSize(width, height);
-            hpEditor.editors[name].setSize("100%", height);
+          // TODO hpEditor.editors[name].setSize(width, height);
+          hpEditor.editors[name].setSize("100%", height);
 
-            hpEditor.editors[name].on("change", function(cm) {
-                hpEditor.previewChanged(name);
-            });
+          hpEditor.editors[name].on("change", function (cm) {
+            hpEditor.previewChanged(name);
+          });
 
-            $("#field_" + name + "_layout").addClass("hpm-editor-cm");
-            $("#field_" + name + "_inner_toolbar").find(".preview_open").show();
-        });
-    });
-}
-
-
-hpEditor.sizeRefresh = function() {
-
-    var dels = [];
-    for (var name in hpEditor.editors) {
-
-        var ok = document.getElementById("field_" + name + "_layout");
-        if (!ok) {
-            dels.push(name);
-            continue;
+          $("#field_" + name + "_layout").addClass("hpm-editor-cm");
+          $("#field_" + name + "_inner_toolbar")
+            .find(".preview_open")
+            .show();
         }
+      );
+    }
+  );
+};
 
-        if (!$("#field_" + name + "_colpreview").is(":visible")) {
-            continue;
-        }
-
-        hpEditor.PreviewOpen(name);
+hpEditor.sizeRefresh = function () {
+  var dels = [];
+  for (var name in hpEditor.editors) {
+    var ok = document.getElementById("field_" + name + "_layout");
+    if (!ok) {
+      dels.push(name);
+      continue;
     }
 
-    for (var i in dels) {
-        delete hpEditor.editors[dels[i]];
-    }
-}
-
-hpEditor.PreviewOpen = function(name) {
-
-    var width = $("#field_" + name + "_layout").width(),
-        height = $("#field_" + name + "_layout").height();
-
-    var width5 = (width - 20) / 2;
-
-    $("#field_" + name + "_editor").find(".CodeMirror").css({
-        width: width5 + "px",
-        height: height + "px",
-    });
-
-    $("#field_" + name + "_preview").css({
-        width: width5 + "px",
-        height: height + "px",
-    });
-
-    $("#field_" + name + "_colpreview").show();
-
-    $("#field_" + name + "_editor").find(".CodeMirror").hover(function() {
-        hpEditor.editorBindScroll(name);
-    }, function() {
-        hpEditor.editorUnBindScroll(name);
-    });
-
-    $("#field_" + name + "_preview").hover(function() {
-        hpEditor.previewBindScroll(name);
-    }, function() {
-        hpEditor.previewUnBindScroll(name);
-    });
-
-    hpEditor.previewChanged(name);
-
-    $("#field_" + name + "_inner_toolbar").find(".preview_close").show();
-    $("#field_" + name + "_inner_toolbar").find(".preview_open").hide();
-}
-
-hpEditor.PreviewClose = function(name) {
-    hpEditor.editorUnBindScroll(name);
-    hpEditor.previewUnBindScroll(name);
-
-    $("#field_" + name + "_preview").empty();
-
-    $("#field_" + name + "_colpreview").hide();
-
-    $("#field_" + name + "_editor").find(".CodeMirror").css({
-        width: "100%",
-    });
-
-    $("#field_" + name + "_inner_toolbar").find(".preview_close").hide();
-    $("#field_" + name + "_inner_toolbar").find(".preview_open").show();
-}
-
-hpEditor.previewChanged = function(name) {
     if (!$("#field_" + name + "_colpreview").is(":visible")) {
-        return;
+      continue;
     }
 
-    var editor = hpEditor.editors[name];
-    if (!editor) {
-        return;
-    }
+    hpEditor.PreviewOpen(name);
+  }
 
-    var text = editor.getValue();
+  for (var i in dels) {
+    delete hpEditor.editors[dels[i]];
+  }
+};
 
-    // frountend markdown render
-    $("#field_" + name + "_preview").html(marked(text));
+hpEditor.PreviewOpen = function (name) {
+  var width = $("#field_" + name + "_layout").width(),
+    height = $("#field_" + name + "_layout").height();
 
-// // backend markdown render
-// hpMgr.ApiCmd("/text/markdown-render", {
-//     method : "POST",
-//     data   : text,
-//     callback : function(err, data) {
-//         $("#field_"+ name +"_preview").html(data);
-//     }
-// });
-}
+  var width5 = (width - 20) / 2;
 
-hpEditor.editorBindScroll = function(name) {
-    hpEditor.previewUnBindScroll(name);
-
-    $("#field_" + name + "_editor").find(".CodeMirror-scroll").on("scroll", function() {
-
-        var height = $(this).outerHeight();
-        var scrollTop = $(this).scrollTop();
-        var percent = (scrollTop / $(this)[0].scrollHeight);
-        var preview = $("#field_" + name + "_preview");
-
-        if (scrollTop === 0) {
-            preview.scrollTop(0);
-        } else if (scrollTop + height >= $(this)[0].scrollHeight) {
-            preview.scrollTop(preview[0].scrollHeight);
-        } else {
-            preview.scrollTop(preview[0].scrollHeight * percent);
-        }
+  $("#field_" + name + "_editor")
+    .find(".CodeMirror")
+    .css({
+      width: width5 + "px",
+      height: height + "px",
     });
-}
 
-hpEditor.editorUnBindScroll = function(name) {
-    $("#field_" + name + "_editor").find(".CodeMirror-scroll").unbind("scroll");
-}
+  $("#field_" + name + "_preview").css({
+    width: width5 + "px",
+    height: height + "px",
+  });
 
-hpEditor.previewBindScroll = function(name) {
-    hpEditor.editorUnBindScroll(name);
+  $("#field_" + name + "_colpreview").show();
 
-    $("#field_" + name + "_preview").on("scroll", function() {
+  $("#field_" + name + "_editor")
+    .find(".CodeMirror")
+    .hover(
+      function () {
+        hpEditor.editorBindScroll(name);
+      },
+      function () {
+        hpEditor.editorUnBindScroll(name);
+      }
+    );
 
-        var height = $(this).outerHeight();
-        var scrollTop = $(this).scrollTop();
-        var percent = (scrollTop / $(this)[0].scrollHeight);
-        var editorView = $("#field_" + name + "_editor").find(".CodeMirror-scroll");
+  $("#field_" + name + "_preview").hover(
+    function () {
+      hpEditor.previewBindScroll(name);
+    },
+    function () {
+      hpEditor.previewUnBindScroll(name);
+    }
+  );
 
-        if (scrollTop === 0) {
-            editorView.scrollTop(0);
-        } else if (scrollTop + height >= $(this)[0].scrollHeight) {
-            editorView.scrollTop(editorView[0].scrollHeight);
-        } else {
-            editorView.scrollTop(editorView[0].scrollHeight * percent);
-        }
+  hpEditor.previewChanged(name);
+
+  $("#field_" + name + "_inner_toolbar")
+    .find(".preview_close")
+    .show();
+  $("#field_" + name + "_inner_toolbar")
+    .find(".preview_open")
+    .hide();
+};
+
+hpEditor.PreviewClose = function (name) {
+  hpEditor.editorUnBindScroll(name);
+  hpEditor.previewUnBindScroll(name);
+
+  $("#field_" + name + "_preview").empty();
+
+  $("#field_" + name + "_colpreview").hide();
+
+  $("#field_" + name + "_editor")
+    .find(".CodeMirror")
+    .css({
+      width: "100%",
     });
-}
 
-hpEditor.previewUnBindScroll = function(name) {
-    $("#field_" + name + "_preview").unbind("scroll");
-}
+  $("#field_" + name + "_inner_toolbar")
+    .find(".preview_close")
+    .hide();
+  $("#field_" + name + "_inner_toolbar")
+    .find(".preview_open")
+    .show();
+};
 
-hpEditor.StorageImageSelector = function(name) {
-    var editor = hpEditor.editors[name];
-    if (!editor) {
-        return;
-    }
-    hpS2.ObjListSelector(hpEditor.StorageImageSelectorCallback, {
-        name: name,
-        image_only: true,
+hpEditor.previewChanged = function (name) {
+  if (!$("#field_" + name + "_colpreview").is(":visible")) {
+    return;
+  }
+
+  var editor = hpEditor.editors[name];
+  if (!editor) {
+    return;
+  }
+
+  var text = editor.getValue();
+
+  // frountend markdown render
+  $("#field_" + name + "_preview").html(marked(text));
+
+  // // backend markdown render
+  // hpMgr.ApiCmd("/text/markdown-render", {
+  //     method : "POST",
+  //     data   : text,
+  //     callback : function(err, data) {
+  //         $("#field_"+ name +"_preview").html(data);
+  //     }
+  // });
+};
+
+hpEditor.editorBindScroll = function (name) {
+  hpEditor.previewUnBindScroll(name);
+
+  $("#field_" + name + "_editor")
+    .find(".CodeMirror-scroll")
+    .on("scroll", function () {
+      var height = $(this).outerHeight();
+      var scrollTop = $(this).scrollTop();
+      var percent = scrollTop / $(this)[0].scrollHeight;
+      var preview = $("#field_" + name + "_preview");
+
+      if (scrollTop === 0) {
+        preview.scrollTop(0);
+      } else if (scrollTop + height >= $(this)[0].scrollHeight) {
+        preview.scrollTop(preview[0].scrollHeight);
+      } else {
+        preview.scrollTop(preview[0].scrollHeight * percent);
+      }
     });
-}
+};
 
-hpEditor.StorageImageSelectorCallback = function(options) {
-    if (!options || !options.name || !options.path) {
-        return;
-    }
-    var editor = hpEditor.editors[options.name];
-    if (!editor) {
-        return;
-    }
-    var cs = editor.getCursor();
-    options.path = options.path.replace(hpEditor.s2_bucket_default, "");
-    var line = '\n![FIG]({{hp_storage_service_endpoint}}/' + options.path + '?ipl=w960,h960)\n\n';
-    line = line.replace(/\/+/g, '/');
-    editor.replaceRange(line, {
-        line: cs.line,
-        ch: cs.ch
-    }, {
-        line: cs.line,
-        ch: cs.ch
-    });
-}
+hpEditor.editorUnBindScroll = function (name) {
+  $("#field_" + name + "_editor")
+    .find(".CodeMirror-scroll")
+    .unbind("scroll");
+};
 
-hpEditor.Content = function(name) {
-    var editor = hpEditor.editors[name];
-    if (editor) {
-        return editor.getValue();
-    }
+hpEditor.previewBindScroll = function (name) {
+  hpEditor.editorUnBindScroll(name);
 
-    return null;
-}
+  $("#field_" + name + "_preview").on("scroll", function () {
+    var height = $(this).outerHeight();
+    var scrollTop = $(this).scrollTop();
+    var percent = scrollTop / $(this)[0].scrollHeight;
+    var editorView = $("#field_" + name + "_editor").find(".CodeMirror-scroll");
 
-hpEditor.ContentSet = function(name, value) {
-    var editor = hpEditor.editors[name];
-    if (editor) {
-        return editor.setValue(value);
+    if (scrollTop === 0) {
+      editorView.scrollTop(0);
+    } else if (scrollTop + height >= $(this)[0].scrollHeight) {
+      editorView.scrollTop(editorView[0].scrollHeight);
+    } else {
+      editorView.scrollTop(editorView[0].scrollHeight * percent);
     }
-    return null;
-}
+  });
+};
 
-hpEditor.Close = function(name) {
-    var edr = hpEditor.editors[name];
-    if (edr) {
-        hpEditor.editors[name] = null;
-        delete hpEditor.editors[name];
-    }
-}
+hpEditor.previewUnBindScroll = function (name) {
+  $("#field_" + name + "_preview").unbind("scroll");
+};
 
-hpEditor.Clean = function() {
-    for (var i in hpEditor.editors) {
-        hpEditor.editors[i] = null;
-        delete hpEditor.editors[i];
+hpEditor.StorageImageSelector = function (name) {
+  var editor = hpEditor.editors[name];
+  if (!editor) {
+    return;
+  }
+  hpS2.ObjListSelector(hpEditor.StorageImageSelectorCallback, {
+    name: name,
+    image_only: true,
+  });
+};
+
+hpEditor.StorageImageSelectorCallback = function (options) {
+  if (!options || !options.name || !options.path) {
+    return;
+  }
+  var editor = hpEditor.editors[options.name];
+  if (!editor) {
+    return;
+  }
+  var cs = editor.getCursor();
+  options.path = options.path.replace(hpEditor.s2_bucket_default, "");
+  var line =
+    "\n![FIG]({{hp_storage_service_endpoint}}/" +
+    options.path +
+    "?ipl=w960,h960)\n\n";
+  line = line.replace(/\/+/g, "/");
+  editor.replaceRange(
+    line,
+    {
+      line: cs.line,
+      ch: cs.ch,
+    },
+    {
+      line: cs.line,
+      ch: cs.ch,
     }
-}
+  );
+};
+
+hpEditor.Content = function (name) {
+  var editor = hpEditor.editors[name];
+  if (editor) {
+    return editor.getValue();
+  }
+
+  return null;
+};
+
+hpEditor.ContentSet = function (name, value) {
+  var editor = hpEditor.editors[name];
+  if (editor) {
+    return editor.setValue(value);
+  }
+  return null;
+};
+
+hpEditor.Close = function (name) {
+  var edr = hpEditor.editors[name];
+  if (edr) {
+    hpEditor.editors[name] = null;
+    delete hpEditor.editors[name];
+  }
+};
+
+hpEditor.Clean = function () {
+  for (var i in hpEditor.editors) {
+    hpEditor.editors[i] = null;
+    delete hpEditor.editors[i];
+  }
+};

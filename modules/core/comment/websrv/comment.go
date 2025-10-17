@@ -128,8 +128,10 @@ func (c Comment) SetAction() {
 
 	if err := captcha4g.Verify(set.CaptchaToken, set.CaptchaWord); err != nil {
 
-		set.Error.Code = errCaptchaNotMatch
-		set.Error.Message = "Word Verification do not match"
+		set.Error = &types.ErrorMeta{
+			Code:    errCaptchaNotMatch,
+			Message: "Word Verification do not match",
+		}
 
 		return
 	}

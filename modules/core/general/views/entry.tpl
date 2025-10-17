@@ -1,27 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-{{pagelet . "core/general" "html-header.tpl"}}
-<body>
-{{pagelet . "core/general" "nav-header.tpl" "topnav"}}
+  {{pagelet . "core/general" "v3/html-header.tpl"}}
+  <body id="hp-body">
+    {{pagelet . "core/general" "v3/nav-header.tpl" "topnav"}}
 
-<div class="container">
-  
-  <div class="hp-ctn-header">
-    <h2>{{FieldStringPrint .page "title" .LANG}}</h2>
-  </div>
+    <div class="container">
+      <div class="hp-block-gap-column">
+        <div class="">
+          <div class="hp-ctn-title">
+            {{FieldStringPrint .page "title" .LANG}}
+          </div>
+        </div>
 
-  <div class="row">
-    <div class="col-md-12">    
-      <div class="hp-nodev">
-        <div class="content">{{FieldHtmlPrint .page "content" .LANG}}</div>
-      </div>      
+        <div class="">
+          <div class="hp-node-view">
+            <div class="content hp-content">
+              {{FieldHtmlPrint .page "content" .LANG}}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>  
 
-</div>
-
-{{pagelet . "core/general" "footer.tpl"}}
-
-{{pagelet . "core/general" "html-footer.tpl"}}
-</body>
+    {{pagelet . "core/general" "v3/footer.tpl"}}
+    <!-- -->
+    {{pagelet . "core/general" "html-footer.tpl"}}
+  </body>
 </html>

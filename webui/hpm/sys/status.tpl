@@ -1,40 +1,34 @@
 <style>
-.page-header {
-	margin: 10px 0;
-	font-height: 100%;
-}
-.hp-sys-table {
-  font-size: 10pt;
-}
-.hp-sys-table td {
-  padding: 5px !important;
-}
-.hp-sys-table tr.line {
-  border-top: 1px solid #ccc;
-}
+  .page-header {
+    margin: 10px 0;
+    font-height: 100%;
+  }
+  .hp-sys-table {
+    font-size: 10pt;
+  }
+  .hp-sys-table td {
+    padding: 5px !important;
+  }
+  .hp-sys-table tr.line {
+    border-top: 1px solid #ccc;
+  }
 </style>
 
-<!-- <div class="page-header">
-  <h2>System Monitor Status <small></small></h2>
-</div> -->
-
-<div class="panel panel-default">
-  <div class="panel-heading">System Monitor Status</div>
-  <div class="panel-body">
-
+<div class="card">
+  <div class="card-header">System Monitor Status</div>
+  <div class="card-body">
     <table width="100%" class="hp-sys-table">
-      
       <tr>
         <td width="30%">App Instance ID</td>
-        <td class="hpm-font-fixspace">{[=it.instance_id]}</td>
+        <td class="">{[=it.instance_id]}</td>
       </tr>
       <tr>
         <td>App Version - Release</td>
-        <td class="hpm-font-fixspace">{[=it.app_version]} - {[=it.app_release]}</td>
+        <td class="">{[=it.app_version]} - {[=it.app_release]}</td>
       </tr>
       <tr>
         <td>Runtime Version</td>
-        <td class="hpm-font-fixspace">{[=it.runtime_version]}</td>
+        <td class="">{[=it.runtime_version]}</td>
       </tr>
       <tr>
         <td>Uptime</td>
@@ -64,11 +58,16 @@
       </tr>
       <tr>
         <td>Since Last GC Time</td>
-        <td>{[=hpSys.UtilDurationFormat((new Date().getTime()) - (it.memstats.last_gc / 1000000))]}</td>
+        <td>
+          {[=hpSys.UtilDurationFormat((new Date().getTime()) -
+          (it.memstats.last_gc / 1000000))]}
+        </td>
       </tr>
       <tr>
         <td>Total GC Pause</td>
-        <td>{[=hpSys.UtilDurationFormat(it.memstats.pause_total_ns, 1000000)]}</td>
+        <td>
+          {[=hpSys.UtilDurationFormat(it.memstats.pause_total_ns, 1000000)]}
+        </td>
       </tr>
       <tr>
         <td>Total GC Times</td>
@@ -76,9 +75,11 @@
       </tr>
       <tr>
         <td>Average GC Pause</td>
-        <td>{[=hpSys.UtilDurationFormat((it.memstats.pause_total_ns / it.memstats.num_gc), 1000000)]}</td>
+        <td>
+          {[=hpSys.UtilDurationFormat((it.memstats.pause_total_ns /
+          it.memstats.num_gc), 1000000)]}
+        </td>
       </tr>
-
 
       <!-- <tr class="line">
         <td>CpuNum</td>
@@ -123,10 +124,7 @@
       <tr>
         <td>Procs</td>
         <td>{[=it.info.procs]}</td>
-      </tr>   -->    
-
-      
+      </tr>   -->
     </table>
-
   </div>
 </div>

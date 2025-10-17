@@ -1,6 +1,5 @@
 {{if .categories}}
-<div class="hp-sidebar-section">
-  <div class="header">{{.categories.Model.Title}}</div>
+<div class="">
   <div class="list-group term-taxonomy-group">
     <div class="list-group-item">
       <a class="term-taxonomy-item" href="{{$.baseuri}}/list">All</a>

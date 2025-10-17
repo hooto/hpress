@@ -2,11 +2,13 @@ module github.com/hooto/hpress
 
 go 1.25.1
 
-// replace github.com/hooto/httpsrv v0.12.2 => /opt/workspace/src/github.com/hooto/httpsrv
+replace github.com/hooto/httpsrv v0.12.5 => /opt/workspace/src/github.com/hooto/httpsrv
 
 replace github.com/lynkdb/lynksearch v0.1.0 => /opt/workspace/src/github.com/lynkdb/lynksearch
 
 replace github.com/lynkdb/lynkapi v0.0.9 => /opt/workspace/src/github.com/lynkdb/lynkapi
+
+replace github.com/lynkdb/lynkui v0.0.1 => /opt/workspace/src/github.com/lynkdb/lynkui
 
 require (
 	github.com/hooto/hcaptcha v0.1.2
@@ -23,6 +25,7 @@ require (
 	github.com/lynkdb/kvgo/v2 v2.0.9
 	github.com/lynkdb/lynkapi v0.0.9
 	github.com/lynkdb/lynksearch v0.1.0
+	github.com/lynkdb/lynkui v0.0.1
 	github.com/lynkdb/mysqlgo v0.0.0-20210408130716-96edd6491cba
 	github.com/lynkdb/pgsqlgo v0.0.0-20210408130625-1c1f97eedf2c
 	github.com/microcosm-cc/bluemonday v1.0.27
@@ -47,6 +50,7 @@ require (
 	github.com/cockroachdb/pebble v1.1.5 // indirect
 	github.com/cockroachdb/redact v1.1.6 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
+	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/getsentry/sentry-go v0.32.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect

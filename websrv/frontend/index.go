@@ -26,11 +26,11 @@ import (
 	"github.com/hooto/iam/iamclient"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
-	"github.com/lessos/lessgo/x/webui"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/datax"
+	"github.com/hooto/hpress/internal/utils"
 	"github.com/hooto/hpress/store"
 )
 
@@ -324,11 +324,10 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 		c.Data[ad.Name] = ls
 
 		if qry.Pager {
-			pager := webui.NewPager(uint64(page),
+			pager := utils.NewPager(uint64(page),
 				uint64(ls.Meta.TotalResults),
 				uint64(ls.Meta.ItemsPerList),
 				10)
-			pager.CurrentPageNumber = uint64(page)
 			c.Data[ad.Name+"_pager"] = pager
 		}
 
@@ -465,7 +464,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 		c.Data[ad.Name] = ls
 
 		if qry.Pager {
-			c.Data[ad.Name+"_pager"] = webui.NewPager(0,
+			c.Data[ad.Name+"_pager"] = utils.NewPager(0,
 				uint64(ls.Meta.TotalResults),
 				uint64(ls.Meta.ItemsPerList),
 				10)

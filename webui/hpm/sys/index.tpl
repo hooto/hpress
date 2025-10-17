@@ -1,10 +1,17 @@
-<div style="margin:0 10px;">
-  <ul id="hpm-sys-nav" class="hpm-node-nav">
-  	<li class="active"><a class="l4i-nav-item" href="#sys/status">Status</a></li>
-  	<li><a class="l4i-nav-item" href="#sys/iam-status">User Authentication</a></li>
-  	<li><a class="l4i-nav-item" href="#sys/config">Settings</a></li>
-  </ul>
+<div class="hpm-block-gap-column">
+  <div style="">
+    <div id="hpm-sys-nav" class="hpm-node-nav hpm-block-gap-row">
+      <div class="btn btn-outline-dark active l4i-nav-item" href="#sys/status">
+        Status
+      </div>
+      <div class="btn btn-outline-dark l4i-nav-item" href="#sys/iam-status">
+        User Authentication
+      </div>
+      <div class="btn btn-outline-dark l4i-nav-item" href="#sys/config">
+        Settings
+      </div>
+    </div>
+  </div>
+
+  <div id="work-content" class="">loading</div>
 </div>
-
-<div id="work-content" class="hpm-div-light hp-user-panel" style="margin:0 10px;">loading</div>
-

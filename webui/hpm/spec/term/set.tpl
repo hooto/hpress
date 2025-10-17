@@ -22,8 +22,8 @@
   <div class="form-group">
     <label>Type</label>
     <select class="form-control" name="type">
-      <option value="taxonomy" {[if (it.type == "taxonomy") { ]}selected{[ } ]}>Categories</option>
-      <option value="tag"  {[if (it.type == "tag") { ]}selected{[ } ]}>Tags</option>
+      <option value="taxonomy" {[? hpMgr.Equal(it.type,'taxonomy')]} selected{[?]}>Categories</option>
+      <option value="tag" {[? hpMgr.Equal(it.type,'tag')]} selected{[?]}>Tags</option>
     </select>
   </div>
 </div>

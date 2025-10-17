@@ -1,5 +1,5 @@
 body .container {
-  max-width: 1400px !important;
+  __max-width: 1400px !important;
 }
 
 a {
@@ -7,16 +7,12 @@ a {
 }
 
 a:hover {
-  color: #111111;;
+  color: #111111;
 }
-
 
 #hp-topbar {
   min-height: 70px !important;
-  __background-color: #FFC300 !important;
-  __color: rgba(0, 0, 0, 0.7) !important;
 }
-
 
 #hp-topbar .nav-link {
   padding-left: 1rem;
@@ -32,18 +28,12 @@ a:hover {
   padding: 0 0 0 1.1em;
 }
 
-.pt_frame_box {
-    _margin: 20px 0 20px 0;
-    _padding 0 5px !important;
-}
-
 .pt_node_content {
-    font-size: 14pt !important;
-    line-height: 180% !important;
+  font-size: 14pt !important;
+  line-height: 180% !important;
 }
 
 .pt-body-section-blue {
-  /* background-color: #1890ff; */
   background-color: #096dd9;
   color: #fff;
   padding: 20px 5px !important;
@@ -58,7 +48,6 @@ a:hover {
 .pt-body-section-yellow {
   background-color: #ffc107;
   color: #212529;
-  padding: 20px 10px !important;
 }
 
 .pt-bg-hexagons-light-x1 {
@@ -80,7 +69,6 @@ a:hover {
 .pt-bg-hexagons-dark-x3 {
   background-image: url("/hp/-/static/pt/img/grid-hexagons-dark-x3.png");
 }
-
 
 .bi {
   display: inline-block;

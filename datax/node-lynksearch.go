@@ -187,7 +187,7 @@ func (it *NodeLynkSearchEngine) runAction() {
 
 	for _, active := range it.arrActives {
 
-		if (tn-active.config.StatsFullIndexed) < 60 &&
+		if (tn-active.config.StatsFullIndexed) < 86400 &&
 			active.updateNum == 0 {
 			continue
 		}

@@ -1,19 +1,13 @@
-<div style="padding:0 10px;">
-  <ul class="hpm-node-nav">
-    <li>Modules</li>
-  </ul>
-  <ul class="hpm-node-nav hpm-nav-right">
-    <li class="pure-button btapm-btn btapm-btn-primary">
-      <a href="#" onclick="hpSpec.Upload()">
-        Install or Upgrade from Package
-      </a>
-    </li>
-    <li class="pure-button btapm-btn btapm-btn-primary">
-      <a href="#" onclick="hpSpec.InfoSet()">
-        New Module
-      </a>
-    </li>
-  </ul>
-</div>
+<div class="hpm-block-gap-column">
+  <div class="d-flex flex-row justify-content-between hpm-block-gap-row">
+    <div class="hpm-node-nav align-self-center">
+      <div>Modules</div>
+    </div>
+    <div class="hpm-node-nav hpm-block-gap-row-sm">
+      <div class="btn btn-primary" onclick="hpSpec.Upload()">Install or Upgrade from Package</div>
+      <div class="btn btn-primary" onclick="hpSpec.InfoSet()">New Module</div>
+    </div>
+  </div>
 
-<div id="work-content" class="hpm-div-light" style="margin:0 10px;"></div>
+  <div id="work-content" class=""></div>
+</div>

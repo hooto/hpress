@@ -25,6 +25,9 @@ import (
 	"github.com/hooto/httpsrv"
 	"github.com/hooto/iam/iamclient"
 
+	"github.com/lynkdb/lynkui/go/lynkui"
+	"github.com/lynkdb/lynkui/go/uiserver"
+
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/datax"
 	"github.com/hooto/hpress/status"
@@ -91,6 +94,15 @@ func main() {
 	// 	os.Exit(1)
 	// }
 
+	if _, err := uiserver.NewService(httpsrv.DefaultService, &lynkui.ServiceConfig{
+		AppProjectPath: config.Prefix + "/webui",
+		UrlEntryPath:   "/hp/lynkui",
+		RunMode:        "prod",
+	}); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	iamclient.ServiceUrl = config.Config.IamServiceUrl
 	iamclient.ServiceUrlFrontend = config.Config.IamServiceUrlFrontend
 
@@ -101,6 +113,7 @@ func main() {
 
 	httpsrv.DefaultService.Config.UrlBasePath = config.Config.UrlBasePath
 	httpsrv.DefaultService.Config.HttpPort = config.Config.HttpPort
+	// httpsrv.DefaultService.Config.CompressResponse = true
 
 	// i18n
 	hlang.StdLangFeed.LoadMessages(config.Prefix+"/i18n/en.json", true)
@@ -124,10 +137,10 @@ func main() {
 	httpsrv.DefaultService.HandleModule("/hp", cdef.NewHtpModule())
 	httpsrv.DefaultService.HandleModule("/", cdef.NewModule())
 
-	if err := httpsrv.DefaultService.Start(); err != nil {
-		fmt.Println("httpsrv.DefaultService.Start error", err)
-		os.Exit(1)
-	}
+	// if err := httpsrv.DefaultService.Start(); err != nil {
+	// 	fmt.Println("srv.Start error", err)
+	// 	os.Exit(1)
+	// }
 
-	select {}
+	httpsrv.DefaultService.Start()
 }

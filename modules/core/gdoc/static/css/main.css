@@ -3,9 +3,8 @@ a {
 }
 
 a:hover {
-  color: #111111;;
+  color: #111111;
 }
-
 
 body .container {
   max-width: 1400px !important;
@@ -15,9 +14,9 @@ body .container {
   min-height: 70px !important;
 }
 
-#hp-topbar .nav-link {                                                                  
-  padding-left: 1rem;                                                                   
-  padding-right: 1rem;                                                                  
+#hp-topbar .nav-link {
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 .hp-gdoc-frame-box {
@@ -80,7 +79,7 @@ body .container {
 .hp-gdoc-entry-summary {
   font-size: 90%;
   line-height: 120%;
-  padding: 10px;
+  __padding: 10px;
 }
 
 .hp-gdoc-entry-summary h1,
@@ -136,20 +135,20 @@ body .container {
 
 .hp-gdoc-entry-summary,
 .hp-gdoc-entry-summary a {
-  color: rgba(0,0,0,0.65);
+  color: rgba(0, 0, 0, 0.65);
 }
 .hp-gdoc-entry-summary a {
-  padding: 2px 5px;
+  padding: 2px 0;
   text-decoration: none;
   white-space: pre-wrap;
   display: inline-block;
 }
 .hp-gdoc-entry-summary li:hover {
-  background-color: rgba(0,0,0,0.05);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 .hp-gdoc-entry-summary a.active {
   font-weight: 600;
-  color: rgba(0,0,0,0.85);
+  color: rgba(0, 0, 0, 0.85);
 }
 
 .hp-gdoc-page-content {
@@ -164,17 +163,17 @@ body .container {
 .hp-gdoc-page-content a {
   padding: 4px;
   border-radius: 4px;
-  color: rgba(0,0,0,0.85);
+  color: rgba(0, 0, 0, 0.85);
   text-decoration: underline;
 }
 
 .hp-gdoc-page-content a:hover {
   text-decoration: underline;
-  background-color: rgba(0,0,0,0.10);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .hp-gdoc-entry-toc {
-  padding: 10px;
+  _padding: 10px;
   font-size: 90%;
 }
 
@@ -190,7 +189,7 @@ body .container {
   font-size: 120%;
   border-bottom: 1px solid #ddd;
   color: #555;
-  line-height: 2.0em;
+  line-height: 2em;
 }
 
 .hp-gdoc-page-toc-menu a {
@@ -232,7 +231,7 @@ body .container {
   padding: 10px;
 }
 
-.hp-gdoc-nodels-item .card .title>a {
+.hp-gdoc-nodels-item .card .title > a {
   color: #000;
 }
 
@@ -258,7 +257,7 @@ body .container {
   font-weight: bold;
 }
 
-.hp-gdoc-nav-ol>li+li:before {
+.hp-gdoc-nav-ol > li + li:before {
   padding: 0 5px;
   color: #ccc;
   content: "/\00a0";
@@ -283,10 +282,11 @@ body .container {
   .hp-gdoc-entry-summary {
     position: relative;
     height: auto;
-	margin-top: 10px;
+    _margin-top: 10px;
     background-color: #fff;
     border-radius: 2px;
     box-shadow: 0px 1px 2px 0px #666;
+    padding: 1rem;
   }
 
   .hp-gdoc-entry-toc {
@@ -306,13 +306,13 @@ body .container {
 
   .hp-gdoc-entry-summary {
     position: sticky;
-    top: 0;
-    height: calc(100vh - 20px);
+    top: 30px;
+    height: calc(100vh - 60px);
   }
 
   .hp-gdoc-entry-toc {
     position: sticky;
-    top: 0;
-    height: calc(100vh - 20px);
+    top: 30px;
+    height: calc(100vh - 60px);
   }
 }
