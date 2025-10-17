@@ -31,7 +31,7 @@ require (
 	github.com/oliamb/cutter v0.2.2
 	github.com/shurcooL/sanitized_anchor_name v1.0.0
 	github.com/sysinner/incore v0.10.2
-	github.com/ulikunitz/xz v0.5.12
+	github.com/ulikunitz/xz v0.5.14
 )
 
 require (
