@@ -102,7 +102,8 @@ func data_search_sync() error {
 
 	searchLocker.Lock()
 	if !searchInited {
-		if engine, err := NewNodeSphinxSearchEngine(config.Prefix); err != nil {
+		// if engine, err := NewNodeSphinxSearchEngine(config.Prefix); err != nil {
+		if engine, err := NewNodeLynkSearchEngine(config.Prefix); err != nil {
 			return err
 		} else {
 			nodeSearcher = engine

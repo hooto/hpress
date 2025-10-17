@@ -264,7 +264,7 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 	}
 
 	if err != nil {
-		c.RenderError(400, "Bad Request (invalid object format)")
+		c.RenderError(400, "Bad Request (invalid object format) "+err.Error())
 		return
 	}
 

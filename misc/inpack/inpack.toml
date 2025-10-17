@@ -1,6 +1,6 @@
 [project]
 name = "hooto-press"
-version = "0.8.1"
+version = "0.8.3"
 vendor = "hooto.com"
 homepage = "https://github.com/hooto/hpress"
 groups = ["app/other"]
@@ -12,6 +12,7 @@ bin/keeper
 etc/config.json.tpl
 i18n/
 modules/core/
+websrv/mgr/views/
 webui/hpm/
 webui/hp/img/alpha2.png
 webui/hp/img/search-16.png
@@ -36,8 +37,7 @@ webui/lessui/js/sea.js
 webui/hp/js/
 webui/hpm/js/
 webui/katex/
-modules/core/
-deps/github.com/hooto/hchart/webui/"""
+modules/core/"""
 
 css_compress = """
 webui/bs/3.3/css/
@@ -67,9 +67,9 @@ webui/hpm/img/"""
 build = """
 
 mkdir -p {{.buildroot}}/bin
-mkdir -p {{.buildroot}}/var/{hcaptchadb,log,storage,hpress_local_cache,tmp}
+mkdir -p {{.buildroot}}/var/{log,storage,tmp}
 
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags \"-X main.version={{.project__version}} -X main.release={{.project__release}}\" -o {{.buildroot}}/bin/hooto-press cmd/server/main.go
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags \"-s -w -X main.version={{.project__version}} -X main.release={{.project__release}}\" -o {{.buildroot}}/bin/hooto-press cmd/server/main.go
 # go build -ldflags \"-s -w -X main.version={{.project__version}} -X main.release={{.project__release}}\" -o {{.buildroot}}/bin/hp-s2-upgrade misc/s2-upgrade.go
 
 #sed -i 's/debug:\\!0/debug:\\!1/g' {{.buildroot}}/webui/hp/js/main.js

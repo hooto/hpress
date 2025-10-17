@@ -18,6 +18,7 @@ import (
 	"github.com/hooto/httpsrv"
 	"github.com/hooto/iam/iamclient"
 
+	"github.com/hooto/hchart/pkg/webui"
 	"github.com/hooto/hpress/config"
 )
 
@@ -34,16 +35,9 @@ func NewHtpModule() *httpsrv.Module {
 
 	mod := httpsrv.NewModule()
 
-	mod.RegisterFileServer("/~/hchart",
-		config.Prefix+"/deps/github.com/hooto/hchart/webui",
-		nil,
-	)
+	mod.RegisterFileServer("/~/hchart", "", webui.NewFs())
 
-	mod.RegisterFileServer(
-		"/~",
-		config.Prefix+"/webui/",
-		nil,
-	)
+	mod.RegisterFileServer("/~", config.Prefix+"/webui/", nil)
 
 	mod.RegisterController(new(S2), new(iamclient.Auth))
 

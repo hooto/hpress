@@ -13,7 +13,6 @@ cm-compress
 modules/*
 !modules/core
 etc/main.json
-testgd.go
 go-rpm
 go.sum
 image.lua
