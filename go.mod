@@ -11,8 +11,8 @@ replace github.com/lynkdb/lynkapi v0.0.9 => /opt/workspace/src/github.com/lynkdb
 require (
 	github.com/hooto/hcaptcha v0.1.2
 	github.com/hooto/hchart v0.0.0-20210820154659-40f12957ba94
-	github.com/hooto/hflag4g v0.10.0
-	github.com/hooto/hini4g v0.0.0-20181117114356-13d2f492e123
+	github.com/hooto/hflag4g v0.10.1
+	github.com/hooto/hini4g v0.1.2
 	github.com/hooto/hlang4g v0.1.1
 	github.com/hooto/hlog4g v0.9.5
 	github.com/hooto/htoml4g v0.9.5
@@ -20,7 +20,7 @@ require (
 	github.com/hooto/iam v1.0.0
 	github.com/lessos/lessgo v1.0.1
 	github.com/lynkdb/iomix v0.0.0-20210408130459-cc48edfc442f
-	github.com/lynkdb/kvgo/v2 v2.0.9
+	github.com/lynkdb/kvgo/v2 v2.0.8
 	github.com/lynkdb/lynkapi v0.0.9
 	github.com/lynkdb/lynksearch v0.1.0
 	github.com/lynkdb/mysqlgo v0.0.0-20210408130716-96edd6491cba
@@ -83,12 +83,12 @@ require (
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
-	golang.org/x/image v0.5.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
-	google.golang.org/grpc v1.62.1 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/image v0.16.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250409194420-de1ac958c67a // indirect
+	google.golang.org/grpc v1.71.1 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 )
