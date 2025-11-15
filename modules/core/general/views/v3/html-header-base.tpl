@@ -6,7 +6,7 @@
   </title>
   <link
     rel="stylesheet"
-    href="{{HttpSrvBasePath `hp/lynkui/~/bs/v5/css/bootstrap.css`}}?v={{.sys_version_sign}}"
+    href="{{HttpSrvBasePath `hp/lynkui/~/bs/v5/css/bootstrap.css`}}"
     type="text/css"
   />
   <link
@@ -27,9 +27,13 @@
     name="description"
     content="{{SysConfig `frontend_html_head_meta_description`}}"
   />
-  <script src="{{HttpSrvBasePath `hp/~/lessui/js/sea.js`}}?v={{.sys_version_sign}}"></script>
+  <script src='{{HttpSrvBasePath "hp/lynkui/~/lynkui/main.js"}}?v={{.sys_version_sign}}'></script>
   <script src="{{HttpSrvBasePath `hp/~/hp/js/main.v2.js`}}?v={{.sys_version_sign}}"></script>
   <script type="text/javascript">
+    lynkui.basepath = '{{HttpSrvBasePath "hp"}}';
+    lynkui.uipath = "~";
+    // window.onload = lynkui.onload();
+
     window._basepath = {{HttpSrvBasePath `hp/`}};
     window._sys_version_sign = {{.sys_version_sign}};
     window.onload_hooks = [];

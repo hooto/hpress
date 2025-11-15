@@ -2,7 +2,7 @@ module github.com/hooto/hpress
 
 go 1.25.1
 
-replace github.com/hooto/httpsrv v0.12.5 => /opt/workspace/src/github.com/hooto/httpsrv
+// replace github.com/hooto/httpsrv v0.12.6 => /opt/workspace/src/github.com/hooto/httpsrv
 
 replace github.com/lynkdb/lynksearch v0.1.0 => /opt/workspace/src/github.com/lynkdb/lynksearch
 
@@ -10,15 +10,18 @@ replace github.com/lynkdb/lynkapi v0.0.9 => /opt/workspace/src/github.com/lynkdb
 
 replace github.com/lynkdb/lynkui v0.0.1 => /opt/workspace/src/github.com/lynkdb/lynkui
 
+replace github.com/hooto/hauth v0.1.3 => /opt/workspace/src/github.com/hooto/hauth
+
 require (
-	github.com/hooto/hcaptcha v0.1.2
-	github.com/hooto/hchart v0.0.0-20210820154659-40f12957ba94
-	github.com/hooto/hflag4g v0.10.0
-	github.com/hooto/hini4g v0.0.0-20181117114356-13d2f492e123
+	github.com/bamiaux/rez v0.0.0-20170731184118-29f4463c688b
+	github.com/hooto/hcaptcha v0.1.3
+	github.com/hooto/hchart v0.1.2
+	github.com/hooto/hflag4g v0.10.1
+	github.com/hooto/hini4g v0.1.2
 	github.com/hooto/hlang4g v0.1.1
 	github.com/hooto/hlog4g v0.9.5
 	github.com/hooto/htoml4g v0.9.5
-	github.com/hooto/httpsrv v0.12.5
+	github.com/hooto/httpsrv v0.12.6
 	github.com/hooto/iam v1.0.0
 	github.com/lessos/lessgo v1.0.1
 	github.com/lynkdb/iomix v0.0.0-20210408130459-cc48edfc442f
@@ -50,7 +53,7 @@ require (
 	github.com/cockroachdb/pebble v1.1.5 // indirect
 	github.com/cockroachdb/redact v1.1.6 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
-	github.com/fsnotify/fsnotify v1.8.0 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/getsentry/sentry-go v0.32.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
@@ -61,7 +64,7 @@ require (
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
-	github.com/hooto/hauth v0.1.2 // indirect
+	github.com/hooto/hauth v0.1.3 // indirect
 	github.com/hooto/hmetrics v0.0.2 // indirect
 	github.com/hooto/hmsg v0.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -87,12 +90,12 @@ require (
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
-	golang.org/x/image v0.5.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
-	google.golang.org/grpc v1.62.1 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/image v0.26.0 // indirect
+	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
+	google.golang.org/grpc v1.76.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 )

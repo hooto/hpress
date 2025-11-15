@@ -1,6 +1,6 @@
 [project]
 name = "hooto-press"
-version = "0.9.0"
+version = "0.9.1"
 vendor = "hooto.com"
 homepage = "https://github.com/hooto/hpress"
 groups = ["app/other"]
@@ -22,10 +22,6 @@ webui/katex/
 
 js_compress = """
 webui/cm/5/
-webui/lessui/js/lessui.js
-webui/lessui/js/browser-detect.js
-webui/lessui/js/eventproxy.js
-webui/lessui/js/sea.js
 webui/hp/js/
 webui/hpm/js/
 webui/katex/
@@ -33,8 +29,6 @@ modules/core/"""
 
 css_compress = """
 webui/cm/5/
-webui/lessui/css/lessui.css
-webui/lessui/css/base.css
 webui/hp/css/
 webui/hpm/css/
 webui/katex/

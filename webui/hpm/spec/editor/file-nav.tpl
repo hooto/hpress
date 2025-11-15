@@ -55,7 +55,7 @@
 </div>
 
 <!-- Project Files Tree -->
-<div id="lcbind-fsnav-fstree" class="less_scroll">
+<div id="lcbind-fsnav-fstree" class="lynkui-scroll">
   <div id="fstdroot" class="lcx-fstree">loading</div>
 </div>
 

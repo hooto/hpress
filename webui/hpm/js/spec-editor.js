@@ -24,12 +24,12 @@ hpSpecEditor.Open = function (modname) {
     return;
   }
 
-  l4i.UrlEventRegister("spec-editor/" + modname, function () {
+  lynkui.url.eventRegister("spec-editor/" + modname, function () {
     hpSpecEditor.Index(modname);
   });
 
   $("#hp-uh-topnav").append(
-    '<a class="l4i-nav-item active" modname="' +
+    '<a class="lynkui-nav-item active" modname="' +
       modname +
       '" href="#spec-editor/' +
       modname +
@@ -50,8 +50,8 @@ hpSpecEditor.Index = function (modname) {
 
   l9rTab.pool = {};
 
-  l4iSession.Set("hp-speceditor-modname", modname);
-  l4iSession.Set("modname_current", "/");
+  lynkui.session.set("hp-speceditor-modname", modname);
+  lynkui.session.set("modname_current", "/");
 
   hpMgr.TplCmd("spec/editor/desk", {
     callback: function (err, data) {
@@ -61,19 +61,19 @@ hpSpecEditor.Index = function (modname) {
 
       $("#com-content").html(data);
 
-      l4iTemplate.RenderFromID(
+      lynkui.template.renderFromId(
         "lcbind-proj-filenav",
         "hp-speceditor-fsnav-tpl"
       );
 
-      seajs.use(
+      lynkui.use(
         [
           "~/cm/5/lib/codemirror.css",
           "~/cm/5/lib/codemirror.js",
           "~/cm/5/theme/monokai.css",
         ],
         function () {
-          seajs.use(
+          lynkui.use(
             [
               "~/cm/5/mode/clike/clike.js",
               "~/cm/5/mode/javascript/javascript.js",
@@ -112,12 +112,12 @@ var l9rProjFs = {
 l9rProjFs.OpenHistoryTabs = function () {
   // console.log("l9rProj.OpenHistoryTabs");
 
-  // var last_tab_urid = l4iStorage.Set(l4iSession.Get("podid") +"."+ l4iSession.Get("proj_name") +".tab."+ item.target);
+  // var last_tab_urid = lynkui.storage.set(lynkui.session.get("podid") +"."+ lynkui.session.get("proj_name") +".tab."+ item.target);
 
   lcData.Query(
     "files",
     "projdir",
-    l4iSession.Get("hp-speceditor-modname"),
+    lynkui.session.get("hp-speceditor-modname"),
     function (ret) {
       // console.log("Query files");
       if (!ret) {
@@ -126,7 +126,7 @@ l9rProjFs.OpenHistoryTabs = function () {
 
       if (
         ret.value.id &&
-        ret.value.projdir == l4iSession.Get("hp-speceditor-modname")
+        ret.value.projdir == lynkui.session.get("hp-speceditor-modname")
       ) {
         var icon = undefined;
         if (ret.value.icon) {
@@ -139,8 +139,10 @@ l9rProjFs.OpenHistoryTabs = function () {
           cab = l9rTab.frame[l9rTab.def];
         }
 
-        var tabLastActive = l4iStorage.Get(
-          l4iSession.Get("hp-speceditor-modname") + ".cab." + ret.value.cabid
+        var tabLastActive = lynkui.storage.get(
+          lynkui.session.get("hp-speceditor-modname") +
+            ".cab." +
+            ret.value.cabid
         );
 
         var titleOnly = true;
@@ -198,8 +200,8 @@ l9rProjFs.UiTreeLoad = function (options) {
     options.toggle = false;
   }
 
-  var ptdid = l4iString.CryptoMd5(options.path);
-  if (options.path == l4iSession.Get("modname_current")) {
+  var ptdid = lynkui.utilx.cryptoMd5(options.path);
+  if (options.path == lynkui.session.get("modname_current")) {
     ptdid = "root";
   }
 
@@ -213,7 +215,7 @@ l9rProjFs.UiTreeLoad = function (options) {
   }
 
   var req = {
-    path: options.path, // l4iSession.Get("modname_current"),
+    path: options.path, // lynkui.session.get("modname_current"),
   };
 
   // console.log("path reload "+ options.path);
@@ -230,7 +232,7 @@ l9rProjFs.UiTreeLoad = function (options) {
 
       var fspath = rs.path + "/" + ls[i].name;
       ls[i].path = fspath.replace(/\/+/g, "/");
-      ls[i].fsid = l4iString.CryptoMd5(ls[i].path);
+      ls[i].fsid = lynkui.utilx.cryptoMd5(ls[i].path);
 
       ls[i].fstype = "none";
 
@@ -319,7 +321,7 @@ l9rProjFs.UiTreeLoad = function (options) {
       );
     }
 
-    l4iTemplate.RenderFromID("fstd" + ptdid, "lcx-filenav-tree-tpl", lsfs);
+    lynkui.template.renderFromId("fstd" + ptdid, "lcx-filenav-tree-tpl", lsfs);
 
     options.success();
 
@@ -438,7 +440,7 @@ l9rProjFs.UiTreeEventRefresh = function () {
 
 l9rProjFs.FileNew = function (type, path, file) {
   if (path === undefined || path === null) {
-    path = l4iSession.Get("modname_current");
+    path = lynkui.session.get("modname_current");
   }
 
   var formid = Math.random().toString(36).slice(2);
@@ -462,7 +464,7 @@ l9rProjFs.FileNew = function (type, path, file) {
         style: "btn-primary",
       },
       {
-        onclick: "l4iModal.Close()",
+        onclick: "lynkui.modal.close()",
         title: "Close",
       },
     ],
@@ -472,7 +474,7 @@ l9rProjFs.FileNew = function (type, path, file) {
     $("#" + formid + " :input[name=name]").focus();
   };
 
-  l4iModal.Open(req);
+  lynkui.modal.open(req);
 };
 
 var l9r = {};
@@ -503,7 +505,7 @@ l9rProjFs.FileNewSave = function (formid) {
         path: path,
       });
 
-      l4iModal.Close();
+      lynkui.modal.close();
     },
     error: function (status, message) {
       // console.log(status, message);
@@ -592,7 +594,7 @@ function _fsUploadCommit(reqid, file) {
           // }
 
           // l9rProjFs.UiTreeLoad({path: ppath});
-          // l4iModal.Close();
+          // lynkui.modal.close();
         },
         error: function (status, message) {
           // console.log(message);
@@ -627,7 +629,7 @@ function _fsUploadHander(evt) {
 
 l9rProjFs.FileUpload = function (path) {
   if (path === undefined || path === null) {
-    path = l4iSession.Get("modname_current");
+    path = lynkui.session.get("modname_current");
     // alert("Path can not be null"); // TODO
     // return;
   }
@@ -663,7 +665,7 @@ l9rProjFs.FileUpload = function (path) {
       //     style   : "btn-primary"
       // },
       {
-        onclick: "l4iModal.Close()",
+        onclick: "lynkui.modal.close()",
         title: "Close",
       },
     ],
@@ -715,7 +717,7 @@ l9rProjFs.FileUpload = function (path) {
     );
   };
 
-  l4iModal.Open(req);
+  lynkui.modal.open(req);
 };
 
 l9rProjFs.FileRename = function (path) {
@@ -743,7 +745,7 @@ l9rProjFs.FileRename = function (path) {
         style: "btn-primary",
       },
       {
-        onclick: "l4iModal.Close()",
+        onclick: "lynkui.modal.close()",
         title: "Close",
       },
     ],
@@ -753,7 +755,7 @@ l9rProjFs.FileRename = function (path) {
     $("#" + formid + " :input[name=pathset]").focus();
   };
 
-  l4iModal.Open(req);
+  lynkui.modal.open(req);
 };
 
 l9rProjFs.FileRenameSave = function (formid) {
@@ -765,7 +767,7 @@ l9rProjFs.FileRenameSave = function (formid) {
   }
 
   if (path == pathset) {
-    l4iModal.Close();
+    lynkui.modal.close();
     return;
   }
 
@@ -787,7 +789,7 @@ l9rProjFs.FileRenameSave = function (formid) {
       l9rProjFs.UiTreeLoad({
         path: ppath,
       });
-      l4iModal.Close();
+      lynkui.modal.close();
     },
     error: function (status, message) {
       console.log(status, message);
@@ -821,13 +823,13 @@ l9rProjFs.FileDel = function (path) {
         style: "btn-danger",
       },
       {
-        onclick: "l4iModal.Close()",
+        onclick: "lynkui.modal.close()",
         title: "Cancel",
       },
     ],
   };
 
-  l4iModal.Open(req);
+  lynkui.modal.open(req);
 };
 
 l9rProjFs.FileDelSave = function (formid) {
@@ -840,10 +842,10 @@ l9rProjFs.FileDelSave = function (formid) {
   l9rPodFs.Del({
     path: path,
     success: function (rsp) {
-      var fsid = "ptp" + l4iString.CryptoMd5(path);
+      var fsid = "ptp" + lynkui.utilx.cryptoMd5(path);
       $("#" + fsid).remove();
 
-      l4iModal.Close();
+      lynkui.modal.close();
     },
     error: function (status, message) {
       alert(message);
@@ -873,8 +875,9 @@ l9rPodFs.Get = function (options) {
     options.error = function () {};
   }
 
-  var url = "mod-set-fs/get?modname=" + l4iSession.Get("hp-speceditor-modname");
-  // url += "?access_token="+ l4iCookie.Get("access_token");
+  var url =
+    "mod-set-fs/get?modname=" + lynkui.session.get("hp-speceditor-modname");
+  // url += "?access_token="+ lynkui.cookie.get("access_token");
   url += "&path=" + options.path;
 
   // console.log("box refresh:"+ url);
@@ -928,7 +931,8 @@ l9rPodFs.Post = function (options) {
     sumcheck: options.sumcheck,
   };
 
-  var url = "mod-set-fs/put?modname=" + l4iSession.Get("hp-speceditor-modname");
+  var url =
+    "mod-set-fs/put?modname=" + lynkui.session.get("hp-speceditor-modname");
 
   hpMgr.ApiCmd(url, {
     method: "POST",
@@ -978,7 +982,7 @@ l9rPodFs.Rename = function (options) {
   };
 
   var url =
-    "mod-set-fs/rename?modname=" + l4iSession.Get("hp-speceditor-modname");
+    "mod-set-fs/rename?modname=" + lynkui.session.get("hp-speceditor-modname");
   hpMgr.ApiCmd(url, {
     method: "POST",
     timeout: 10000,
@@ -1020,7 +1024,8 @@ l9rPodFs.Del = function (options) {
     path: options.path,
   };
 
-  var url = "mod-set-fs/del?modname=" + l4iSession.Get("hp-speceditor-modname");
+  var url =
+    "mod-set-fs/del?modname=" + lynkui.session.get("hp-speceditor-modname");
 
   hpMgr.ApiCmd(url, {
     method: "POST",
@@ -1060,7 +1065,7 @@ l9rPodFs.List = function (options) {
   }
 
   var url =
-    "mod-set-fs/list?modname=" + l4iSession.Get("hp-speceditor-modname");
+    "mod-set-fs/list?modname=" + lynkui.session.get("hp-speceditor-modname");
   url += "&path=" + options.path;
 
   hpMgr.ApiCmd(url, {
@@ -1108,8 +1113,8 @@ l9rLayout.Initialize = function () {
   }
 
   for (var i in l9rLayout.cols) {
-    var wl = l4iStorage.Get(
-      l4iSession.Get("hp-speceditor-modname") +
+    var wl = lynkui.storage.get(
+      lynkui.session.get("hp-speceditor-modname") +
         "_laysize_" +
         l9rLayout.cols[i].id
     );
@@ -1117,7 +1122,7 @@ l9rLayout.Initialize = function () {
     if (wl !== undefined && parseInt(wl) > 0) {
       l9rLayout.cols[i].width = parseInt(wl);
     } else {
-      var ws = l4iSession.Get("laysize_" + l9rLayout.cols[i].id);
+      var ws = lynkui.session.get("laysize_" + l9rLayout.cols[i].id);
       if (ws !== undefined && parseInt(ws) > 0) {
         l9rLayout.cols[i].width = parseInt(ws);
       }
@@ -1191,16 +1196,16 @@ l9rLayout.BindRefresh = function () {
       l9rLayout.cols[leftIndexId].width = leftWidthNew;
       l9rLayout.cols[rightIndexId].width = rightWidthNew;
 
-      l4iStorage.Set(
-        l4iSession.Get("hp-speceditor-modname") + "_laysize_" + leftLayId,
+      lynkui.storage.set(
+        lynkui.session.get("hp-speceditor-modname") + "_laysize_" + leftLayId,
         leftWidthNew
       );
-      l4iSession.Set("laysize_" + leftLayId, leftWidthNew);
-      l4iStorage.Set(
-        l4iSession.Get("hp-speceditor-modname") + "_laysize_" + rightLayId,
+      lynkui.session.set("laysize_" + leftLayId, leftWidthNew);
+      lynkui.storage.set(
+        lynkui.session.get("hp-speceditor-modname") + "_laysize_" + rightLayId,
         rightWidthNew
       );
-      l4iSession.Set("laysize_" + rightLayId, rightWidthNew);
+      lynkui.session.set("laysize_" + rightLayId, rightWidthNew);
 
       setTimeout(function () {
         l9rLayout.Resize();
@@ -1270,6 +1275,14 @@ l9rLayout.ColumnSet = function (options) {
   }
 };
 
+l9rLayout.ViewportHeight = function () {
+  return (
+    window.innerHeight ||
+    document.documentElement.clientHeight || // 标准模式下的 <html> 元素
+    document.body.clientHeight
+  ); // 怪异模式下的 <body> 元素
+};
+
 l9rLayout.Resize = function () {
   // console.log("l9rLayout.Resize");
 
@@ -1278,7 +1291,7 @@ l9rLayout.Resize = function () {
   var colSep = 20;
 
   //
-  var bodyHeight = $("body").height();
+  var bodyHeight = l9rLayout.ViewportHeight(); // $("body").height();
   var bodyWidth = $("body").width() - 20;
   if (bodyWidth != l9rLayout.width) {
     l9rLayout.width = bodyWidth;

@@ -50,8 +50,8 @@
     $(this).addClass("active");
 
     hpNode.SpecNodeModelActive($(this).attr("tgname"));
-    l4iStorage.Del("hpm_nodels_page");
-    l4iStorage.Del("hpm_termls_page");
+    lynkui.storage.del("hpm_nodels_page");
+    lynkui.storage.del("hpm_termls_page");
 
     hpNode.List(null, $(this).attr("tgname"));
   });
@@ -62,8 +62,8 @@
     $(this).addClass("active");
 
     hpTerm.SpecTermModelActive($(this).attr("tgname"));
-    l4iStorage.Del("hpm_nodels_page");
-    l4iStorage.Del("hpm_termls_page");
+    lynkui.storage.del("hpm_nodels_page");
+    lynkui.storage.del("hpm_termls_page");
 
     hpTerm.List(null, $(this).attr("tgname"));
   });

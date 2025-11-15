@@ -41,29 +41,13 @@ hp.Boot = function () {
     hp.base = "/";
   }
 
-  seajs.config({
-    base: hp.base,
-    alias: {
-      ep: "~/lessui/js/eventproxy.js" + hp.urlver(true),
-    },
+  lynkui.use([], function () {
+    setTimeout(function () {
+      for (var i in window.onload_hooks) {
+        window.onload_hooks[i]();
+      }
+    }, 100);
   });
-
-  seajs.use(
-    [
-      "~/hp/js/jquery.js" + hp.urlver(true),
-      "~/lessui/js/eventproxy.js" + hp.urlver(true),
-      "~/lessui/css/base.css" + hp.urlver(),
-    ],
-    function () {
-      seajs.use(["~/lessui/js/lessui.js" + hp.urlver()], function () {
-        setTimeout(function () {
-          for (var i in window.onload_hooks) {
-            window.onload_hooks[i]();
-          }
-        }, 100);
-      });
-    }
-  );
 };
 
 hp.HttpSrvBasePath = function (url) {
@@ -179,10 +163,10 @@ hp.CodeRender = function (options) {
     } else {
       options.theme = "default";
     }
-    seajs.use(deps, function () {
+    lynkui.use(deps, function () {
       modes.push("~/cm/5/addon/runmode/runmode.js" + hp.urlver(true));
       modes.push("~/cm/5/mode/clike/clike.js" + hp.urlver(true));
-      seajs.use(modes, function () {
+      lynkui.use(modes, function () {
         if (options.theme != "default") {
           $(el).addClass("CodeMirror");
         }
@@ -196,7 +180,7 @@ hp.CodeRender = function (options) {
 hp.hchartRender = function (i, elem) {
   var elem_id = "hchart-id-" + i;
   elem.setAttribute("id", elem_id);
-  seajs.use(["~/hchart/hchart.js" + hp.urlver(true)], function () {
+  lynkui.use(["~/hchart/hchart.js" + hp.urlver(true)], function () {
     hooto_chart.basepath = hp.base + "/~/hchart";
     hooto_chart.opts_width = "600px";
     hooto_chart.opts_height = "400px";
@@ -205,7 +189,7 @@ hp.hchartRender = function (i, elem) {
 };
 
 hp.mathRender = function (i, elem) {
-  seajs.use(["~/katex/0.10/katex.css", "~/katex/0.10/katex.js"], function () {
+  lynkui.use(["~/katex/0.10/katex.css", "~/katex/0.10/katex.js"], function () {
     var txt = elem.innerHTML.replace(/\\‘/g, "'");
     txt = txt.replace(/\\“/g, '"');
     txt = txt.replace(/\&amp;/g, "&");
@@ -270,7 +254,7 @@ hp.Ajax = function (url, options) {
     url = hp.HttpSrvBasePath(url);
   }
 
-  l4i.Ajax(url, options);
+  lynkui.utilx.ajax(url, options);
 };
 
 hp.ActionLoader = function (target, url) {
@@ -289,7 +273,7 @@ hp.AuthSessionRefresh = function () {
   hp.Ajax(hp.HttpSrvBasePath("auth/session"), {
     callback: function (err, data) {
       if (err || !data || data.kind != "AuthSession") {
-        return l4iTemplate.Render({
+        return lynkui.template.render({
           dstid: "hp-topbar-userbar",
           tplid: "hp-topbar-user-unsigned-tpl",
         });
@@ -299,7 +283,7 @@ hp.AuthSessionRefresh = function () {
         return (window.location = "/hp/mgr");
       }
 
-      l4iTemplate.Render({
+      lynkui.template.render({
         dstid: "hp-topbar-userbar",
         tplid: "hp-topbar-user-signed-tpl",
         data: data,
@@ -309,7 +293,7 @@ hp.AuthSessionRefresh = function () {
 };
 
 hp.LangChange = function (t) {
-  l4iCookie.Set("lang", t.value, null, "/");
+  lynkui.cookie.set("lang", t.value, null, "/");
   window.location.reload(true);
 };
 
@@ -339,7 +323,7 @@ hp.NavbarMenuToggle = function (tplid) {
 };
 
 hp.NavbarMenuUserToggle = function () {
-  l4iModal.Open({
+  lynkui.modal.open({
     position: "cursor",
     title: "User Overview",
     tplid: "hp-topbar-user-signed-modal",
@@ -349,12 +333,12 @@ hp.NavbarMenuUserToggle = function () {
     buttons: [
       {
         title: "Close",
-        onclick: "l4iModal.Close()",
+        onclick: "lynkui.modal.close()",
       },
     ],
   });
 };
 
 hp.NavbarMenuUserClose = function () {
-  l4iModal.Close();
+  lynkui.modal.close();
 };

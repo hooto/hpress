@@ -17,11 +17,11 @@ var hpS2 = {
 };
 
 hpS2.Init = function () {
-  l4i.UrlEventRegister("s2/index", hpS2.Index, "hpm-topbar");
+  lynkui.url.eventRegister("s2/index", hpS2.Index, "hpm-topbar");
 };
 
 hpS2.Index = function () {
-  l4iStorage.Set("hpm_nav_last_active", "s2/index");
+  lynkui.storage.set("hpm_nav_last_active", "s2/index");
 
   hpMgr.TplCmd("s2/index", {
     callback: function (err, data) {
@@ -50,7 +50,7 @@ hpS2.ObjListSelector = function (cb, options) {
 };
 
 hpS2.ObjListSelectorRefreshRender = function (path, data) {
-  l4iTemplate.Render({
+  lynkui.template.render({
     dstid: "hpm-s2-objls",
     tplid: "hpm-s2-objls-tpl",
     data: data,
@@ -59,7 +59,7 @@ hpS2.ObjListSelectorRefreshRender = function (path, data) {
   var dirnav = [];
 
   //
-  path = l4i.StringTrim(path.replace(/\/+/g, "/"), "/");
+  path = lynkui.utilx.trim(path.replace(/\/+/g, "/"), "/");
 
   if (path.length > 0) {
     var prs = path.split("/");
@@ -74,7 +74,7 @@ hpS2.ObjListSelectorRefreshRender = function (path, data) {
     dirnav[0].name = "Bucket: deft";
   }
 
-  l4iTemplate.Render({
+  lynkui.template.render({
     dstid: "hpm-s2-objls-dirnav",
     tplid: "hpm-s2-objls-dirnav-tpl",
     data: {
@@ -85,104 +85,102 @@ hpS2.ObjListSelectorRefreshRender = function (path, data) {
 
 hpS2.ObjListSelectorRefresh = function (path) {
   if (!path) {
-    path = l4iStorage.Get("hpm_s2_obj_path_active");
+    path = lynkui.storage.get("hpm_s2_obj_path_active");
   } else {
     path = path.replace(/\/+/g, "/");
-    l4iStorage.Set("hpm_s2_obj_path_active", path);
+    lynkui.storage.set("hpm_s2_obj_path_active", path);
   }
   if (path) {
     path = path.replace(/\/+/g, "/");
   }
   if (path.indexOf(hpS2.bucket) != 0) {
     path = hpS2.bucket;
-    l4iStorage.Set("hpm_s2_obj_path_active", path);
+    lynkui.storage.set("hpm_s2_obj_path_active", path);
   }
 
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create("tpl", "data", function (tpl, data) {
-      if (!data || !data.kind) {
-        return;
-      }
-
-      if (!data.items) {
-        data.items = [];
-      }
-
-      data._path = path;
-
-      var items = [];
-
-      for (var i in data.items) {
-        var name = data.items[i].name;
-
-        data.items[i]._id = l4iString.CryptoMd5(path + "/" + name);
-        data.items[i]._abspath = path + "/" + name;
-
-        var ext = null;
-        var n = name.lastIndexOf(".");
-        if (n > 0) {
-          ext = name.toLowerCase().substr(n + 1);
-        } else {
-          continue;
-        }
-
-        if (
-          ext == "jpg" ||
-          ext == "jpeg" ||
-          ext == "png" ||
-          ext == "gif" ||
-          ext == "svg"
-        ) {
-          data.items[i]._isimg = true;
-        } else {
-          data.items[i]._isimg = false;
-        }
-        if (!data.items[i]._isimg && hpS2.selector_opts.image_only) {
-          continue;
-        }
-        items.push(data.items[i]);
-      }
-
-      data.items = items;
-
-      if (tpl) {
-        l4iModal.Open({
-          title: "Select Images",
-          tplsrc: tpl,
-          width: 1000,
-          height: 700,
-          buttons: [
-            {
-              title: "Cancel",
-              onclick: "l4iModal.Close()",
-            },
-          ],
-          callback: function () {
-            hpS2.ObjListSelectorRefreshRender(path, data);
-          },
-        });
-      } else {
-        hpS2.ObjListSelectorRefreshRender(path, data);
-      }
-    });
-
-    ep.fail(function (err) {
-      // TODO
-      alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
-    });
-
-    var el = document.getElementById("hpm-s2-objls");
-    if (!el || el.length < 1) {
-      hpMgr.TplCmd("s2/selector", {
-        callback: ep.done("tpl"),
-      });
-    } else {
-      ep.emit("tpl", null);
+  var ep = lynkui.newEventProxy("tpl", "data", function (tpl, data) {
+    if (!data || !data.kind) {
+      return;
     }
 
-    hpMgr.ApiCmd("s2-obj/list?path=" + path, {
-      callback: ep.done("data"),
+    if (!data.items) {
+      data.items = [];
+    }
+
+    data._path = path;
+
+    var items = [];
+
+    for (var i in data.items) {
+      var name = data.items[i].name;
+
+      data.items[i]._id = lynkui.utilx.cryptoMd5(path + "/" + name);
+      data.items[i]._abspath = path + "/" + name;
+
+      var ext = null;
+      var n = name.lastIndexOf(".");
+      if (n > 0) {
+        ext = name.toLowerCase().substr(n + 1);
+      } else {
+        continue;
+      }
+
+      if (
+        ext == "jpg" ||
+        ext == "jpeg" ||
+        ext == "png" ||
+        ext == "gif" ||
+        ext == "svg"
+      ) {
+        data.items[i]._isimg = true;
+      } else {
+        data.items[i]._isimg = false;
+      }
+      if (!data.items[i]._isimg && hpS2.selector_opts.image_only) {
+        continue;
+      }
+      items.push(data.items[i]);
+    }
+
+    data.items = items;
+
+    if (tpl) {
+      lynkui.modal.open({
+        title: "Select Images",
+        tplsrc: tpl,
+        width: 1000,
+        height: 700,
+        buttons: [
+          {
+            title: "Cancel",
+            onclick: "lynkui.modal.close()",
+          },
+        ],
+        callback: function () {
+          hpS2.ObjListSelectorRefreshRender(path, data);
+        },
+      });
+    } else {
+      hpS2.ObjListSelectorRefreshRender(path, data);
+    }
+  });
+
+  ep.fail(function (err) {
+    // TODO
+    alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
+  });
+
+  var el = document.getElementById("hpm-s2-objls");
+  if (!el || el.length < 1) {
+    hpMgr.TplCmd("s2/selector", {
+      callback: ep.done("tpl"),
     });
+  } else {
+    ep.emit("tpl", null);
+  }
+
+  hpMgr.ApiCmd("s2-obj/list?path=" + path, {
+    callback: ep.done("data"),
   });
 };
 
@@ -192,22 +190,22 @@ hpS2.ObjListSelectorEntry = function (path) {
   }
   hpS2.selector_opts.path = path;
   hpS2.selector_cb(hpS2.selector_opts);
-  l4iModal.Close();
+  lynkui.modal.close();
 };
 
 hpS2.ObjList = function (path) {
   if (!path) {
-    path = l4iStorage.Get("hpm_s2_obj_path_active");
+    path = lynkui.storage.get("hpm_s2_obj_path_active");
     if (!path) {
       path = hpS2.bucket;
     }
   }
 
   path = path.replace(/\/+/g, "/");
-  l4iStorage.Set("hpm_s2_obj_path_active", path);
+  lynkui.storage.set("hpm_s2_obj_path_active", path);
   if (path.indexOf(hpS2.bucket) != 0) {
     path = hpS2.bucket;
-    l4iStorage.Set("hpm_s2_obj_path_active", path);
+    lynkui.storage.set("hpm_s2_obj_path_active", path);
   }
 
   hpMgr.ApiCmd("s2-obj/list?path=" + path, {
@@ -225,7 +223,7 @@ hpS2.ObjList = function (path) {
       for (var i in data.items) {
         var name = data.items[i].name;
 
-        data.items[i]._id = l4iString.CryptoMd5(path + "/" + name);
+        data.items[i]._id = lynkui.utilx.cryptoMd5(path + "/" + name);
 
         data.items[i]._abspath = path + "/" + name;
 
@@ -248,7 +246,7 @@ hpS2.ObjList = function (path) {
         }
       }
 
-      l4iTemplate.Render({
+      lynkui.template.render({
         dstid: "hpm-s2-objls",
         tplid: "hpm-s2-objls-tpl",
         data: data,
@@ -257,7 +255,7 @@ hpS2.ObjList = function (path) {
       var dirnav = [];
 
       //
-      path = l4i.StringTrim(path, "/");
+      path = lynkui.utilx.trim(path, "/");
       if (path.length > 0) {
         var prs = path.split("/");
         var ppath = "";
@@ -271,7 +269,7 @@ hpS2.ObjList = function (path) {
         dirnav[0].name = "Bucket: deft";
       }
 
-      l4iTemplate.Render({
+      lynkui.template.render({
         dstid: "hpm-s2-objls-dirnav",
         tplid: "hpm-s2-objls-dirnav-tpl",
         data: {
@@ -391,7 +389,7 @@ function hps2_fsUploadCommit(reqid, file, cap) {
             if (items.length >= cap) {
               setTimeout(function () {
                 hpS2.ObjList(ppath);
-                l4iModal.Close();
+                lynkui.modal.close();
               }, 1000);
             }
           }
@@ -427,12 +425,12 @@ hpS2.fsUploadAreaId = "hpm-s2-fsupload-area";
 
 hpS2.ObjNew = function (type, path, file) {
   if (!path) {
-    path = l4iStorage.Get("hpm_s2_obj_path_active");
+    path = lynkui.storage.get("hpm_s2_obj_path_active");
     if (!path) {
       path = "/";
     }
   }
-  path = "/" + l4i.StringTrim(path.replace(/\/+/g, "/"), "/") + "/";
+  path = "/" + lynkui.utilx.trim(path.replace(/\/+/g, "/"), "/") + "/";
 
   var formid = Math.random().toString(36).slice(2);
 
@@ -454,7 +452,7 @@ hpS2.ObjNew = function (type, path, file) {
         style: "btn-primary",
       },
       {
-        onclick: "l4iModal.Close()",
+        onclick: "lynkui.modal.close()",
         title: "Close",
       },
     ],
@@ -513,7 +511,7 @@ hpS2.ObjNew = function (type, path, file) {
     },
   };
 
-  l4iModal.Open(req);
+  lynkui.modal.open(req);
 };
 
 hpS2.ObjNewSave = function (formid) {
@@ -550,7 +548,7 @@ hpS2._objNewUpload = function (formid, file) {
             hpS2.ObjList(ppath);
 
             setTimeout(function () {
-              l4iModal.Close();
+              lynkui.modal.close();
             }, 1000);
           } else {
             if (rsp.error) {
@@ -587,7 +585,7 @@ hpS2.ObjDel = function (path) {
   hpMgr.ApiCmd("s2-obj/del?path=" + path, {
     callback: function (err, data) {
       if (data.kind && data.kind == "FsFile") {
-        $("#obj" + l4iString.CryptoMd5(path)).remove();
+        $("#obj" + lynkui.utilx.cryptoMd5(path)).remove();
       } else if (data.error) {
         alert(data.error.message);
       }

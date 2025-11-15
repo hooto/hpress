@@ -62,7 +62,7 @@
     <script type="text/javascript">
       {{if .entry.ExtCommentEnable}}
       window.onload_hooks.push(function() {
-          seajs.use([
+          lynkui.use([
               "+/comment/~/index.js",
               "+/comment/~/index.css",
           ],

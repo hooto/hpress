@@ -1,7 +1,6 @@
 <style>
   .page-header {
     margin: 10px 0;
-    font-height: 100%;
   }
   .hp-sys-table {
     font-size: 10pt;
@@ -32,7 +31,7 @@
       </tr>
       <tr>
         <td>Uptime</td>
-        <td>{[=l4i.TimeParseFormat(it.uptime, "Y-m-d H:i:s")]}</td>
+        <td>{[=lynkui.utilx.timeParseFormat(it.uptime, "Y-m-d H:i:s")]}</td>
       </tr>
 
       <tr class="line">

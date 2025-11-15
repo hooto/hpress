@@ -33,13 +33,13 @@
         </div>
 
         <div id="lctab-bar{[=it.tabid]}" class="lctab-bar"></div>
-        <div id="lctab-body{[=it.tabid]}" class="lctab-body less_scroll"></div>
+        <div id="lctab-body{[=it.tabid]}" class="lctab-body lynkui-scroll"></div>
       </td>
     </tr>
   </table>
 </div>
 
-<div id="lctab-openfiles-ol" class="less_scroll"></div>
+<div id="lctab-openfiles-ol" class="lynkui-scroll"></div>
 
 <script id="hp-speceditor-fsnav-tpl" type="text/html">
   <div class="lcx-fsnav">
@@ -97,7 +97,7 @@
   </div>
 
   <!-- Project Files Tree -->
-  <div id="lcbind-fsnav-fstree" class="less_scroll">
+  <div id="lcbind-fsnav-fstree" class="lynkui-scroll">
     <div id="fstdroot" class="lcx-fstree">loading</div>
   </div>
 </script>

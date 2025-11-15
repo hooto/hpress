@@ -65,8 +65,8 @@ l9rTab.Open = function (options) {
     options.target = l9rTab.def;
   }
 
-  var urid = l4iString.CryptoMd5(
-    l4iSession.Get("hp-speceditor-modname") + options.uri
+  var urid = lynkui.utilx.cryptoMd5(
+    lynkui.session.get("hp-speceditor-modname") + options.uri
   );
 
   if (!l9rTab.frame[options.target]) {
@@ -80,7 +80,7 @@ l9rTab.Open = function (options) {
 
   if (!l9rTab.pool[urid]) {
     l9rTab.pool[urid] = {
-      modname: l4iSession.Get("hp-speceditor-modname"),
+      modname: lynkui.session.get("hp-speceditor-modname"),
       url: options.uri,
       colid: options.colid,
       target: options.target,
@@ -107,7 +107,7 @@ l9rTab.Open = function (options) {
   }
 
   if (document.getElementById("lctab-box" + options.target) == null) {
-    var tpl = l4iTemplate.RenderByID("lctab-tpl", {
+    var tpl = lynkui.template.renderById("lctab-tpl", {
       tabid: l9rTab.def,
     });
 
@@ -146,7 +146,7 @@ l9rTab.Switch = function (urid, options) {
     return;
   }
 
-  if (item.modname != l4iSession.Get("hp-speceditor-modname")) {
+  if (item.modname != lynkui.session.get("hp-speceditor-modname")) {
     return;
   }
 
@@ -199,18 +199,18 @@ l9rTab.Switch = function (urid, options) {
           return;
         }
 
-        // if (item.modname != l4iSession.Get("hp-speceditor-modname")) {
+        // if (item.modname != lynkui.session.get("hp-speceditor-modname")) {
         //     // return;
         // }
 
         //console.log("lcEditor.TabletOpen OK");
         l9rTab.TabletTitleImage(urid);
         l9rTab.frame[item.target].urid = urid;
-        // l4iStorage.Set("tab.fra.urid."+ item.target, urid);
+        // lynkui.storage.set("tab.fra.urid."+ item.target, urid);
 
         if (!options.refreshActiveStorageOff) {
-          l4iStorage.Set(
-            l4iSession.Get("hp-speceditor-modname") + ".cab." + item.target,
+          lynkui.storage.set(
+            lynkui.session.get("hp-speceditor-modname") + ".cab." + item.target,
             urid
           );
         }
@@ -306,13 +306,13 @@ l9rTab.TabletTitle = function (urid, loading) {
     $("#pgtab" + urid).addClass("current");
   }
 
-  var pg = $("#lctab-nav" + item.target + " .lctab-navm").innerWidth();
+  var pg = $("#lctab-nav" + item.target + " .lctab-navm").width();
   //console.log("h5c-tablet-tabs t*"+ pg);
 
   var tabp = $("#pgtab" + urid).position();
   //console.log("tab pos left:"+ tabp.left);
 
-  var mov = tabp.left + $("#pgtab" + urid).outerWidth(true) - pg;
+  var mov = tabp.left + $("#pgtab" + urid).width() - pg;
   if (mov < 0) {
     mov = 0;
   }
@@ -323,7 +323,7 @@ l9rTab.TabletTitle = function (urid, loading) {
       .position().left +
     $("#lctab-navtabs" + item.target + " .pgtab")
       .last()
-      .outerWidth(true);
+      .width();
 
   if (pgl > pg) {
     //$('#lctab-nav'+ item.target +' .lcpg-tab-more').show();
@@ -365,7 +365,7 @@ l9rTab.TabletMore = function (tg) {
   }
   $("#lctab-openfiles-ol").empty().html(ol);
 
-  e = l4i.PosGet();
+  e = lynkui.utilx.pos();
   w = 100;
   h = 100;
   //console.log("event top:"+e.top+", left:"+e.left);
@@ -379,7 +379,7 @@ l9rTab.TabletMore = function (tg) {
     })
     .toggle();
 
-  rw = $("#lctab-openfiles-ol").outerWidth(true);
+  rw = $("#lctab-openfiles-ol").width();
   if (rw > 400) {
     $("#lctab-openfiles-ol").css({
       width: "400px",
@@ -415,7 +415,7 @@ l9rTab.ScrollTop = function (urid) {
     return;
   }
 
-  $("#lctab-body" + item.target + ".less_scroll").scrollTop(0);
+  $("#lctab-body" + item.target + ".lynkui-scroll").scrollTop(0);
 };
 
 l9rTab.Close = function (urid, force) {
@@ -437,7 +437,7 @@ l9rTab.Close = function (urid, force) {
             return;
           }
 
-          l4iModal.Open({
+          lynkui.modal.open({
             title: "Save changes before closing",
             tpluri: hpMgr.frtbase + "~/hpm/editor/changes2save.tpl",
             width: 500,
@@ -457,7 +457,7 @@ l9rTab.Close = function (urid, force) {
                 title: "Close without Saving",
               },
               {
-                onclick: "l4iModal.Close()",
+                onclick: "lynkui.modal.close()",
                 title: "Close",
               },
             ],

@@ -29,7 +29,7 @@ hpComment.EmbedCommit = function() {
 
 
             if (err) {
-                return l4i.InnerAlert(alertid, 'alert-danger', err);
+                return lynkui.alert.innerShow(alertid, 'alert-danger', err);
             }
 
             if (!data || data.error) {
@@ -42,19 +42,19 @@ hpComment.EmbedCommit = function() {
                         hp.HttpSrvBasePath("+/hcaptcha/api/image?hcaptcha_token=" + captcha_token));
                 }
 
-                return l4i.InnerAlert(alertid, 'alert-danger', data.error.message);
+                return lynkui.alert.innerShow(alertid, 'alert-danger', data.error.message);
             }
 
             if (!data.kind || data.kind != "Comment") {
-                return l4i.InnerAlert(alertid, 'alert-danger', "Network Exception");
+                return lynkui.alert.innerShow(alertid, 'alert-danger', "Network Exception");
             }
 
             req.meta = {
                 id: data.meta.id,
-                created: l4i.TimeParseFormat(data.meta.created, "Y-m-d H:i"),
+                created: lynkui.utilx.timeParseFormat(data.meta.created, "Y-m-d H:i"),
             };
 
-            l4iTemplate.Render({
+            lynkui.template.render({
                 dstid: "hp-comment-embed-list",
                 tplid: "hp-comment-embed-tpl",
                 data: req,
@@ -80,7 +80,7 @@ hpComment.EmbedCommit = function() {
             form.find("textarea[name=content]").val("");
             form.find("input[name=captcha_word]").val("");
 
-            l4i.InnerAlert(alertid, 'alert-success', "Successfully commited");
+            lynkui.alert.innerShow(alertid, 'alert-success', "Successfully commited");
 
             setTimeout(function() {
                 hpComment.EmbedFormHidden();

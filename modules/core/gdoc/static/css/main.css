@@ -7,11 +7,7 @@ a:hover {
 }
 
 body .container {
-  max-width: 1400px !important;
-}
-
-#hp-topbar {
-  min-height: 70px !important;
+  _max-width: 1400px !important;
 }
 
 #hp-topbar .nav-link {
@@ -195,13 +191,6 @@ body .container {
 .hp-gdoc-page-toc-menu a {
   color: #6c757d;
   text-decoration: none;
-  /**
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden !important;
-  text-overflow: ellipsis;
-  width: auto;
-  */
 }
 
 .hp-gdoc-page-toc-menu a:hover {
@@ -282,7 +271,6 @@ body .container {
   .hp-gdoc-entry-summary {
     position: relative;
     height: auto;
-    _margin-top: 10px;
     background-color: #fff;
     border-radius: 2px;
     box-shadow: 0px 1px 2px 0px #666;

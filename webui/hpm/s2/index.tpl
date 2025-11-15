@@ -67,7 +67,9 @@
       {[?!v.isdir]} {[=hpS2.UtilResourceSizeFormat(v.size)]}
     </td>
     {[?]}
-    <td align="right">{[=l4i.TimeParseFormat(v.modtime, "Y-m-d H:i:s")]}</td>
+    <td align="right">
+      {[=lynkui.utilx.timeParseFormat(v.modtime, "Y-m-d H:i:s")]}
+    </td>
     <td align="right">
       {[ if (!v.isdir) { ]}
       <a

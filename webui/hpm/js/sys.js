@@ -32,15 +32,15 @@ var hpSys = {
 };
 
 hpSys.Init = function () {
-  l4i.UrlEventRegister("sys/index", hpSys.Index, "hpm-topbar");
+  lynkui.url.eventRegister("sys/index", hpSys.Index, "hpm-topbar");
 
-  l4i.UrlEventRegister("sys/status", hpSys.Status, "hpm-sys-nav");
-  l4i.UrlEventRegister("sys/iam-status", hpSys.IamStatus, "hpm-sys-nav");
-  l4i.UrlEventRegister("sys/config", hpSys.Config, "hpm-sys-nav");
+  lynkui.url.eventRegister("sys/status", hpSys.Status, "hpm-sys-nav");
+  lynkui.url.eventRegister("sys/iam-status", hpSys.IamStatus, "hpm-sys-nav");
+  lynkui.url.eventRegister("sys/config", hpSys.Config, "hpm-sys-nav");
 };
 
 hpSys.Index = function () {
-  l4iStorage.Set("hpm_nav_last_active", "sys/index");
+  lynkui.storage.set("hpm_nav_last_active", "sys/index");
 
   hpMgr.TplCmd("sys/index", {
     callback: function (err, data) {
@@ -53,36 +53,34 @@ hpSys.Index = function () {
 };
 
 hpSys.Config = function () {
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create("tpl", "data", function (tpl, data) {
-      if (!data) {
-        return;
+  var ep = lynkui.newEventProxy("tpl", "data", function (tpl, data) {
+    if (!data) {
+      return;
+    }
+
+    for (var i in data.items) {
+      if (!data.items[i].comment) {
+        data.items[i].comment = "";
       }
+    }
 
-      for (var i in data.items) {
-        if (!data.items[i].comment) {
-          data.items[i].comment = "";
-        }
-      }
-
-      l4iTemplate.Render({
-        dstid: "work-content",
-        tplsrc: tpl,
-        data: data,
-      });
+    lynkui.template.render({
+      dstid: "work-content",
+      tplsrc: tpl,
+      data: data,
     });
+  });
 
-    ep.fail(function (err) {
-      alert("Error: Please try again later");
-    });
+  ep.fail(function (err) {
+    alert("Error: Please try again later");
+  });
 
-    hpMgr.ApiCmd("sys/config-list", {
-      callback: ep.done("data"),
-    });
+  hpMgr.ApiCmd("sys/config-list", {
+    callback: ep.done("data"),
+  });
 
-    hpMgr.TplCmd("sys/config", {
-      callback: ep.done("tpl"),
-    });
+  hpMgr.TplCmd("sys/config", {
+    callback: ep.done("tpl"),
   });
 };
 
@@ -103,7 +101,7 @@ hpSys.ConfigSetCommit = function () {
       });
     });
   } catch (err) {
-    l4i.InnerAlert(alertid, "alert-danger", err);
+    lynkui.alert.innerShow(alertid, "danger", err);
     return;
   }
 
@@ -113,99 +111,95 @@ hpSys.ConfigSetCommit = function () {
     callback: function (err, data) {
       if (!data || !data.kind || data.kind != "SysConfigList") {
         if (data.error) {
-          return l4i.InnerAlert(alertid, "alert-danger", data.error.message);
+          return lynkui.alert.innerShow(alertid, "danger", data.error.message);
         }
 
-        return l4i.InnerAlert(
+        return lynkui.alert.innerShow(
           alertid,
-          "alert-danger",
+          "danger",
           "Network Connection Exception"
         );
       }
 
-      l4i.InnerAlert(alertid, "alert-success", "Successful updated");
+      lynkui.alert.innerShow(alertid, "success", "Successful updated");
     },
   });
 };
 
 hpSys.Status = function () {
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create("tpl", "data", function (tpl, data) {
-      if (!data) {
-        return;
-      }
+  var ep = lynkui.newEventProxy("tpl", "data", function (tpl, data) {
+    if (!data) {
+      return;
+    }
 
-      // data._items = {};
-      // for (var i in data.items) {
-      //     data._items[data.items[i]["key"]] = data.items[i]["val"];
-      // }
+    // data._items = {};
+    // for (var i in data.items) {
+    //     data._items[data.items[i]["key"]] = data.items[i]["val"];
+    // }
 
-      l4iTemplate.Render({
-        dstid: "work-content",
-        tplsrc: tpl,
-        data: data,
-      });
+    lynkui.template.render({
+      dstid: "work-content",
+      tplsrc: tpl,
+      data: data,
     });
+  });
 
-    ep.fail(function (err) {
-      alert("Error: Please try again later");
-    });
+  ep.fail(function (err) {
+    alert("Error: Please try again later");
+  });
 
-    hpMgr.ApiCmd("sys/status", {
-      callback: ep.done("data"),
-    });
+  hpMgr.ApiCmd("sys/status", {
+    callback: ep.done("data"),
+  });
 
-    hpMgr.TplCmd("sys/status", {
-      callback: ep.done("tpl"),
-    });
+  hpMgr.TplCmd("sys/status", {
+    callback: ep.done("tpl"),
   });
 };
 
 hpSys.IamStatus = function () {
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create("tpl", "data", function (tpl, data) {
-      if (!data) {
-        return;
-      }
+  var ep = lynkui.newEventProxy("tpl", "data", function (tpl, data) {
+    if (!data) {
+      return;
+    }
 
-      if (!data.instance_self.privileges) {
-        data.instance_self.privileges = [];
+    if (!data.instance_self.privileges) {
+      data.instance_self.privileges = [];
+    }
+    for (var i in data.instance_self.privileges) {
+      if (!data.instance_self.privileges[i].roles) {
+        data.instance_self.privileges[i].roles = [];
       }
-      for (var i in data.instance_self.privileges) {
-        if (!data.instance_self.privileges[i].roles) {
-          data.instance_self.privileges[i].roles = [];
-        }
-      }
+    }
 
-      if (!data.instance_registered.privileges) {
-        data.instance_registered.privileges = [];
+    if (!data.instance_registered.privileges) {
+      data.instance_registered.privileges = [];
+    }
+    for (var i in data.instance_registered.privileges) {
+      if (!data.instance_registered.privileges[i].roles) {
+        data.instance_registered.privileges[i].roles = [];
       }
-      for (var i in data.instance_registered.privileges) {
-        if (!data.instance_registered.privileges[i].roles) {
-          data.instance_registered.privileges[i].roles = [];
-        }
-      }
+    }
 
-      data._roles = hpSys.roles;
+    data._roles = hpSys.roles;
 
-      l4iTemplate.Render({
-        dstid: "work-content",
-        tplsrc: tpl,
-        data: data,
-      });
+    lynkui.template.render({
+      dstid: "work-content",
+      tplsrc: tpl,
+      data: data,
     });
+  });
 
-    ep.fail(function (err) {
-      alert("Error: Please try again later");
-    });
+  ep.fail(function (err) {
+    alert("Error: Please try again later");
+  });
 
-    hpMgr.ApiCmd("sys/iam-status", {
-      callback: ep.done("data"),
-    });
+  hpMgr.ApiCmd("sys/iam-status", {
+    callback: ep.done("data"),
+  });
 
-    hpMgr.TplCmd("sys/iam-status", {
-      callback: ep.done("tpl"),
-    });
+  hpMgr.TplCmd("sys/iam-status", {
+    callback: ep.done("tpl"),
   });
 };
 
@@ -228,17 +222,17 @@ hpSys.IamSync = function () {
     callback: function (err, data) {
       if (!data || data.kind != "AppInstanceRegister") {
         if (data.error) {
-          return l4i.InnerAlert(alert_id, "alert-danger", data.error.message);
+          return lynkui.alert.innerShow(alert_id, "danger", data.error.message);
         }
 
-        return l4i.InnerAlert(
+        return lynkui.alert.innerShow(
           alert_id,
-          "alert-danger",
+          "danger",
           "Network Connection Exception"
         );
       }
 
-      l4i.InnerAlert(alert_id, "alert-success", "Successful registered");
+      lynkui.alert.innerShow(alert_id, "success", "Successful registered");
 
       window.setTimeout(function () {
         hpSys.IamStatus();

@@ -64,65 +64,31 @@ hpMgr.Boot = function () {
     false
   );
 
-  seajs.config({
-    base: hpMgr.frtbase,
-    alias: {
-      ep: "~/lessui/js/eventproxy.js" + hpMgr.urlver(),
-    },
-  });
-
-  seajs.use(
+  lynkui.use(
     [
-      "~/lessui/js/browser-detect.js" + hpMgr.urlver(),
-      "~/hp/js/jquery.js" + hpMgr.urlver(),
-      "~/lessui/js/eventproxy.js" + hpMgr.urlver(),
+      "lynkui/~/bs/v5/css/bootstrap.css" + hpMgr.urlver(),
+      "~/hp/css/main.v2.css" + hpMgr.urlver(),
+      "~/hp/js/marked.js" + hpMgr.urlver(),
+      "~/hpm/css/main.css" + hpMgr.urlver(),
+      "~/hpm/css/defx.css" + hpMgr.urlver(),
+      "~/hpm/js/spec.js" + hpMgr.urlver(),
+      "~/hpm/js/spec-editor.js" + hpMgr.urlver(),
+      "~/hpm/js/tablet.js" + hpMgr.urlver(),
+      "~/hpm/js/lc-editor.js" + hpMgr.urlver(),
+      "~/hpm/js/model.js" + hpMgr.urlver(),
+      "~/hpm/js/term.js" + hpMgr.urlver(),
+      "~/hpm/js/node.js" + hpMgr.urlver(),
+      "~/hpm/js/sys.js" + hpMgr.urlver(),
+      "~/hpm/js/s2.js" + hpMgr.urlver(),
+      "~/hpm/js/editor.js" + hpMgr.urlver(),
     ],
     function () {
-      var browser = BrowserDetect.browser;
-      var version = BrowserDetect.version;
-      var OS = BrowserDetect.OS;
-
-      if (
-        !(
-          (browser == "Chrome" && version >= 22) ||
-          (browser == "Firefox" && version >= 31.0)
-        )
-      ) {
-        $("body").load(window._basepath + "/error/browser?" + hpMgr.urlver());
-        return;
-      }
-
-      seajs.use(
-        [
-          "lynkui/~/bs/v5/css/bootstrap.css" + hpMgr.urlver(),
-          "~/lessui/js/lessui.js" + hpMgr.urlver(),
-          "~/lessui/css/lessui.css" + hpMgr.urlver(),
-          "~/hp/css/main.v2.css" + hpMgr.urlver(),
-          "~/hp/js/marked.js" + hpMgr.urlver(),
-          "~/hpm/css/main.css" + hpMgr.urlver(),
-          "~/hpm/css/defx.css" + hpMgr.urlver(),
-          "~/hpm/js/spec.js" + hpMgr.urlver(),
-          "~/hpm/js/spec-editor.js" + hpMgr.urlver(),
-          "~/hpm/js/tablet.js" + hpMgr.urlver(),
-          "~/hpm/js/lc-editor.js" + hpMgr.urlver(),
-          "~/hpm/js/model.js" + hpMgr.urlver(),
-          "~/hpm/js/term.js" + hpMgr.urlver(),
-          "~/hpm/js/node.js" + hpMgr.urlver(),
-          "~/hpm/js/sys.js" + hpMgr.urlver(),
-          "~/hpm/js/s2.js" + hpMgr.urlver(),
-          "~/hpm/js/editor.js" + hpMgr.urlver(),
-        ],
-        function () {
-          setTimeout(hpMgr.BootInit, 300);
-        }
-      );
+      setTimeout(hpMgr.BootInit, 300);
     }
   );
 };
 
 hpMgr.BootInit = function () {
-  l4i.debug = hpMgr.debug;
-
   $("#hpm-topbar").css({
     display: "block",
   });
@@ -149,11 +115,11 @@ hpMgr.BootInit = function () {
   hpS2.Init();
 
   hpNode.Init(function () {
-    var navlast = l4iStorage.Get("hpm_nav_last_active");
+    var navlast = lynkui.storage.get("hpm_nav_last_active");
     if (!navlast) {
       navlast = "sys/index";
     }
-    l4i.UrlEventHandler(navlast);
+    lynkui.url.eventHandler(navlast);
   });
 };
 
@@ -177,11 +143,11 @@ hpMgr.Ajax = function (url, options) {
     url = hpMgr.HttpSrvBasePath(url);
   }
 
-  l4i.Ajax(url, options);
+  lynkui.utilx.ajax(url, options);
 };
 
 hpMgr.AlertUserLogin = function () {
-  l4iAlert.Open(
+  lynkui.alert.open(
     "warn",
     "You are not logged in, or your login session has expired. Please sign in again",
     {
@@ -251,4 +217,93 @@ hpMgr.NotEqual = function (a, b) {
 
 hpMgr.GreaterThan = function (a, b) {
   return a > b;
+};
+
+hpMgr.Pager = function (metalist) {
+  if (!metalist.startIndex) {
+    metalist.startIndex = 0;
+  }
+
+  if (!metalist.totalResults) {
+    metalist.totalResults = 0;
+  }
+
+  if (!metalist.itemsPerList) {
+    metalist.itemsPerList = 10;
+  } else if (metalist.itemsPerList < 1) {
+    metalist.itemsPerList = 10;
+  }
+
+  if (!metalist.RangeLen) {
+    metalist.RangeLen = 10;
+  } else if (metalist.RangeLen < 1) {
+    metalist.RangeLen = 1;
+  }
+
+  var pg = {
+    ItemCount: metalist.totalResults,
+    CountPerPage: metalist.itemsPerList,
+    PageCount: 0,
+    CurrentPageNumber: 0,
+    FirstPageNumber: 0,
+    PrevPageNumber: 0,
+    NextPageNumber: 0,
+    LastPageNumber: 0,
+    RangeLen: metalist.RangeLen,
+    RangeStartNumber: 1,
+    RangeEndNumber: 0,
+    RangePages: [],
+  };
+
+  if (metalist.startIndex > 0) {
+    pg.CurrentPageNumber =
+      parseInt(metalist.startIndex / metalist.itemsPerList) + 1;
+  }
+
+  //
+  pg.PageCount = parseInt(pg.ItemCount / pg.CountPerPage);
+  if (pg.ItemCount % pg.CountPerPage > 0) {
+    pg.PageCount++;
+  }
+
+  if (pg.CurrentPageNumber < 1) {
+    pg.CurrentPageNumber = 1;
+  } else if (pg.CurrentPageNumber > pg.PageCount) {
+    pg.CurrentPageNumber = pg.PageCount;
+  }
+
+  //
+  if (pg.CurrentPageNumber > pg.RangeLen / 2) {
+    pg.RangeStartNumber = pg.CurrentPageNumber - pg.RangeLen / 2;
+  }
+
+  pg.RangeEndNumber = pg.PageCount;
+  if (pg.RangeStartNumber + pg.RangeLen < pg.PageCount) {
+    pg.RangeEndNumber = pg.RangeStartNumber + pg.RangeLen - 1;
+  }
+
+  // taking previous page
+  if (pg.CurrentPageNumber > 1) {
+    pg.PrevPageNumber = pg.CurrentPageNumber - 1;
+  }
+
+  // taking next page
+  if (pg.CurrentPageNumber < pg.PageCount) {
+    pg.NextPageNumber = pg.CurrentPageNumber + 1;
+  }
+
+  // taking pages list
+  for (var i = pg.RangeStartNumber; i <= pg.RangeEndNumber; i++) {
+    pg.RangePages.push(i);
+  }
+
+  if (pg.RangeStartNumber > 1) {
+    pg.FirstPageNumber = 1;
+  }
+
+  if (pg.RangeEndNumber < pg.PageCount) {
+    pg.LastPageNumber = pg.PageCount;
+  }
+
+  return pg;
 };

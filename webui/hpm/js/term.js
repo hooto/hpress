@@ -17,7 +17,7 @@ var hpTerm = {
 };
 
 hpTerm.SpecActive = function () {
-  return l4iStorage.Get("hpm_spec_active");
+  return lynkui.storage.get("hpm_spec_active");
 };
 
 hpTerm.SpecTermModelActive = function (value) {
@@ -26,9 +26,9 @@ hpTerm.SpecTermModelActive = function (value) {
   }
   var k = "hpm_stm_" + hpTerm.SpecActive();
   if (value && value.length > 1) {
-    l4iStorage.Set(k, value);
+    lynkui.storage.set(k, value);
   }
-  return l4iStorage.Get(k);
+  return lynkui.storage.get(k);
 };
 
 hpTerm.List = function (modname, modelid) {
@@ -41,8 +41,8 @@ hpTerm.List = function (modname, modelid) {
   if (!modelid && hpTerm.SpecTermModelActive()) {
     modelid = hpTerm.SpecTermModelActive();
   }
-  if (l4iStorage.Get("hpm_termls_page")) {
-    page = l4iStorage.Get("hpm_termls_page");
+  if (lynkui.storage.get("hpm_termls_page")) {
+    page = lynkui.storage.get("hpm_termls_page");
   }
 
   if (!modname || !modelid) {
@@ -54,114 +54,107 @@ hpTerm.List = function (modname, modelid) {
     uri += "&qry_text=" + $("#qry_text").val();
   }
 
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create("tpl", "data", function (tpl, rsj) {
-      if (tpl) {
-        $("#work-content").html(tpl);
-      }
-
-      hpTerm.SpecTermModelActive(modelid);
-
-      if (
-        !rsj ||
-        rsj.kind != "TermList" ||
-        !rsj.items ||
-        rsj.items.length < 1
-      ) {
-        $("#hpm-nodels").empty();
-        $("#hpm-termls").empty();
-
-        l4i.InnerAlert(alertid, "alert-info", "Item Not Found");
-      } else {
-        $(alertid).hide();
-      }
-      $("#hpm-term-list-new-title").text("New " + rsj.model.title);
-
-      if (!rsj.items) {
-        rsj.items = [];
-      }
-
-      for (var i in rsj.items) {
-        rsj.items[i].created = l4i.UnixTimeFormat(
-          rsj.items[i].created,
-          "Y-m-d"
-        );
-        rsj.items[i].updated = l4i.UnixTimeFormat(
-          rsj.items[i].updated,
-          "Y-m-d H:i:s"
-        );
-
-        if (!rsj.items[i].weight) {
-          rsj.items[i].weight = 0;
-        }
-
-        if (!rsj.items[i].pid) {
-          rsj.items[i].pid = 0;
-        }
-
-        if (rsj.model.type == "taxonomy" && rsj.items[i].pid == 0) {
-          rsj.items[i]._subs = hpTerm.ListSubRange(
-            rsj.items,
-            null,
-            rsj.items[i].id,
-            0
-          );
-        }
-      }
-
-      hpTerm.taxonomy_ls_cache = rsj;
-
-      l4iTemplate.Render({
-        dstid: "hpm-termls",
-        tplid: "hpm-termls-tpl",
-        data: {
-          model: rsj.model,
-          modname: modname,
-          modelid: modelid,
-          items: rsj.items,
-        },
-        success: function () {
-          if (rsj.model.type != "taxonomy") {
-            rsj.meta.RangeLen = 20;
-
-            l4iTemplate.Render({
-              dstid: "hpm-termls-pager",
-              tplid: "hpm-termls-pager-tpl",
-              data: l4i.Pager(rsj.meta),
-            });
-          } else {
-            $("#hpm-termls-pager").empty();
-          }
-
-          hpNode.OpToolsRefresh("#hpm-node-term-opts");
-        },
-      });
-    });
-
-    ep.fail(function (err) {
-      // TODO
-      alert("SpecListRefresh error, Please try again later (EC:app-termlist)");
-    });
-
-    // template
-    var el = document.getElementById("hpm-termls");
-    if (!el || el.length < 1) {
-      hpMgr.TplCmd("term/list", {
-        callback: function (err, tpl) {
-          if (err) {
-            return ep.emit("error", err);
-          }
-
-          ep.emit("tpl", tpl);
-        },
-      });
-    } else {
-      ep.emit("tpl", null);
+  var ep = lynkui.newEventProxy("tpl", "data", function (tpl, rsj) {
+    if (tpl) {
+      $("#work-content").html(tpl);
     }
 
-    hpMgr.ApiCmd("term/list?" + uri, {
-      callback: ep.done("data"),
+    hpTerm.SpecTermModelActive(modelid);
+
+    if (!rsj || rsj.kind != "TermList" || !rsj.items || rsj.items.length < 1) {
+      $("#hpm-nodels").empty();
+      $("#hpm-termls").empty();
+
+      lynkui.alert.innerShow(alertid, "info", "Item Not Found");
+    } else {
+      $(alertid).hide();
+    }
+    $("#hpm-term-list-new-title").text("New " + rsj.model.title);
+
+    if (!rsj.items) {
+      rsj.items = [];
+    }
+
+    for (var i in rsj.items) {
+      rsj.items[i].created = lynkui.utilx.unixTimeFormat(
+        rsj.items[i].created,
+        "Y-m-d"
+      );
+      rsj.items[i].updated = lynkui.utilx.unixTimeFormat(
+        rsj.items[i].updated,
+        "Y-m-d H:i:s"
+      );
+
+      if (!rsj.items[i].weight) {
+        rsj.items[i].weight = 0;
+      }
+
+      if (!rsj.items[i].pid) {
+        rsj.items[i].pid = 0;
+      }
+
+      if (rsj.model.type == "taxonomy" && rsj.items[i].pid == 0) {
+        rsj.items[i]._subs = hpTerm.ListSubRange(
+          rsj.items,
+          null,
+          rsj.items[i].id,
+          0
+        );
+      }
+    }
+
+    hpTerm.taxonomy_ls_cache = rsj;
+
+    lynkui.template.render({
+      dstid: "hpm-termls",
+      tplid: "hpm-termls-tpl",
+      data: {
+        model: rsj.model,
+        modname: modname,
+        modelid: modelid,
+        items: rsj.items,
+      },
+      callback: function () {
+        if (rsj.model.type != "taxonomy") {
+          rsj.meta.RangeLen = 20;
+
+          lynkui.template.render({
+            dstid: "hpm-termls-pager",
+            tplid: "hpm-termls-pager-tpl",
+            data: hpMgr.Pager(rsj.meta),
+          });
+        } else {
+          $("#hpm-termls-pager").empty();
+        }
+
+        hpNode.OpToolsRefresh("#hpm-node-term-opts");
+      },
     });
+  });
+
+  ep.fail(function (err) {
+    // TODO
+    alert("SpecListRefresh error, Please try again later (EC:app-termlist)");
+  });
+
+  // template
+  var el = document.getElementById("hpm-termls");
+  if (!el || el.length < 1) {
+    hpMgr.TplCmd("term/list", {
+      callback: function (err, tpl) {
+        if (err) {
+          return ep.emit("error", err);
+        }
+
+        ep.emit("tpl", tpl);
+      },
+    });
+  } else {
+    ep.emit("tpl", null);
+  }
+
+  hpMgr.ApiCmd("term/list?" + uri, {
+    callback: ep.done("data"),
   });
 };
 
@@ -199,7 +192,7 @@ hpTerm.ListSubRange = function (ls, rs, pid, dpnum) {
 };
 
 hpTerm.ListPage = function (page) {
-  l4iStorage.Set("hpm_termls_page", parseInt(page));
+  lynkui.storage.set("hpm_termls_page", parseInt(page));
   hpTerm.List();
 };
 
@@ -219,75 +212,72 @@ hpTerm.Set = function (modname, modelid, termid) {
 
   var uri = "modname=" + modname + "&modelid=" + modelid;
 
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create("tpl", "data", function (tpl, data) {
-      if (!tpl) {
-        return; // TODO
-      }
+  var ep = lynkui.newEventProxy("tpl", "data", function (tpl, data) {
+    if (!tpl) {
+      return; // TODO
+    }
 
-      $("#work-content").html(tpl);
+    $("#work-content").html(tpl);
 
-      if (!data || data.kind != "Term") {
-        return l4i.InnerAlert(alertid, "alert-info", "Item Not Found");
-      }
+    if (!data || data.kind != "Term") {
+      return lynkui.alert.innerShow(alertid, "info", "Item Not Found");
+    }
 
-      if (!data.status) {
-        data.status = 1;
-      }
-      if (!data.weight) {
-        data.weight = 0;
-      }
-      if (!data.pid) {
-        data.pid = 0;
-      }
+    if (!data.status) {
+      data.status = 1;
+    }
+    if (!data.weight) {
+      data.weight = 0;
+    }
+    if (!data.pid) {
+      data.pid = 0;
+    }
 
-      data._taxonomy_ls = hpTerm.taxonomy_ls_cache;
+    data._taxonomy_ls = hpTerm.taxonomy_ls_cache;
 
-      $(alertid).hide();
-      hpNode.OpToolsRefresh("clean");
+    $(alertid).hide();
+    hpNode.OpToolsRefresh("clean");
 
-      l4iTemplate.Render({
-        dstid: "hpm-termset",
-        tplid: "hpm-termset-tpl",
-        data: data,
-        success: function () {},
-      });
+    lynkui.template.render({
+      dstid: "hpm-termset",
+      tplid: "hpm-termset-tpl",
+      data: data,
     });
+  });
 
-    ep.fail(function (err) {
-      // TODO
-      alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
+  ep.fail(function (err) {
+    // TODO
+    alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
+  });
+
+  hpMgr.TplCmd("term/set", {
+    callback: function (err, tpl) {
+      if (err) {
+        return ep.emit("error", err);
+      }
+      ep.emit("tpl", tpl);
+    },
+  });
+
+  if (termid) {
+    hpMgr.ApiCmd("term/entry?" + uri + "&id=" + termid, {
+      callback: ep.done("data"),
     });
-
-    hpMgr.TplCmd("term/set", {
-      callback: function (err, tpl) {
-        if (err) {
-          return ep.emit("error", err);
-        }
-        ep.emit("tpl", tpl);
+  } else {
+    hpMgr.ApiCmd("term-model/entry?" + uri, {
+      callback: function (err, data) {
+        ep.emit("data", {
+          kind: "Term",
+          model: data,
+          id: "0",
+          pid: "0",
+          title: "",
+          status: "1",
+          weight: "0",
+        });
       },
     });
-
-    if (termid) {
-      hpMgr.ApiCmd("term/entry?" + uri + "&id=" + termid, {
-        callback: ep.done("data"),
-      });
-    } else {
-      hpMgr.ApiCmd("term-model/entry?" + uri, {
-        callback: function (err, data) {
-          ep.emit("data", {
-            kind: "Term",
-            model: data,
-            id: "0",
-            pid: "0",
-            title: "",
-            status: "1",
-            weight: "0",
-          });
-        },
-      });
-    }
-  });
+  }
 };
 
 hpTerm.SetCommit = function () {
@@ -321,12 +311,12 @@ hpTerm.SetCommit = function () {
     data: JSON.stringify(req),
     callback: function (err, data) {
       if (!data || data.kind != "Term") {
-        return l4i.InnerAlert(alertid, "alert-danger", data.error.message);
+        return lynkui.alert.innerShow(alertid, "danger", data.error.message);
       }
 
       form.find("input[name=id]").val(data.id);
 
-      l4i.InnerAlert(alertid, "alert-success", "Successful operation");
+      lynkui.alert.innerShow(alertid, "success", "Successful operation");
       setTimeout(hpTerm.List, 500);
     },
   });

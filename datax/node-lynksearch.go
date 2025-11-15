@@ -300,7 +300,7 @@ func (it *NodeLynkSearchEngine) Query(bukName string, q string, qs *QuerySet) ap
 
 	rs := active.lynkSearch.Search(qr)
 	if !rs.OK() {
-		ls.Error = types.NewErrorMeta(api.ErrCodeInternalError, rs.Error().Error())
+		ls.Error = types.NewErrorMeta(api.ErrCodeInternalError, rs.Err().Error())
 		return ls
 	}
 	{

@@ -3,7 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <title>Setup : Registration to IAM Service</title>
-    <link rel="shortcut icon" type="image/x-icon" href='{{HttpSrvBasePath "hp/~/hp/img/ap.ico"}}' />
+    <link
+      rel="shortcut icon"
+      type="image/x-icon"
+      href='{{HttpSrvBasePath "hp/~/hp/img/ap.ico"}}'
+    />
+    <link
+      rel="stylesheet"
+      href="{{HttpSrvBasePath `hp/lynkui/~/bs/v5/css/bootstrap.css`}}?v={{.sys_version_sign}}"
+      type="text/css"
+    />
     <script src='{{HttpSrvBasePath "hp/lynkui/~/lynkui/main.js"}}'></script>
     <script type="text/javascript">
       lynkui.basepath = '{{HttpSrvBasePath "hp/lynkui"}}';
@@ -22,7 +31,8 @@
         <div class="card-body">
           <h3 class="card-title">Setup</h3>
           <p class="card-text">
-            Register Application to IAM (Identity &amp; Access Management) Service
+            Register Application to IAM (Identity &amp; Access Management)
+            Service
           </p>
         </div>
 
@@ -65,7 +75,13 @@
 
             <div class="mb-3">
               <label class="form-label">Application ID</label>
-              <input type="text" name="app_id" class="form-control" value="{{.app_id}}" readonly />
+              <input
+                type="text"
+                name="app_id"
+                class="form-control"
+                value="{{.app_id}}"
+                readonly
+              />
             </div>
 
             <div class="mb-3">
@@ -90,7 +106,9 @@
               />
             </div>
 
-            <div id="hp-app-reg-alert" class="alert alert-danger d-none mb-3">...</div>
+            <div id="hp-app-reg-alert" class="alert alert-danger d-none mb-3">
+              ...
+            </div>
 
             <div class="form-group2">
               <button
@@ -141,7 +159,11 @@
         }
       },
       error: function (xhr, textStatus, error) {
-        lynkui.alert.innerShow(alertid, "error", textStatus + " " + xhr.responseText);
+        lynkui.alert.innerShow(
+          alertid,
+          "error",
+          textStatus + " " + xhr.responseText
+        );
       },
     });
   }

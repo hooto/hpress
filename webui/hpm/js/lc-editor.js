@@ -69,7 +69,7 @@ lcEditor.TabletOpen = function (urid, callback) {
         (ret.ctn0_sum && ret.ctn0_sum.length > 30))
     ) {
       //l9rTab.pool[urid].data = ret.ctn1_src;
-      //l9rTab.pool[urid].hash = l4iString.CryptoMd5(ret.ctn1_src);
+      //l9rTab.pool[urid].hash = lynkui.utilx.cryptoMd5(ret.ctn1_src);
       // console.log(ret);
       lcEditor.LoadInstance(ret);
       callback(true);
@@ -82,9 +82,9 @@ lcEditor.TabletOpen = function (urid, callback) {
     //$("#lctab-body"+ item.target).prepend(t);
 
     // var req = {
-    //     "access_token" : l4iCookie.Get("access_token"),
+    //     "access_token" : lynkui.cookie.get("access_token"),
     //     "data" : {
-    //         "path" : l4iSession.Get("ProjPath") +"/"+ item.url
+    //         "path" : lynkui.session.get("ProjPath") +"/"+ item.url
     //     }
     // }
 
@@ -107,11 +107,11 @@ lcEditor.TabletOpen = function (urid, callback) {
 
       var entry = {
         id: urid,
-        modname: l4iSession.Get("hp-speceditor-modname"),
-        projdir: l4iSession.Get("hp-speceditor-modname"),
+        modname: lynkui.session.get("hp-speceditor-modname"),
+        projdir: lynkui.session.get("hp-speceditor-modname"),
         filepth: item.url,
         ctn0_src: file.body,
-        ctn0_sum: l4iString.CryptoMd5(file.body),
+        ctn0_sum: lynkui.utilx.cryptoMd5(file.body),
         ctn1_src: "",
         ctn1_sum: "",
         mime: file.mime,
@@ -150,7 +150,7 @@ lcEditor.LoadInstance = function (entry) {
     return;
   }
 
-  if (item.modname != l4iSession.Get("hp-speceditor-modname")) {
+  if (item.modname != lynkui.session.get("hp-speceditor-modname")) {
     return;
   }
 
@@ -428,7 +428,7 @@ lcEditor.Changed = function (urid) {
     var editor = l9rTab.frame[item.target].editor;
 
     entry.ctn1_src = editor.getValue();
-    entry.ctn1_sum = l4iString.CryptoMd5(entry.ctn1_src);
+    entry.ctn1_sum = lynkui.utilx.cryptoMd5(entry.ctn1_src);
 
     var prevEditorScrollInfo = editor.getScrollInfo();
     var prevEditorCursorInfo = editor.getCursor();
@@ -494,7 +494,7 @@ lcEditor.EntrySave = function (options) {
       }
 
       req.data = ctn;
-      req.sumcheck = l4iString.CryptoMd5(ctn);
+      req.sumcheck = lynkui.utilx.cryptoMd5(ctn);
     } else if (ret.ctn1_sum.length < 30) {
       options.success(options);
       return; // 200
@@ -538,7 +538,7 @@ lcEditor.EntrySave = function (options) {
     };
 
     req.error = function (status, message) {
-      l4iAlert.Error(message);
+      lynkui.alert.error(message);
       options.error(options);
     };
 
@@ -548,7 +548,7 @@ lcEditor.EntrySave = function (options) {
 
 lcEditor.DialogChanges2SaveSkip = function (urid) {
   l9rTab.Close(urid, 1);
-  l4iModal.Close();
+  lynkui.modal.close();
 };
 
 lcEditor.DialogChanges2SaveDone = function (urid) {
@@ -557,12 +557,12 @@ lcEditor.DialogChanges2SaveDone = function (urid) {
     urid: urid,
     success: function () {
       l9rTab.Close(urid, 1);
-      l4iModal.Close();
+      lynkui.modal.close();
     },
     error: function () {
-      l4i.InnerAlert(
+      lynkui.alert.innerShow(
         "#xi1b3h",
-        "alert-error",
+        "error",
         "<span></span>Internal Server Error<span></span>"
       );
     },

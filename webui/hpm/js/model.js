@@ -76,13 +76,13 @@ hpMgrModel.List = function (tplid) {
       }
 
       for (var i in rsj.items.info.items) {
-        rsj.items.info.items[i].meta.updated = l4i.TimeParseFormat(
+        rsj.items.info.items[i].meta.updated = lynkui.utilx.timeParseFormat(
           rsj.items.info.items[i].meta.updated,
           "Y-m-d"
         );
       }
 
-      lessTemplate.Render({
+      lynkui.template.render({
         dstid: tplid,
         tplid: tplid + "-tpl",
         data: rsj.items.info.items,
@@ -94,7 +94,7 @@ hpMgrModel.List = function (tplid) {
         rsj.items.groups.dev !== undefined &&
         rsj.items.groups.dev.length > 0
       ) {
-        lessTemplate.Render({
+        lynkui.template.render({
           dstid: tplid + "-grpdev",
           tplid: tplid + "-grpdev-tpl",
           data: {
@@ -106,7 +106,6 @@ hpMgrModel.List = function (tplid) {
       }
     },
     error: function (xhr, textStatus, error) {
-      //lessAlert("#azt02e", 'alert-danger', textStatus+' '+xhr.responseText);
     },
   });
 };

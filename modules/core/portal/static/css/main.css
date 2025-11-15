@@ -10,10 +10,6 @@ a:hover {
   color: #111111;
 }
 
-#hp-topbar {
-  min-height: 70px !important;
-}
-
 #hp-topbar .nav-link {
   padding-left: 1rem;
   padding-right: 1rem;

@@ -51,7 +51,7 @@
                         >{{FieldStringPrint $v `title` $.LANG}}</a
                       >
                     </p>
-                    <p class="subtitle">
+                    <p class="subtitle d-flex flex-wrap">
                       <span class="hp-icon-inline">
                         <svg
                           class="bi"
@@ -65,10 +65,10 @@
                         </svg>
                         {{UnixtimeFormat $v.Updated "2006-01-02"}}
                       </span>
-                      <span>
-                        {{range $term := $v.Terms}} {{if eq $term.Name "tags"}}
-                        {{if $term.Items}}
-                        <span class="hp-icon-inline">
+                      {{range $term := $v.Terms}} {{if eq $term.Name "tags"}}
+                      {{if $term.Items}}
+                      <span class="hp-icon-inline d-flex flex-row">
+                        <span>
                           <svg
                             class="bi"
                             width="16"
@@ -79,16 +79,19 @@
                               xlink:href="/hp/lynkui/~/bi/v1/bootstrap-icons.svg#tags"
                             />
                           </svg>
+                        </span>
+                        <span class="d-flex flex-row flex-wrap">
                           {{range $term_item := $term.Items}}
                           <a
                             href="{{$.baseuri}}/list?term_tags={{$term_item.Title}}"
                             class="tag-item"
+                            style="padding-right: 0.5rem"
                             >{{$term_item.Title}}</a
                           >
                           {{end}}
                         </span>
-                        {{end}} {{end}} {{end}}
                       </span>
+                      {{end}} {{end}} {{end}}
                     </p>
                   </div>
                   <div class="card-footer text-right bg-transparent border-0">

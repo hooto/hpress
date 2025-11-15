@@ -92,7 +92,7 @@ hpNode.navRefresh = function (cb) {
 
     // console.log(hpNode.speclsCurrent);
 
-    l4iTemplate.Render({
+    lynkui.template.render({
       dstid: "hpm-topbar-nav-node-specls",
       tplid: "hpm-topbar-nav-node-specls-tpl",
       data: {
@@ -118,7 +118,7 @@ hpNode.navRefresh = function (cb) {
           continue;
         }
         hpNode.speclsCurrent.push(data.items[i]);
-        l4i.UrlEventRegister(
+        lynkui.url.eventRegister(
           hpNode.navPrefix + data.items[i].meta.name,
           hpNode.Index,
           "hpm-topbar"
@@ -136,7 +136,7 @@ hpNode.navRefresh = function (cb) {
         return cb();
       }
 
-      l4iTemplate.Render({
+      lynkui.template.render({
         dstid: "hpm-topbar-nav-node-specls",
         tplid: "hpm-topbar-nav-node-specls-tpl",
         data: {
@@ -152,9 +152,9 @@ hpNode.navRefresh = function (cb) {
 
 hpNode.SpecActive = function (value) {
   if (value && value.length > 1) {
-    l4iStorage.Set("hpm_spec_active", value);
+    lynkui.storage.set("hpm_spec_active", value);
   }
-  return l4iStorage.Get("hpm_spec_active");
+  return lynkui.storage.get("hpm_spec_active");
 };
 
 hpNode.SpecNodeModelActive = function (value) {
@@ -163,9 +163,9 @@ hpNode.SpecNodeModelActive = function (value) {
   }
   var k = "hpm_snm_" + hpNode.specCurrent.meta.name;
   if (value && value.length > 1) {
-    l4iStorage.Set(k, value);
+    lynkui.storage.set(k, value);
   }
-  return l4iStorage.Get(k);
+  return lynkui.storage.get(k);
 };
 
 hpNode.OpToolsRefresh = function (div_target, fn) {
@@ -206,122 +206,120 @@ hpNode.Index = function (nav_href) {
     return;
   }
 
-  l4iStorage.Del("hpm_nodels_page");
-  l4iStorage.Del("hpm_termls_page");
+  lynkui.storage.del("hpm_nodels_page");
+  lynkui.storage.del("hpm_termls_page");
 
   hpNode.nodeOpToolsRefreshCurrent = null;
-  l4iStorage.Set("hpm_nav_last_active", nav_href);
+  lynkui.storage.set("hpm_nav_last_active", nav_href);
   hpNode.SpecActive(nav_href.substr(hpNode.navPrefix.length));
 
   var alertid = "#hpm-node-alert";
 
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create("tpl", function (tpl) {
-      if (tpl) {
-        $("#com-content").html(tpl);
+  var ep = lynkui.newEventProxy("tpl", function (tpl) {
+    if (tpl) {
+      $("#com-content").html(tpl);
+    }
+
+    var current = null;
+
+    for (var i in hpNode.speclsCurrent) {
+      if (hpNode.speclsCurrent[i].meta.name == hpNode.SpecActive()) {
+        current = hpNode.speclsCurrent[i];
+        break;
       }
+    }
 
-      var current = null;
+    if (!current) {
+      return;
+    }
 
-      for (var i in hpNode.speclsCurrent) {
-        if (hpNode.speclsCurrent[i].meta.name == hpNode.SpecActive()) {
-          current = hpNode.speclsCurrent[i];
-          break;
-        }
-      }
+    hpNode.specCurrent = current;
 
-      if (!current) {
-        return;
-      }
+    if (!hpNode.specCurrent.nodeModels) {
+      hpNode.specCurrent.nodeModels = [];
+    }
+    if (!hpNode.specCurrent.termModels) {
+      hpNode.specCurrent.termModels = [];
+    }
 
-      hpNode.specCurrent = current;
+    var node_model_active = null;
 
-      if (!hpNode.specCurrent.nodeModels) {
-        hpNode.specCurrent.nodeModels = [];
-      }
-      if (!hpNode.specCurrent.termModels) {
-        hpNode.specCurrent.termModels = [];
-      }
-
-      var node_model_active = null;
-
-      for (var i in hpNode.specCurrent.nodeModels) {
-        if (!node_model_active) {
-          node_model_active = hpNode.specCurrent.nodeModels[i].meta.name;
-        }
-
-        if (
-          hpNode.SpecNodeModelActive() ==
-          hpNode.specCurrent.nodeModels[i].meta.name
-        ) {
-          node_model_active = hpNode.specCurrent.nodeModels[i].meta.name;
-          break;
-        }
-      }
-
+    for (var i in hpNode.specCurrent.nodeModels) {
       if (!node_model_active) {
-        return; // TODO
+        node_model_active = hpNode.specCurrent.nodeModels[i].meta.name;
       }
 
-      //
-      if (node_model_active != hpNode.SpecNodeModelActive()) {
-        hpNode.SpecNodeModelActive(node_model_active);
+      if (
+        hpNode.SpecNodeModelActive() ==
+        hpNode.specCurrent.nodeModels[i].meta.name
+      ) {
+        node_model_active = hpNode.specCurrent.nodeModels[i].meta.name;
+        break;
       }
+    }
 
-      //
-      for (var i in hpNode.specCurrent.nodeModels) {
-        if (node_model_active == hpNode.specCurrent.nodeModels[i].meta.name) {
-          hpNode.List(hpNode.SpecActive(), node_model_active);
-        }
+    if (!node_model_active) {
+      return; // TODO
+    }
+
+    //
+    if (node_model_active != hpNode.SpecNodeModelActive()) {
+      hpNode.SpecNodeModelActive(node_model_active);
+    }
+
+    //
+    for (var i in hpNode.specCurrent.nodeModels) {
+      if (node_model_active == hpNode.specCurrent.nodeModels[i].meta.name) {
+        hpNode.List(hpNode.SpecActive(), node_model_active);
       }
+    }
 
-      if (hpNode.specCurrent.nodeModels.length > 0) {
-        l4iTemplate.Render({
-          dstid: "hpm-node-nmodels",
-          tplid: "hpm-node-nmodels-tpl",
-          data: {
-            active: node_model_active,
-            items: hpNode.specCurrent.nodeModels,
-          },
-        });
-      } else {
-        $("#hpm-node-nmodels").addClass("hpm-hide");
-      }
-
-      if (hpNode.specCurrent.termModels.length > 0) {
-        l4iTemplate.Render({
-          dstid: "hpm-node-tmodels",
-          tplid: "hpm-node-tmodels-tpl",
-          data: {
-            items: hpNode.specCurrent.termModels,
-          },
-        });
-      } else {
-        $("#hpm-node-tmodels").addClass("hpm-hide");
-      }
-    });
-
-    ep.fail(function (err) {
-      // TODO
-      alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
-    });
-
-    // template
-    var el = document.getElementById("hpm-node-nmodels");
-    if (!el || !el.length || el.length < 1) {
-      hpMgr.TplCmd("node/index", {
-        callback: function (err, tpl) {
-          if (err) {
-            return ep.emit("error", err);
-          }
-
-          ep.emit("tpl", tpl);
+    if (hpNode.specCurrent.nodeModels.length > 0) {
+      lynkui.template.render({
+        dstid: "hpm-node-nmodels",
+        tplid: "hpm-node-nmodels-tpl",
+        data: {
+          active: node_model_active,
+          items: hpNode.specCurrent.nodeModels,
         },
       });
     } else {
-      ep.emit("tpl", null);
+      $("#hpm-node-nmodels").addClass("hpm-hide");
+    }
+
+    if (hpNode.specCurrent.termModels.length > 0) {
+      lynkui.template.render({
+        dstid: "hpm-node-tmodels",
+        tplid: "hpm-node-tmodels-tpl",
+        data: {
+          items: hpNode.specCurrent.termModels,
+        },
+      });
+    } else {
+      $("#hpm-node-tmodels").addClass("hpm-hide");
     }
   });
+
+  ep.fail(function (err) {
+    // TODO
+    alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
+  });
+
+  // template
+  var el = document.getElementById("hpm-node-nmodels");
+  if (!el || !el.length || el.length < 1) {
+    hpMgr.TplCmd("node/index", {
+      callback: function (err, tpl) {
+        if (err) {
+          return ep.emit("error", err);
+        }
+
+        ep.emit("tpl", tpl);
+      },
+    });
+  } else {
+    ep.emit("tpl", null);
+  }
 };
 
 hpNode.List = function (modname, modelid, referid) {
@@ -336,17 +334,17 @@ hpNode.List = function (modname, modelid, referid) {
     modelid = hpNode.SpecNodeModelActive();
   }
 
-  if (!referid && l4iStorage.Get("hpm_node_refer_active")) {
-    referid = l4iStorage.Get("hpm_node_refer_active");
+  if (!referid && lynkui.storage.get("hpm_node_refer_active")) {
+    referid = lynkui.storage.get("hpm_node_refer_active");
   }
   if (!referid) {
     referid = "";
   } else {
-    l4iStorage.Set("hpm_node_refer_active", referid);
+    lynkui.storage.set("hpm_node_refer_active", referid);
   }
 
-  if (l4iStorage.Get("hpm_nodels_page")) {
-    page = l4iStorage.Get("hpm_nodels_page");
+  if (lynkui.storage.get("hpm_nodels_page")) {
+    page = lynkui.storage.get("hpm_nodels_page");
   }
 
   if (!modname || !modelid) {
@@ -366,120 +364,114 @@ hpNode.List = function (modname, modelid, referid) {
   if (document.getElementById("qry_text")) {
     uri += "&qry_text=" + $("#qry_text").val();
   }
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create("tpl", "data", function (tpl, rsj) {
-      if (tpl) {
-        $("#work-content").html(tpl);
-      }
 
-      if (
-        !rsj ||
-        rsj.kind != "NodeList" ||
-        !rsj.items ||
-        rsj.items.length < 1
-      ) {
-        $("#hpm-nodels").empty();
-        $("#hpm-termls").empty();
-        l4i.InnerAlert(alertid, "alert-info", "Item Not Found");
-      } else {
-        $(alertid).hide();
-      }
-
-      if (!rsj.model.extensions.node_refer) {
-        hpNode.node_refer_back = null;
-        $("#hpm-node-list-refer-back").css({
-          display: "none",
-        });
-      } else {
-        hpNode.node_refer_back = rsj.model.extensions.node_refer;
-        $("#hpm-node-list-refer-back").css({
-          display: "block",
-        });
-      }
-      hpNode.SpecActive(modname);
-      hpNode.SpecNodeModelActive(modelid);
-      $("#hpm-node-list-new-title").text("New " + rsj.model.title);
-
-      if (!rsj.items) {
-        rsj.items = [];
-      }
-
-      for (var i in rsj.items) {
-        rsj.items[i].created = l4i.UnixTimeFormat(
-          rsj.items[i].created,
-          "Y-m-d"
-        );
-        rsj.items[i].updated = l4i.UnixTimeFormat(
-          rsj.items[i].updated,
-          "Y-m-d"
-        );
-
-        if (!rsj.items[i].ext_access_counter) {
-          rsj.items[i].ext_access_counter = 0;
-        }
-
-        if (!rsj.items[i].ext_permalink_name) {
-          rsj.items[i].ext_permalink_name = "";
-        }
-
-        if (!rsj.items[i].ext_node_refer) {
-          rsj.items[i].ext_node_refer = "";
-        }
-      }
-
-      l4iTemplate.Render({
-        dstid: "hpm-nodels",
-        tplid: "hpm-nodels-tpl",
-        data: {
-          model: rsj.model,
-          modname: modname,
-          modelid: modelid,
-          items: rsj.items,
-          _status_def: hpNode.status_def,
-        },
-        success: function () {
-          rsj.meta.RangeLen = 20;
-
-          l4iTemplate.Render({
-            dstid: "hpm-nodels-pager",
-            tplid: "hpm-nodels-pager-tpl",
-            data: l4i.Pager(rsj.meta),
-          });
-
-          hpNode.OpToolsRefresh("#hpm-node-list-opts");
-        },
-      });
-    });
-
-    ep.fail(function (err) {
-      // TODO
-      alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
-    });
-
-    // template
-    var el = document.getElementById("hpm-nodels");
-    if (!el || el.length < 1) {
-      hpMgr.TplCmd("node/list", {
-        callback: function (err, tpl) {
-          if (err) {
-            return ep.emit("error", err);
-          }
-
-          ep.emit("tpl", tpl);
-        },
-      });
-    } else {
-      ep.emit("tpl", null);
+  var ep = lynkui.newEventProxy("tpl", "data", function (tpl, rsj) {
+    if (tpl) {
+      $("#work-content").html(tpl);
     }
 
-    hpMgr.ApiCmd("node/list?" + uri, {
-      callback: ep.done("data"),
+    if (!rsj || rsj.kind != "NodeList" || !rsj.items || rsj.items.length < 1) {
+      $("#hpm-nodels").empty();
+      $("#hpm-termls").empty();
+      lynkui.alert.innerShow(alertid, "info", "Item Not Found");
+    } else {
+      $(alertid).hide();
+    }
+
+    if (!rsj.model.extensions.node_refer) {
+      hpNode.node_refer_back = null;
+      $("#hpm-node-list-refer-back").css({
+        display: "none",
+      });
+    } else {
+      hpNode.node_refer_back = rsj.model.extensions.node_refer;
+      $("#hpm-node-list-refer-back").css({
+        display: "block",
+      });
+    }
+    hpNode.SpecActive(modname);
+    hpNode.SpecNodeModelActive(modelid);
+    $("#hpm-node-list-new-title").text("New " + rsj.model.title);
+
+    if (!rsj.items) {
+      rsj.items = [];
+    }
+
+    for (var i in rsj.items) {
+      rsj.items[i].created = lynkui.utilx.unixTimeFormat(
+        rsj.items[i].created,
+        "Y-m-d"
+      );
+      rsj.items[i].updated = lynkui.utilx.unixTimeFormat(
+        rsj.items[i].updated,
+        "Y-m-d"
+      );
+
+      if (!rsj.items[i].ext_access_counter) {
+        rsj.items[i].ext_access_counter = 0;
+      }
+
+      if (!rsj.items[i].ext_permalink_name) {
+        rsj.items[i].ext_permalink_name = "";
+      }
+
+      if (!rsj.items[i].ext_node_refer) {
+        rsj.items[i].ext_node_refer = "";
+      }
+    }
+
+    lynkui.template.render({
+      dstid: "hpm-nodels",
+      tplid: "hpm-nodels-tpl",
+      data: {
+        model: rsj.model,
+        modname: modname,
+        modelid: modelid,
+        items: rsj.items,
+        _status_def: hpNode.status_def,
+      },
+      callback: function () {
+        rsj.meta.RangeLen = 20;
+
+        lynkui.template.render({
+          dstid: "hpm-nodels-pager",
+          tplid: "hpm-nodels-pager-tpl",
+          data: hpMgr.Pager(rsj.meta),
+        });
+
+        hpNode.OpToolsRefresh("#hpm-node-list-opts");
+      },
     });
+  });
+
+  ep.fail(function (err) {
+    // TODO
+    alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
+  });
+
+  // template
+  var el = document.getElementById("hpm-nodels");
+  if (!el || el.length < 1) {
+    hpMgr.TplCmd("node/list", {
+      callback: function (err, tpl) {
+        if (err) {
+          return ep.emit("error", err);
+        }
+
+        ep.emit("tpl", tpl);
+      },
+    });
+  } else {
+    ep.emit("tpl", null);
+  }
+
+  hpMgr.ApiCmd("node/list?" + uri, {
+    callback: ep.done("data"),
   });
 };
 
 hpNode.ListPage = function (page) {
-  l4iStorage.Set("hpm_nodels_page", parseInt(page));
+  lynkui.storage.set("hpm_nodels_page", parseInt(page));
   hpNode.List();
 };
 
@@ -554,7 +546,7 @@ hpNode.ListBatchSelectTodo = function () {
         return;
       }
 
-      l4iModal.Open({
+      lynkui.modal.open({
         title: "Batch operation",
         tplsrc: data,
         data: params,
@@ -568,7 +560,7 @@ hpNode.ListBatchSelectTodo = function () {
           },
           {
             title: "Cancel",
-            onclick: "l4iModal.Close()",
+            onclick: "lynkui.modal.close()",
           },
         ],
       });
@@ -602,17 +594,17 @@ hpNode.ListBatchSelectTodoDelete = function (modname, modelid) {
 
   hpNode.DelBatch(modname, modelid, ids, function (err, data) {
     if (err) {
-      l4i.InnerAlert(alertid, "alert-danger", err);
+      lynkui.alert.innerShow(alertid, "danger", err);
     } else if (data && data.error) {
-      l4i.InnerAlert(alertid, "alert-danger", data.error.message);
+      lynkui.alert.innerShow(alertid, "danger", data.error.message);
     } else if (data && data.kind == "Node") {
-      l4i.InnerAlert(alertid, "alert-success", "Successful operation");
+      lynkui.alert.innerShow(alertid, "success", "Successful operation");
       hpNode.List();
       setTimeout(function () {
-        l4iModal.Close();
+        lynkui.modal.close();
       }, 500);
     } else {
-      l4i.InnerAlert(alertid, "alert-danger", "unknown error");
+      lynkui.alert.innerShow(alertid, "danger", "unknown error");
     }
   });
 };
@@ -632,8 +624,8 @@ hpNode.Set = function (modname, modelid, nodeid, referid) {
   if (!modelid && hpNode.SpecNodeModelActive()) {
     modelid = hpNode.SpecNodeModelActive();
   }
-  if (!referid && l4iStorage.Get("hpm_node_refer_active")) {
-    referid = l4iStorage.Get("hpm_node_refer_active");
+  if (!referid && lynkui.storage.get("hpm_node_refer_active")) {
+    referid = lynkui.storage.get("hpm_node_refer_active");
   }
 
   // console.log(modname +","+ modelid +","+ nodeid);
@@ -648,456 +640,451 @@ hpNode.Set = function (modname, modelid, nodeid, referid) {
   var uri = "modname=" + modname + "&modelid=" + modelid;
 
   // console.log(uri);
-  seajs.use(["ep"], function (EventProxy) {
-    var ep = EventProxy.create(
-      "tpl",
-      "langs",
-      "data",
-      function (tpl, langs, data) {
-        if (!tpl) {
-          return; // TODO
+  var ep = lynkui.newEventProxy(
+    "tpl",
+    "langs",
+    "data",
+    function (tpl, langs, data) {
+      if (!tpl) {
+        return; // TODO
+      }
+
+      $("#work-content").html(tpl);
+
+      if (!data || data.kind != "Node") {
+        return lynkui.alert.innerShow(alertid, "info", "Item Not Found");
+      }
+
+      if (!data.status) {
+        data.status = 1;
+      }
+
+      if (!data.model.terms) {
+        data.model.terms = [];
+      }
+
+      if (!data.ext_comment_enable) {
+        data.ext_comment_enable = false;
+      }
+
+      if (!data.ext_comment_perentry) {
+        data.ext_comment_perentry = false;
+      }
+
+      if (!data.ext_permalink_name) {
+        data.ext_permalink_name = "";
+      }
+
+      if (!data.ext_node_refer) {
+        data.ext_node_refer = "";
+      }
+
+      if (!data.ext_text_search) {
+        data.ext_text_search = false;
+      }
+
+      $(alertid).hide();
+
+      for (var i in data.model.fields) {
+        var field = data.model.fields[i];
+        if (field.edit_disable) {
+          continue;
         }
 
-        $("#work-content").html(tpl);
-
-        if (!data || data.kind != "Node") {
-          return l4i.InnerAlert(alertid, "alert-info", "Item Not Found");
+        if (!field.attrs) {
+          field.attrs = [];
         }
 
-        if (!data.status) {
-          data.status = 1;
+        for (var j in field.attrs) {
+          field["attr_" + field.attrs[j].key] = field.attrs[j].value;
         }
 
-        if (!data.model.terms) {
-          data.model.terms = [];
-        }
-
-        if (!data.ext_comment_enable) {
-          data.ext_comment_enable = false;
-        }
-
-        if (!data.ext_comment_perentry) {
-          data.ext_comment_perentry = false;
-        }
-
-        if (!data.ext_permalink_name) {
-          data.ext_permalink_name = "";
-        }
-
-        if (!data.ext_node_refer) {
-          data.ext_node_refer = "";
-        }
-
-        if (!data.ext_text_search) {
-          data.ext_text_search = false;
-        }
-
-        $(alertid).hide();
-
-        for (var i in data.model.fields) {
-          var field = data.model.fields[i];
-          if (field.edit_disable) {
-            continue;
-          }
-
-          if (!field.attrs) {
-            field.attrs = [];
-          }
-
-          for (var j in field.attrs) {
-            field["attr_" + field.attrs[j].key] = field.attrs[j].value;
-          }
-
-          if (field.attr_langs) {
-            var attr_langs = field.attr_langs.split(",");
-            field.attr_lang_list = [];
-            for (var k in attr_langs) {
-              for (var l in langs.items) {
-                if (attr_langs[k] == langs.items[l].id) {
-                  field.attr_lang_list.push(langs.items[l]);
-                }
+        if (field.attr_langs) {
+          var attr_langs = field.attr_langs.split(",");
+          field.attr_lang_list = [];
+          for (var k in attr_langs) {
+            for (var l in langs.items) {
+              if (attr_langs[k] == langs.items[l].id) {
+                field.attr_lang_list.push(langs.items[l]);
               }
             }
-            if (field.attr_lang_list.lengh < 2) {
-              field.attr_lang_list = null;
-            } else {
-              field.attr_lang_active = field.attr_lang_list[0].id;
+          }
+          if (field.attr_lang_list.lengh < 2) {
+            field.attr_lang_list = null;
+          } else {
+            field.attr_lang_active = field.attr_lang_list[0].id;
+          }
+        }
+
+        var field_entry = {};
+
+        for (var j in data.fields) {
+          if (data.fields[j].name == field.name) {
+            field_entry = data.fields[j];
+            field.value = data.fields[j].value;
+            if (field.attr_lang_active && data.fields[j].langs) {
+              field.value_langs = data.fields[j].langs;
             }
+            break;
+          }
+        }
+        if (!field.value) {
+          field.value = "";
+        }
+        if (field.attr_lang_active && !field.value_langs) {
+          field.value_langs = {
+            items: [],
+          };
+        }
+
+        if (field.type == "text") {
+          for (var j in field_entry.attrs) {
+            field["attr_" + field_entry.attrs[j].key] =
+              field_entry.attrs[j].value;
           }
 
-          var field_entry = {};
-
-          for (var j in data.fields) {
-            if (data.fields[j].name == field.name) {
-              field_entry = data.fields[j];
-              field.value = data.fields[j].value;
-              if (field.attr_lang_active && data.fields[j].langs) {
-                field.value_langs = data.fields[j].langs;
-              }
-              break;
-            }
+          if (!field.attr_format) {
+            field.attr_format = "md";
           }
-          if (!field.value) {
-            field.value = "";
-          }
-          if (field.attr_lang_active && !field.value_langs) {
-            field.value_langs = {
-              items: [],
-            };
+          if (!field.attr_formats) {
+            field.attr_formats = "text,html,md";
           }
 
-          if (field.type == "text") {
-            for (var j in field_entry.attrs) {
-              field["attr_" + field_entry.attrs[j].key] =
-                field_entry.attrs[j].value;
-            }
+          var formats = field.attr_formats.split(",");
+          var set_format = null;
+          field._formats = [];
 
-            if (!field.attr_format) {
-              field.attr_format = "md";
-            }
-            if (!field.attr_formats) {
-              field.attr_formats = "text,html,md";
-            }
-
-            var formats = field.attr_formats.split(",");
-            var set_format = null;
-            field._formats = [];
-
-            for (var j in hpNode.text_formats) {
-              if (formats.indexOf(hpNode.text_formats[j].name) > -1) {
-                field._formats.push({
-                  name: hpNode.text_formats[j].name,
-                  value: hpNode.text_formats[j].value,
-                });
-                if (field.attr_format == hpNode.text_formats[j].name) {
-                  set_format = hpNode.text_formats[j].name;
-                }
-              }
-            }
-            if (field._formats.length < 1) {
+          for (var j in hpNode.text_formats) {
+            if (formats.indexOf(hpNode.text_formats[j].name) > -1) {
               field._formats.push({
-                name: hpNode.text_formats[0].name,
-                value: hpNode.text_formats[0].value,
+                name: hpNode.text_formats[j].name,
+                value: hpNode.text_formats[j].value,
               });
+              if (field.attr_format == hpNode.text_formats[j].name) {
+                set_format = hpNode.text_formats[j].name;
+              }
             }
-            if (!set_format) {
-              field.attr_format = field._formats[0].name;
+          }
+          if (field._formats.length < 1) {
+            field._formats.push({
+              name: hpNode.text_formats[0].name,
+              value: hpNode.text_formats[0].value,
+            });
+          }
+          if (!set_format) {
+            field.attr_format = field._formats[0].name;
+          }
+        }
+
+        data.model.fields[i] = field;
+      }
+
+      hpNode.setCurrent = data;
+      data._status_def = hpNode.status_def;
+
+      lynkui.template.render({
+        dstid: "hpm-nodeset-laymain",
+        tplid: "hpm-nodeset-tpl",
+        data: data,
+        callback: function () {
+          var main_len = 0,
+            side_len = 0;
+          for (var i in data.model.fields) {
+            var field = data.model.fields[i];
+
+            switch (field.type) {
+              case "string":
+                main_len += 1;
+                break;
+
+              case "text":
+                main_len += 5;
+                break;
+
+              default:
+                side_len += 1;
+                break;
+            }
+          }
+          side_len += data.model.terms.length;
+
+          if (data.model.extensions.comment_perentry) {
+            side_len += 1;
+          }
+
+          if (
+            data.model.extensions.permalink &&
+            data.model.extensions.permalink != ""
+          ) {
+            main_len += 1;
+          }
+
+          if (
+            data.model.extensions.node_refer &&
+            data.model.extensions.node_refer != ""
+          ) {
+            main_len += 1;
+          }
+
+          var field_layout_target = "hpm-nodeset-fields";
+          if (side_len > 0 && main_len > side_len) {
+            field_layout_target = "hpm-nodeset-layside";
+          } else {
+            $("#hpm-nodeset-layside").addClass("hpm-hide");
+          }
+
+          //
+          for (var i in data.model.fields) {
+            var field = data.model.fields[i];
+            if (field.edit_disable) {
+              continue;
+            }
+
+            var dstid = "hpm-nodeset-fields";
+
+            var tplid = null;
+            var cb = null;
+
+            switch (field.type) {
+              case "string":
+                tplid = "hpm-nodeset-tplstring";
+                break;
+
+              case "text":
+                cb = function () {
+                  hpEditor.Open(field.name, field.attr_format);
+                };
+                tplid = "hpm-nodeset-tpltext";
+                break;
+
+              case "int8":
+              case "int16":
+              case "int32":
+              case "int64":
+              case "uint8":
+              case "uint16":
+              case "uint32":
+              case "uint64":
+                if (field.value == "") {
+                  field.value = "0";
+                }
+                tplid = "hpm-nodeset-tplint";
+                break;
+
+              default:
+                continue;
+            }
+
+            if (field.name == "title") {
+              dstid = "hpm-nodeset-top-title";
+            }
+
+            lynkui.template.render({
+              dstid: dstid,
+              tplid: tplid,
+              append: true,
+              data: field,
+              callback: cb,
+            });
+          }
+
+          for (var i in data.model.terms) {
+            var term = data.model.terms[i];
+
+            for (var j in data.terms) {
+              if (data.terms[i].name == term.meta.name) {
+                term.value = data.terms[i].value;
+                break;
+              }
+            }
+
+            var tplid = null;
+
+            switch (term.type) {
+              case "tag":
+                if (!term.value) {
+                  term.value = "";
+                }
+
+                tplid = "hpm-nodeset-tplterm_tag";
+
+                lynkui.template.render({
+                  dstid: field_layout_target,
+                  tplid: tplid,
+                  prepend: true,
+                  data: data.model.terms[i],
+                });
+
+                break;
+
+              case "taxonomy":
+                if (!term.value) {
+                  term.value = "0";
+                }
+
+                hpMgr.ApiCmd(
+                  "term/list?modname=" + modname + "&modelid=" + term.meta.name,
+                  {
+                    async: false,
+                    callback: function (err, term_list) {
+                      if (term_list.kind != "TermList") {
+                        return;
+                      }
+
+                      term_list.item = term;
+
+                      for (var i in term_list.items) {
+                        if (!term_list.items[i].pid) {
+                          term_list.items[i].pid = 0;
+                        }
+
+                        if (term_list.items[i].pid == 0) {
+                          term_list.items[i]._subs = hpTerm.ListSubRange(
+                            term_list.items,
+                            null,
+                            term_list.items[i].id,
+                            0
+                          );
+                        }
+                      }
+
+                      tplid = "hpm-nodeset-tplterm_taxonomy";
+
+                      lynkui.template.render({
+                        dstid: field_layout_target,
+                        tplid: tplid,
+                        prepend: true,
+                        data: term_list,
+                      });
+                    },
+                  }
+                );
+
+                break;
+
+              default:
+                continue;
             }
           }
 
-          data.model.fields[i] = field;
-        }
-
-        hpNode.setCurrent = data;
-        data._status_def = hpNode.status_def;
-
-        l4iTemplate.Render({
-          dstid: "hpm-nodeset-laymain",
-          tplid: "hpm-nodeset-tpl",
-          data: data,
-          success: function () {
-            var main_len = 0,
-              side_len = 0;
-            for (var i in data.model.fields) {
-              var field = data.model.fields[i];
-
-              switch (field.type) {
-                case "string":
-                  main_len += 1;
-                  break;
-
-                case "text":
-                  main_len += 5;
-                  break;
-
-                default:
-                  side_len += 1;
-                  break;
-              }
-            }
-            side_len += data.model.terms.length;
-
-            if (data.model.extensions.comment_perentry) {
-              side_len += 1;
-            }
-
-            if (
-              data.model.extensions.permalink &&
-              data.model.extensions.permalink != ""
-            ) {
-              main_len += 1;
-            }
-
-            if (
-              data.model.extensions.node_refer &&
-              data.model.extensions.node_refer != ""
-            ) {
-              main_len += 1;
-            }
-
-            var field_layout_target = "hpm-nodeset-fields";
-            if (side_len > 0 && main_len > side_len) {
-              field_layout_target = "hpm-nodeset-layside";
-            } else {
-              $("#hpm-nodeset-layside").addClass("hpm-hide");
-            }
-
-            //
-            for (var i in data.model.fields) {
-              var field = data.model.fields[i];
-              if (field.edit_disable) {
-                continue;
-              }
-
-              var dstid = "hpm-nodeset-fields";
-
-              var tplid = null;
-              var cb = null;
-
-              switch (field.type) {
-                case "string":
-                  tplid = "hpm-nodeset-tplstring";
-                  break;
-
-                case "text":
-                  cb = function () {
-                    hpEditor.Open(field.name, field.attr_format);
-                  };
-                  tplid = "hpm-nodeset-tpltext";
-                  break;
-
-                case "int8":
-                case "int16":
-                case "int32":
-                case "int64":
-                case "uint8":
-                case "uint16":
-                case "uint32":
-                case "uint64":
-                  if (field.value == "") {
-                    field.value = "0";
-                  }
-                  tplid = "hpm-nodeset-tplint";
-                  break;
-
-                default:
-                  continue;
-              }
-
-              if (field.name == "title") {
-                dstid = "hpm-nodeset-top-title";
-              }
-
-              l4iTemplate.Render({
-                dstid: dstid,
-                tplid: tplid,
-                append: true,
-                data: field,
-                success: cb,
-              });
-            }
-
-            for (var i in data.model.terms) {
-              var term = data.model.terms[i];
-
-              for (var j in data.terms) {
-                if (data.terms[i].name == term.meta.name) {
-                  term.value = data.terms[i].value;
-                  break;
-                }
-              }
-
-              var tplid = null;
-
-              switch (term.type) {
-                case "tag":
-                  if (!term.value) {
-                    term.value = "";
-                  }
-
-                  tplid = "hpm-nodeset-tplterm_tag";
-
-                  l4iTemplate.Render({
-                    dstid: field_layout_target,
-                    tplid: tplid,
-                    prepend: true,
-                    data: data.model.terms[i],
-                  });
-
-                  break;
-
-                case "taxonomy":
-                  if (!term.value) {
-                    term.value = "0";
-                  }
-
-                  hpMgr.ApiCmd(
-                    "term/list?modname=" +
-                      modname +
-                      "&modelid=" +
-                      term.meta.name,
-                    {
-                      async: false,
-                      callback: function (err, term_list) {
-                        if (term_list.kind != "TermList") {
-                          return;
-                        }
-
-                        term_list.item = term;
-
-                        for (var i in term_list.items) {
-                          if (!term_list.items[i].pid) {
-                            term_list.items[i].pid = 0;
-                          }
-
-                          if (term_list.items[i].pid == 0) {
-                            term_list.items[i]._subs = hpTerm.ListSubRange(
-                              term_list.items,
-                              null,
-                              term_list.items[i].id,
-                              0
-                            );
-                          }
-                        }
-
-                        tplid = "hpm-nodeset-tplterm_taxonomy";
-
-                        l4iTemplate.Render({
-                          dstid: field_layout_target,
-                          tplid: tplid,
-                          prepend: true,
-                          data: term_list,
-                        });
-                      },
-                    }
-                  );
-
-                  break;
-
-                default:
-                  continue;
-              }
-            }
-
-            if (
-              data.model.extensions.comment_enable &&
-              data.model.extensions.comment_perentry
-            ) {
-              l4iTemplate.Render({
-                dstid: field_layout_target,
-                tplid: "hpm-nodeset-tplext_comment_perentry",
-                append: true,
-                data: {
-                  _general_onoff: hpNode.general_onoff,
-                  ext_comment_perentry: data.ext_comment_perentry,
-                },
-              });
-            }
-
-            if (!data.ext_node_refer || data.ext_node_refer.length < 12) {
-              if (referid) {
-                data.ext_node_refer = referid;
-              }
-            }
-            if (
-              data.model.extensions.node_refer &&
-              data.model.extensions.node_refer != ""
-            ) {
-              l4iTemplate.Render({
-                dstid: "hpm-nodeset-tops",
-                tplid: "hpm-nodeset-tplext_node_refer",
-                append: true,
-                data: {
-                  ext_node_refer: data.ext_node_refer,
-                },
-              });
-            }
-
-            if (
-              data.model.extensions.permalink &&
-              data.model.extensions.permalink != ""
-            ) {
-              l4iTemplate.Render({
-                dstid: "hpm-nodeset-tops",
-                tplid: "hpm-nodeset-tplext_permalink",
-                append: true,
-                data: {
-                  ext_permalink_name: data.ext_permalink_name,
-                },
-              });
-            }
-
-            l4iTemplate.Render({
+          if (
+            data.model.extensions.comment_enable &&
+            data.model.extensions.comment_perentry
+          ) {
+            lynkui.template.render({
               dstid: field_layout_target,
-              tplid: "hpm-nodeset-tplstatus",
+              tplid: "hpm-nodeset-tplext_comment_perentry",
               append: true,
               data: {
-                _status_def: hpNode.status_def,
-                status: data.status,
+                _general_onoff: hpNode.general_onoff,
+                ext_comment_perentry: data.ext_comment_perentry,
               },
             });
+          }
 
-            hpNode.OpToolsRefresh("#hpm-node-set-opts");
-
-            if (data.create_new) {
-              $("#hpm-node-set-opts-label").text("Create new Content");
-            } else {
-              $("#hpm-node-set-opts-label").text("Editing");
+          if (!data.ext_node_refer || data.ext_node_refer.length < 12) {
+            if (referid) {
+              data.ext_node_refer = referid;
             }
+          }
+          if (
+            data.model.extensions.node_refer &&
+            data.model.extensions.node_refer != ""
+          ) {
+            lynkui.template.render({
+              dstid: "hpm-nodeset-tops",
+              tplid: "hpm-nodeset-tplext_node_refer",
+              append: true,
+              data: {
+                ext_node_refer: data.ext_node_refer,
+              },
+            });
+          }
 
-            hpMgr.hotkey_ctrl_s = hpNode.SetSave;
-          },
-        });
+          if (
+            data.model.extensions.permalink &&
+            data.model.extensions.permalink != ""
+          ) {
+            lynkui.template.render({
+              dstid: "hpm-nodeset-tops",
+              tplid: "hpm-nodeset-tplext_permalink",
+              append: true,
+              data: {
+                ext_permalink_name: data.ext_permalink_name,
+              },
+            });
+          }
+
+          lynkui.template.render({
+            dstid: field_layout_target,
+            tplid: "hpm-nodeset-tplstatus",
+            append: true,
+            data: {
+              _status_def: hpNode.status_def,
+              status: data.status,
+            },
+          });
+
+          hpNode.OpToolsRefresh("#hpm-node-set-opts");
+
+          if (data.create_new) {
+            $("#hpm-node-set-opts-label").text("Create new Content");
+          } else {
+            $("#hpm-node-set-opts-label").text("Editing");
+          }
+
+          hpMgr.hotkey_ctrl_s = hpNode.SetSave;
+        },
+      });
+    }
+  );
+
+  ep.fail(function (err) {
+    // TODO
+    alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
+  });
+
+  hpMgr.TplCmd("node/set", {
+    callback: function (err, tpl) {
+      if (err) {
+        return ep.emit("error", err);
       }
-    );
+      ep.emit("tpl", tpl);
+    },
+  });
 
-    ep.fail(function (err) {
-      // TODO
-      alert("SpecListRefresh error, Please try again later (EC:app-nodelist)");
-    });
-
-    hpMgr.TplCmd("node/set", {
-      callback: function (err, tpl) {
+  if (hpNode.langs) {
+    ep.emit("langs", hpNode.langs);
+  } else {
+    hpMgr.ApiCmd("mod-set/spec-lang-list", {
+      callback: function (err, data) {
         if (err) {
           return ep.emit("error", err);
         }
-        ep.emit("tpl", tpl);
+        hpNode.langs = data;
+        ep.emit("langs", data);
       },
     });
+  }
 
-    if (hpNode.langs) {
-      ep.emit("langs", hpNode.langs);
-    } else {
-      hpMgr.ApiCmd("mod-set/spec-lang-list", {
-        callback: function (err, data) {
-          if (err) {
-            return ep.emit("error", err);
-          }
-          hpNode.langs = data;
-          ep.emit("langs", data);
-        },
-      });
-    }
-
-    if (nodeid) {
-      hpMgr.ApiCmd("node/entry?" + uri + "&id=" + nodeid, {
-        callback: ep.done("data"),
-      });
-    } else {
-      hpMgr.ApiCmd("node-model/entry?" + uri, {
-        callback: function (err, data) {
-          ep.emit("data", {
-            kind: "Node",
-            model: data,
-            id: "",
-            title: "",
-            ext_comment_perentry: true,
-            create_new: true,
-          });
-        },
-      });
-    }
-  });
+  if (nodeid) {
+    hpMgr.ApiCmd("node/entry?" + uri + "&id=" + nodeid, {
+      callback: ep.done("data"),
+    });
+  } else {
+    hpMgr.ApiCmd("node-model/entry?" + uri, {
+      callback: function (err, data) {
+        ep.emit("data", {
+          kind: "Node",
+          model: data,
+          id: "",
+          title: "",
+          ext_comment_perentry: true,
+          create_new: true,
+        });
+      },
+    });
+  }
 };
 
 hpNode.SetFieldLang = function (field_name) {
@@ -1364,13 +1351,13 @@ hpNode.SetCommit = function (options) {
     data: JSON.stringify(req),
     callback: function (err, data) {
       if (!data || data.kind != "Node") {
-        return l4i.InnerAlert(alertid, "alert-danger", data.error.message);
+        return lynkui.alert.innerShow(alertid, "danger", data.error.message);
       }
 
       // console.log(data.id);
       form.find("input[name=id]").val(data.id);
 
-      l4i.InnerAlert(alertid, "alert-success", "Successful operation");
+      lynkui.alert.innerShow(alertid, "success", "Successful operation");
       if (options.save) {
         return;
       }
@@ -1384,7 +1371,7 @@ hpNode.SetCommit = function (options) {
 };
 
 hpNode.Del = function (modname, modelid, id) {
-  l4iModal.Open({
+  lynkui.modal.open({
     title: "Delete",
     tplsrc:
       '<div id="hpm-node-del" class="alert alert-danger">Are you sure to delete this?</div>',
@@ -1398,7 +1385,7 @@ hpNode.Del = function (modname, modelid, id) {
       },
       {
         title: "Cancel",
-        onclick: "l4iModal.Close()",
+        onclick: "lynkui.modal.close()",
       },
     ],
   });
@@ -1411,13 +1398,13 @@ hpNode.DelCommit = function (modname, modelid, id) {
   hpMgr.ApiCmd("node/del?" + uri, {
     callback: function (err, data) {
       if (!data || data.kind != "Node") {
-        return l4i.InnerAlert(alertid, "alert-danger", data.error.message);
+        return lynkui.alert.innerShow(alertid, "danger", data.error.message);
       }
 
-      l4i.InnerAlert(alertid, "alert-success", "Successful deleted");
+      lynkui.alert.innerShow(alertid, "success", "Successful deleted");
       setTimeout(function () {
         hpNode.List();
-        l4iModal.Close();
+        lynkui.modal.close();
       }, 500);
     },
   });

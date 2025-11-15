@@ -115,7 +115,7 @@
 <script>
   function _lc_editorset_close() {
     _lc_editorset_save("");
-    setTimeout(l4iModal.Close, 400);
+    setTimeout(lynkui.modal.close, 400);
   }
 
   function _lc_editorset_save(title) {
@@ -131,7 +131,7 @@
     if (lcEditor.Config.fontSize < 8) {
       lcEditor.Config.fontSize = 8;
     }
-    l4iCookie.SetByDay("editor_fontSize", lcEditor.Config.fontSize, 365);
+    lynkui.cookie.setByDay("editor_fontSize", lcEditor.Config.fontSize, 365);
     $("#fontSize").val(lcEditor.Config.fontSize);
     $(".CodeMirror-lines").css({
       "font-size": lcEditor.Config.fontSize + "px",
@@ -140,17 +140,17 @@
     lcEditor.Config.tabs2spaces = $("#tabs2spaces").prop("checked")
       ? true
       : false;
-    l4iCookie.SetByDay("editor_tabs2spaces", lcEditor.Config.tabs2spaces, 365);
+    lynkui.cookie.setByDay("editor_tabs2spaces", lcEditor.Config.tabs2spaces, 365);
 
     lcEditor.Config.smartIndent = $("#smartIndent").prop("checked")
       ? true
       : false;
-    l4iCookie.SetByDay("editor_smartIndent", lcEditor.Config.smartIndent, 365);
+    lynkui.cookie.setByDay("editor_smartIndent", lcEditor.Config.smartIndent, 365);
 
     lcEditor.Config.lineWrapping = $("#lineWrapping").prop("checked")
       ? true
       : false;
-    l4iCookie.SetByDay(
+    lynkui.cookie.setByDay(
       "editor_lineWrapping",
       lcEditor.Config.lineWrapping,
       365
@@ -159,12 +159,12 @@
     lcEditor.Config.codeFolding = $("#codeFolding").prop("checked")
       ? true
       : false;
-    l4iCookie.SetByDay("editor_codeFolding", lcEditor.Config.codeFolding, 365);
+    lynkui.cookie.setByDay("editor_codeFolding", lcEditor.Config.codeFolding, 365);
 
     if (title.length > 0) {
       title = '"' + title + '"';
     }
-    l4i.InnerAlert(
+    lynkui.alert.innerShow(
       "#x17kwr",
       "alert-success",
       "<span></span>Successfully Saved<span></span>" + title
