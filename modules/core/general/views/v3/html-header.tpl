@@ -7,7 +7,7 @@
   </title>
   <link
     rel="stylesheet"
-    href="{{HttpSrvBasePath `hp/lynkui/~/bs/v5/css/bootstrap.css`}}"
+    href="{{HttpSrvBasePath `hp/lynkui/~/bs/v5/css/bootstrap.css`}}?v={{.sys_version_sign}}"
     type="text/css"
   />
   <link
