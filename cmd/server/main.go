@@ -23,7 +23,6 @@ import (
 	"github.com/hooto/hlang4g/hlang"
 	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamclient"
 
 	"github.com/lynkdb/lynkui/go/lynkui"
 	"github.com/lynkdb/lynkui/go/uiserver"
@@ -102,14 +101,6 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	iamclient.ServiceUrl = config.Config.IamServiceUrl
-	iamclient.ServiceUrlFrontend = config.Config.IamServiceUrlFrontend
-
-	iamclient.InstanceID = config.Config.InstanceID
-	iamclient.InstanceOwner = config.Config.AppInstance.Meta.User
-
-	httpsrv.DefaultService.SetLogger(httpsrv.NewRawLogger())
 
 	httpsrv.DefaultService.Config.UrlBasePath = config.Config.UrlBasePath
 	httpsrv.DefaultService.Config.HttpPort = config.Config.HttpPort

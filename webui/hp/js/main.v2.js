@@ -192,7 +192,7 @@ hp.mathRender = function (i, elem) {
   lynkui.use(["~/katex/0.10/katex.css", "~/katex/0.10/katex.js"], function () {
     var txt = elem.innerHTML.replace(/\\‘/g, "'");
     txt = txt.replace(/\\“/g, '"');
-    txt = txt.replace(/\&amp;/g, "&");
+    txt = txt.replace(/\&/g, "&");
     elem.innerHTML = katex.renderToString(txt, {
       throwOnError: false,
     });
@@ -270,9 +270,15 @@ hp.ApiCmd = function (url, options) {
 };
 
 hp.AuthSessionRefresh = function () {
-  hp.Ajax(hp.HttpSrvBasePath("auth/session"), {
+  hp.Ajax(hp.HttpSrvBasePath("user-auth/session"), {
     callback: function (err, data) {
-      if (err || !data || data.kind != "AuthSession") {
+      if (
+        err ||
+        !data ||
+        !data.status ||
+        data.status.code != "200" ||
+        !data.auth_claims
+      ) {
         return lynkui.template.render({
           dstid: "hp-topbar-userbar",
           tplid: "hp-topbar-user-unsigned-tpl",
@@ -283,10 +289,38 @@ hp.AuthSessionRefresh = function () {
         return (window.location = "/hp/mgr");
       }
 
+      var viewData = {
+        display_name: data.auth_claims.sub,
+        photo_url:
+          data.auth_base_url && data.auth_claims.sub
+            ? hp._joinUrlPath(data.auth_base_url, "v2/auth/photo/" + data.auth_claims.sub) : "",
+        iam_url:
+          data.auth_base_url
+            ? hp._joinUrlPath(data.auth_base_url, "user/") : "",
+        instance_owner:
+          data.identity_token &&
+          data.identity_token.roles &&
+          data.identity_token.roles.indexOf("sa") >= 0,
+      };
+
       lynkui.template.render({
         dstid: "hp-topbar-userbar",
         tplid: "hp-topbar-user-signed-tpl",
-        data: data,
+        data: viewData,
+        success: function () {
+          $("#hp-topbar-userbar").hover(
+            function () {
+              $("#hp-topbar-user-signed-modal").fadeIn(200);
+            },
+            function () { }
+          );
+          $("#hp-topbar-user-signed-modal").hover(
+            function () { },
+            function () {
+              $("#hp-topbar-user-signed-modal").fadeOut(200);
+            }
+          );
+        },
       });
     },
   });
@@ -342,3 +376,12 @@ hp.NavbarMenuUserToggle = function () {
 hp.NavbarMenuUserClose = function () {
   lynkui.modal.close();
 };
+
+hp._joinUrlPath = function (baseUrl, path) {
+  // 1. 确保 baseUrl 结尾有斜杠
+  const base = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+  // 2. 去掉 path 开头的所有斜杠
+  const cleanPath = path.replace(/^\/+/, '');
+
+  return new URL(cleanPath, base).href;
+}

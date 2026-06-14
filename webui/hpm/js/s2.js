@@ -341,7 +341,10 @@ function hps2_fsUploadCommit(reqid, file, cap) {
         return;
       }
 
-      var ppath = $("#" + reqid + " :input[name=path]").val();
+      const ppath = document.querySelector(
+        "#" + reqid + " input[name=path]"
+      ).value;
+      // var ppath = $("#" + reqid + " :input[name=path]").val();
 
       hpMgr.ApiCmd("s2-obj/put", {
         method: "POST",
@@ -447,7 +450,7 @@ hpS2.ObjNew = function (type, path, file) {
     },
     buttons: [
       {
-        onclick: 'hpS2.ObjNewSave("' + formid + '")',
+        onclick: "hpS2.ObjNewSave('" + formid + "')",
         title: "Upload",
         style: "btn-primary",
       },
@@ -530,7 +533,10 @@ hpS2._objNewUpload = function (formid, file) {
         return;
       }
 
-      var ppath = $("#" + formid + " :input[name=path]").val();
+      // var ppath = $("#" + formid + " :input[name=path]").val();
+      const ppath = document.querySelector(
+        "#" + formid + " input[name=path]"
+      ).value;
 
       hpMgr.ApiCmd("s2-obj/put", {
         method: "POST",

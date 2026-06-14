@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
@@ -36,15 +36,14 @@ import (
 
 type Node struct {
 	*httpsrv.Controller
-	us iamapi.UserSession
+	us iamserver.UserSession
 }
 
 func (c *Node) Init() int {
 
-	//
-	c.us, _ = iamclient.SessionInstance(c.Session)
+	c.us = iamserver.AppVerifier.Session(c.Request.Request)
 
-	if !c.us.IsLogin() {
+	if _, err := c.us.RequireAuth(); err != nil {
 		c.Response.Out.WriteHeader(401)
 		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
 		return 1
@@ -66,7 +65,7 @@ func (c Node) ListAction() {
 
 	defer c.RenderJson(&ls)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.list", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.list") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -129,7 +128,7 @@ func (c Node) EntryAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.read", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.read") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -156,7 +155,7 @@ func (c Node) SetAction() {
 		return
 	}
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.write", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -342,7 +341,12 @@ func (c Node) SetAction() {
 		set["created"] = uint32(time.Now().Unix())
 
 		// TODO
-		set["userid"] = c.us.UserId()
+		if p, _ := c.us.Profile(); p != nil {
+			set["userid"] = p.Username
+		} else {
+			set["userid"] = ""
+		}
+
 		set["pid"] = node_pid_default
 		if model.Extensions.AccessCounter {
 			set["ext_access_counter"] = "0"
@@ -585,7 +589,7 @@ func (c Node) DelAction() {
 	rsp := api.Node{}
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.write", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}

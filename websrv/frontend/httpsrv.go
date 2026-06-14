@@ -16,7 +16,7 @@ package frontend
 
 import (
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 
 	"github.com/hooto/hchart/pkg/webui"
 	"github.com/hooto/hpress/config"
@@ -39,7 +39,7 @@ func NewHtpModule() *httpsrv.Module {
 
 	mod.RegisterFileServer("/~", config.Prefix+"/webui/", nil)
 
-	mod.RegisterController(new(S2), new(iamclient.Auth))
+	mod.RegisterController(new(S2), new(iamserver.UserAuth))
 
 	return mod
 }

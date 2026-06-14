@@ -15,7 +15,7 @@
 package api
 
 import (
-	"github.com/hooto/iam/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/types"
 )
 
@@ -60,10 +60,9 @@ type SysStatusInfo struct {
 
 type SysIamStatus struct {
 	types.TypeMeta     `json:",inline"`
-	ServiceUrl         string             `json:"service_url"`
-	ServiceUrlFrontend string             `json:"service_url_frontend"`
-	InstanceSelf       iamapi.AppInstance `json:"instance_self"`
-	InstanceRegistered iamapi.AppInstance `json:"instance_registered"`
+	BaseURL            string              `json:"base_url"`
+	InstanceSelf       *iamapi.AppInstance `json:"instance_self"`
+	InstanceRegistered *iamapi.AppInstance `json:"instance_registered"`
 }
 
 type SysConfig struct {

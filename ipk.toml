@@ -1,0 +1,33 @@
+# ipk.toml - Package Specification v2
+# Incore Package Build Configuration
+
+[metadata]
+name        = "hooto-press"
+version     = "0.10.1"
+authors     = ["hooto.com"]
+description = "Hooto Press Content Management System"
+homepage    = "https://github.com/hooto/hpress"
+license     = "Apache-2.0"
+categories  = ["app/cms"]
+
+[build]
+include = [
+  "misc/app_spec.toml",
+  "i18n/**",
+  "modules/core/**",
+  "websrv/mgr/views/**",
+  "webui/hpm/**",
+  "webui/hp/img/alpha2.png",
+  "webui/hp/img/search-16.png",
+  "webui/hp/img/ap.ico",
+  "webui/katex/**",
+  "webui/cm/5/**",
+  "webui/hp/js/**",
+  "webui/hp/css/**",
+]
+
+script = """
+mkdir -p ${ipk_build_dir}/bin
+mkdir -p ${ipk_build_dir}/var/{log,storage,tmp}
+CGO_ENABLED=0 GOOS=${ipk_release_os} GOARCH=${ipk_release_arch} go build -a -ldflags "-w -s" -o ${ipk_build_dir}/bin/hooto-press cmd/server/main.go
+"""

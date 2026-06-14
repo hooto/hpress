@@ -15,16 +15,14 @@
 package v1
 
 import (
-	"fmt"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
-	"github.com/lessos/lessgo/net/httpclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
@@ -43,15 +41,14 @@ func init() {
 
 type Sys struct {
 	*httpsrv.Controller
-	us iamapi.UserSession
+	us iamserver.UserSession
 }
 
 func (c *Sys) Init() int {
 
-	//
-	c.us, _ = iamclient.SessionInstance(c.Session)
+	c.us = iamserver.AppVerifier.Session(c.Request.Request)
 
-	if !c.us.IsLogin() {
+	if _, err := c.us.RequireAuth(); err != nil {
 		c.Response.Out.WriteHeader(401)
 		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
 		return 1
@@ -62,7 +59,7 @@ func (c *Sys) Init() int {
 
 func (c Sys) ConfigListAction() {
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		c.RenderJson(types.TypeMeta{
 			Error: &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"},
 		})
@@ -78,7 +75,7 @@ func (c Sys) ConfigSetAction() {
 
 	defer c.RenderJson(&ls)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -175,7 +172,7 @@ func (c Sys) StatusAction() {
 
 	defer c.RenderJson(&set)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		set.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -207,7 +204,7 @@ func (c Sys) IamStatusAction() {
 
 	var sets api.SysIamStatus
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		sets.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -223,36 +220,57 @@ func (c Sys) IamStatusAction() {
 		inst_url += "/" + httpsrv.DefaultService.Config.UrlBasePath
 	}
 
+	cfg := iamserver.AppVerifier.Config()
+
 	sets = api.SysIamStatus{
-		ServiceUrl:         iamclient.ServiceUrl,
-		ServiceUrlFrontend: iamclient.ServiceUrlFrontend,
-		InstanceSelf: iamapi.AppInstance{
-			Meta: types.InnerObjectMeta{
-				ID: config.Config.InstanceID,
-			},
-			AppID:      config.AppName,
-			AppTitle:   config.Config.AppTitle,
-			Version:    config.Version,
-			Privileges: config.Perms,
-			Url:        inst_url,
+		InstanceSelf: &iamapi.AppInstance{
+			ID:          config.Config.InstanceID,
+			Name:        config.AppName,
+			Version:     config.Version,
+			Permissions: config.Perms,
+			Url:         inst_url,
 		},
 	}
 
-	hc := httpclient.Get(fmt.Sprintf("%s/v1/app/inst-entry?instid=%s&%s=%s",
-		iamclient.ServiceUrl, config.Config.InstanceID,
-		iamclient.AccessTokenKey, iamclient.SessionAccessToken(c.Session)))
-
-	var info iamapi.AppInstance
-
-	if err := hc.ReplyJson(&info); err == nil {
-		sets.InstanceRegistered = info
+	if cfg != nil {
+		sets.BaseURL = cfg.BaseURL
 	}
 
-	hc.Close()
+	if status.IamServiceStatus == status.IamServiceOK {
+		sets.InstanceRegistered = &iamapi.AppInstance{
+			ID:          config.Config.InstanceID,
+			Name:        config.AppName,
+			Version:     config.Version,
+			Permissions: config.Perms,
+			Url:         inst_url,
+		}
+	}
 
 	sets.Kind = "SysIamStatus"
 
 	c.RenderJson(sets)
+}
+
+func (c Sys) IamSyncAction() {
+
+	var rsp struct {
+		types.TypeMeta `json:",inline"`
+	}
+
+	defer c.RenderJson(&rsp)
+
+	if !c.us.Allow("", "sys.admin") {
+		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
+		return
+	}
+
+	status.Refresh()
+
+	if status.IamServiceStatus == status.IamServiceOK {
+		rsp.Kind = "AppInstanceRegister"
+	} else {
+		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeInternalError, "IAM sync failed"}
+	}
 }
 
 func memStatsFetch() runtime.MemStats {

@@ -18,9 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
-	"github.com/lessos/lessgo/net/httpclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/utilx"
 
 	"github.com/hooto/hpress/config"
@@ -61,32 +60,13 @@ func Init() {
 
 func Refresh() {
 
-	Locker.Lock()
-	defer Locker.Unlock()
+	err := iamserver.AppVerifier.Update(&iamapi.AppInstance{
+		ID:          config.Config.IamAuth.AppId,
+		Version:     config.Version,
+		Permissions: config.Perms,
+	})
 
-	// Check if Identity Service Available
-	hc := httpclient.Get(iamclient.ServiceUrl + "/v1/status/info")
-	var rsjson struct {
-		Status string `json:"status"`
-	}
-
-	err := hc.ReplyJson(&rsjson)
-	hc.Close()
-	if err != nil || rsjson.Status != "OK" {
-		IamServiceStatus = IamServiceUnavailable
-	} else { // Check if this Registered to ID Service
-
-		hc = httpclient.Get(iamclient.ServiceUrl +
-			"/v1/app-auth/info?instance_id=" + config.Config.InstanceID)
-
-		var info iamapi.AppAuthInfo
-
-		if err := hc.ReplyJson(&info); err == nil && info.Kind == "AppAuthInfo" {
-			IamServiceStatus = IamServiceOK
-		} else {
-			IamServiceStatus = IamServiceUnRegistered
-		}
-
-		hc.Close()
+	if err == nil {
+		IamServiceStatus = IamServiceOK
 	}
 }

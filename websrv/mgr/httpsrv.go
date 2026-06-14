@@ -40,7 +40,6 @@ func NewModule() *httpsrv.Module {
 	module.SetTemplatePath(config.Prefix + "/websrv/mgr/views")
 
 	module.RegisterController(new(controllers.Index))
-	module.RegisterController(new(controllers.Setup))
 
 	return module
 }

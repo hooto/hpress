@@ -130,7 +130,7 @@ func Pagelet(data map[string]interface{}, args ...string) template.HTML {
 
 					var ls api.NodeList
 					qryhash := qry.Hash()
-					if datax.CacheTTL > 0 && user != config.Config.AppInstance.Meta.User {
+					if datax.CacheTTL > 0 && user != "" {
 						if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 							rs.JsonDecode(&ls)
 						}
@@ -149,7 +149,7 @@ func Pagelet(data map[string]interface{}, args ...string) template.HTML {
 
 					var entry api.Node
 					qryhash := qry.Hash()
-					if datax.CacheTTL > 0 && user != config.Config.AppInstance.Meta.User {
+					if datax.CacheTTL > 0 && user != "" {
 						if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 							rs.JsonDecode(&entry)
 						}

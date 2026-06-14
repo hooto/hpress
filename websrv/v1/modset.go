@@ -20,26 +20,24 @@ import (
 	"github.com/hooto/httpsrv"
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 
 	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/modset"
 	"github.com/hooto/hpress/store"
 )
 
 type ModSet struct {
 	*httpsrv.Controller
-	us iamapi.UserSession
+	us iamserver.UserSession
 }
 
 func (c *ModSet) Init() int {
 
-	//
-	c.us, _ = iamclient.SessionInstance(c.Session)
+	c.us = iamserver.AppVerifier.Session(c.Request.Request)
 
-	if !c.us.IsLogin() {
+	if _, err := c.us.RequireAuth(); err != nil {
 		c.Response.Out.WriteHeader(401)
 		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
 		return 1
@@ -56,7 +54,7 @@ func (c ModSet) SpecListAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.list", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.list") {
 		rsp.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}
@@ -87,7 +85,7 @@ func (c ModSet) SpecEntryAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.read", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.read") {
 		rsp.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}
@@ -132,8 +130,7 @@ func (c ModSet) SpecInfoSetAction() {
 
 	defer c.RenderJson(&set)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.write", config.Config.InstanceID) {
-
+	if !c.us.Allow("", "editor.write") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}
@@ -188,7 +185,7 @@ func (c ModSet) SpecTermSetAction() {
 
 	defer c.RenderJson(&set)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}
@@ -247,7 +244,7 @@ func (c ModSet) SpecNodeSetAction() {
 
 	defer c.RenderJson(&set)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}
@@ -299,7 +296,7 @@ func (c ModSet) SpecActionSetAction() {
 
 	defer c.RenderJson(&set)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}
@@ -352,7 +349,7 @@ func (c ModSet) SpecActionDelAction() {
 
 	defer c.RenderJson(&set)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}
@@ -405,7 +402,7 @@ func (c ModSet) SpecRouteSetAction() {
 
 	defer c.RenderJson(&set)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}
@@ -458,7 +455,7 @@ func (c ModSet) SpecRouteDelAction() {
 
 	defer c.RenderJson(&set)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}

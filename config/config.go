@@ -27,13 +27,13 @@ import (
 	"github.com/hooto/hflag4g/hflag"
 	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/htoml4g/htoml"
-	"github.com/hooto/iam/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 	"github.com/lynkdb/iomix/connect"
 	"github.com/lynkdb/kvgo/v2/pkg/storage"
-	"github.com/sysinner/incore/inconf"
+	"github.com/sysinner/incore/v2/pkg/inconf"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/store"
@@ -43,7 +43,7 @@ var (
 	Prefix         string
 	Config         ConfigCommon
 	AppName        = "hooto-press"
-	Version        = "0.9.0.dev"
+	Version        = "0.10.0"
 	Release        = "1"
 	SysVersionSign = ""
 	CaptchaConfig  = captcha4g.DefaultConfig
@@ -63,20 +63,18 @@ var (
 )
 
 type ConfigCommon struct {
-	UrlBasePath           string                   `json:"url_base_path,omitempty" toml:"url_base_path,omitempty"`
-	ModuleDir             string                   `json:"module_dir,omitempty" toml:"module_dir,omitempty"`
-	InstanceID            string                   `json:"instance_id" toml:"instance_id"`
-	AppInstance           iamapi.AppInstance       `json:"app_instance" toml:"app_instance"`
-	AppTitle              string                   `json:"app_title,omitempty" toml:"app_title,omitempty"`
-	HttpPort              uint16                   `json:"http_port" toml:"http_port"`
-	IamServiceUrl         string                   `json:"iam_service_url" toml:"iam_service_url"`
-	IamServiceUrlFrontend string                   `json:"iam_service_url_frontend" toml:"iam_service_url_frontend"`
-	IoConnectors          connect.MultiConnOptions `json:"io_connectors" toml:"io_connectors"`
-	DataCache             *storage.Options         `json:"data_cache" toml:"data_cache"`
-	RunMode               string                   `json:"run_mode,omitempty" toml:"run_mode,omitempty"`
-	ExtUpDatabases        connect.MultiConnOptions `json:"ext_up_databases,omitempty" toml:"ext_up_databases,omitempty"`
-	ExpModuleInits        []string                 `json:"exp_module_inits,omitempty" toml:"exp_module_inits,omitempty"`
-	ExpGdocPaths          []string                 `json:"exp_gdoc_paths,omitempty" toml:"exp_gdoc_paths,omitempty"`
+	UrlBasePath    string                   `json:"url_base_path,omitempty" toml:"url_base_path,omitempty"`
+	ModuleDir      string                   `json:"module_dir,omitempty" toml:"module_dir,omitempty"`
+	InstanceID     string                   `json:"instance_id" toml:"instance_id"`
+	IamAuth        *iamserver.AppAuthConfig `json:"iam_auth" toml:"iam_auth"`
+	AppTitle       string                   `json:"app_title,omitempty" toml:"app_title,omitempty"`
+	HttpPort       uint16                   `json:"http_port" toml:"http_port"`
+	IoConnectors   connect.MultiConnOptions `json:"io_connectors" toml:"io_connectors"`
+	DataCache      *storage.Options         `json:"data_cache" toml:"data_cache"`
+	RunMode        string                   `json:"run_mode,omitempty" toml:"run_mode,omitempty"`
+	ExtUpDatabases connect.MultiConnOptions `json:"ext_up_databases,omitempty" toml:"ext_up_databases,omitempty"`
+	ExpModuleInits []string                 `json:"exp_module_inits,omitempty" toml:"exp_module_inits,omitempty"`
+	ExpGdocPaths   []string                 `json:"exp_gdoc_paths,omitempty" toml:"exp_gdoc_paths,omitempty"`
 }
 
 func init() {
@@ -150,8 +148,8 @@ func init() {
 	go func() {
 		for {
 			time.Sleep(60e9)
-			if err := syncSysinnerConfig(); err != nil {
-				hlog.Printf("error", "syncSysinnerConfig err: %s", err.Error())
+			if err := syncInnerStackConfig(); err != nil {
+				hlog.Printf("error", "syncInnerStackConfig err: %s", err.Error())
 			}
 		}
 	}()
@@ -208,7 +206,7 @@ func Setup() error {
 		Config.AppTitle = "Hooto Press"
 	}
 
-	if err := syncSysinnerConfig(); err != nil {
+	if err := syncInnerStackConfig(); err != nil {
 		return err
 	}
 
@@ -218,6 +216,14 @@ func Setup() error {
 	}
 
 	if err := storeSetup(); err != nil {
+		return err
+	}
+
+	if Config.IamAuth == nil {
+		Config.IamAuth = &iamserver.AppAuthConfig{}
+	}
+
+	if err := iamserver.AppVerifier.Setup(Config.IamAuth); err != nil {
 		return err
 	}
 
@@ -283,20 +289,15 @@ func Setup() error {
 	return nil
 }
 
-func syncSysinnerConfig() error {
+func syncInnerStackConfig() error {
 
 	if Config.RunMode == "local-dev" {
 		return nil
 	}
 
-	conf, err := inconf.NewAppConfigurator("hooto-press*")
+	conf, err := inconf.NewAppConfigHelper()
 	if err != nil {
 		return err
-	}
-
-	opt := conf.AppConfig("cfg/hooto-press")
-	if opt == nil {
-		return errors.New("No Configure Found")
 	}
 
 	var (
@@ -304,41 +305,33 @@ func syncSysinnerConfig() error {
 		chg        = false
 	)
 
-	if v, ok := opt.ValueOK("iam_service_url"); ok {
-		if v.String() != Config.IamServiceUrl {
-			Config.IamServiceUrl, chg = v.String(), true
-		}
-	} else {
-		return errors.New("No Config.IamServiceUrl Found")
+	if Config.IamAuth == nil {
+		Config.IamAuth = &iamserver.AppAuthConfig{}
 	}
 
-	if v, ok := opt.ValueOK("iam_service_url_frontend"); ok {
-		if v.String() != Config.IamServiceUrlFrontend {
-			Config.IamServiceUrlFrontend, chg = v.String(), true
+	if v, ok := conf.ConfigValueOK("iam_auth_endpoint_url"); ok {
+		if v != Config.IamAuth.BaseURL {
+			Config.IamAuth.BaseURL = v
+			chg = true
 		}
-	} else {
-		Config.IamServiceUrlFrontend = Config.IamServiceUrl
 	}
 
+	// Find database dependency from App Deploy Depends
 	var (
-		dbService = conf.AppServiceQuery("spec=sysinner-pgsql-*")
-		dbCfg     = conf.AppConfigQuery("cfg/sysinner-pgsql")
-		dbDriver  = types.NameIdentifier("lynkdb/pgsqlgo")
+		dbDriver = types.NameIdentifier("lynkdb/pgsqlgo")
+		dbDep    = conf.Depend("postgresql-v18")
 	)
 
-	if dbService == nil {
-		dbService = conf.AppServiceQuery("spec=sysinner-mysql-*")
-		dbCfg = conf.AppConfigQuery("cfg/sysinner-mysql")
-		dbDriver = "lynkdb/mysqlgo"
+	if dbDep == nil {
+		return errors.New("No Database Connection Config Found")
 	}
 
+	dbReplica, dbService := dbDep.Service("postgresql")
 	if dbService == nil {
 		return errors.New("No Database Connection Service Found")
 	}
 
-	if dbCfg == nil {
-		return errors.New("No Database Connection Config Found")
-	}
+	dbDriver = types.NameIdentifier("lynkdb/pgsqlgo")
 
 	if dbConnOpts == nil {
 		dbConnOpts = &connect.ConnOptions{
@@ -350,34 +343,51 @@ func syncSysinnerConfig() error {
 		dbConnOpts.Driver = dbDriver
 	}
 
-	if v, ok := dbCfg.ValueOK("db_name"); ok {
-		if dbConnOpts.Value("dbname") != v.String() {
-			dbConnOpts.SetValue("dbname", v.String())
+	if v := dbDep.ConfigValue("db_name"); v != "" {
+		if dbConnOpts.Value("dbname") != v {
+			dbConnOpts.SetValue("dbname", v)
 			chg = true
 		}
 	}
 
-	if v, ok := dbCfg.ValueOK("db_user"); ok {
-		if dbConnOpts.Value("user") != v.String() {
-			dbConnOpts.SetValue("user", v.String())
+	if v := dbDep.ConfigValue("db_user"); v != "" {
+		if dbConnOpts.Value("user") != v {
+			dbConnOpts.SetValue("user", v)
 			chg = true
 		}
 	}
 
-	if v, ok := dbCfg.ValueOK("db_auth"); ok {
-		if dbConnOpts.Value("pass") != v.String() {
-			dbConnOpts.SetValue("pass", v.String())
+	if v := dbDep.ConfigValue("db_auth"); v != "" {
+		if dbConnOpts.Value("pass") != v {
+			dbConnOpts.SetValue("pass", v)
 			chg = true
 		}
 	}
 
-	if dbConnOpts.Value("host") != dbService.Endpoints[0].Ip {
-		dbConnOpts.SetValue("host", dbService.Endpoints[0].Ip)
+	dbHost := dbReplica.HostIpv4
+
+	if dbReplica.VpcIpv4 != "" {
+		dbHost = dbReplica.VpcIpv4
+	} else if dbReplica.HostIpv4 != "" {
+		dbHost = dbReplica.HostIpv4
+	}
+
+	if dbHost != "" && dbConnOpts.Value("host") != dbHost {
+		dbConnOpts.SetValue("host", dbHost)
 		chg = true
 	}
-	if p := fmt.Sprintf("%d", dbService.Endpoints[0].Port); p != dbConnOpts.Value("port") {
-		dbConnOpts.SetValue("port", p)
-		chg = true
+
+	if dbReplica.VpcIpv4 != "" {
+		if p := fmt.Sprintf("%d", dbService.Port); p != dbConnOpts.Value("port") {
+			dbConnOpts.SetValue("port", p)
+			chg = true
+		}
+	} else if dbService.HostPort > 0 {
+		if p := fmt.Sprintf("%d", dbService.HostPort); p != dbConnOpts.Value("port") {
+			dbConnOpts.SetValue("port", p)
+			dbConnOpts.SetValue("host", dbReplica.HostIpv4)
+			chg = true
+		}
 	}
 
 	Config.IoConnectors.SetOptions(*dbConnOpts)

@@ -25,8 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 	"github.com/ulikunitz/xz"
@@ -68,7 +67,7 @@ func (c ModSet) SpecUploadCommitAction() {
 		return
 	}
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.write", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.write") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return
 	}

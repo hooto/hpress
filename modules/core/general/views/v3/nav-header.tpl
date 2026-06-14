@@ -46,7 +46,7 @@
 </nav>
 
 <script id="hp-topbar-user-unsigned-tpl" type="text/html">
-  <a class="btn btn-outline-dark" href="{{HttpSrvBasePath `hp/auth/login`}}"
+  <a class="btn btn-outline-dark" href="{{HttpSrvBasePath `hp/user-auth/sign-in`}}"
     >Sign In</a
   >
 </script>
@@ -85,7 +85,7 @@
         >
         <a
           class="btn btn-outline-dark iam-btn"
-          href="{[=hp.HttpSrvBasePath('auth/sign-out')]}"
+          href="{[=hp.HttpSrvBasePath('user-auth/sign-out')]}"
           >Sign Out</a
         >
       </div>

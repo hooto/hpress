@@ -155,7 +155,7 @@ hpMgr.AlertUserLogin = function () {
       buttons: [
         {
           title: "SIGN IN",
-          href: hpMgr.frtbase + "auth/login",
+          href: hpMgr.frtbase + "user-auth/sign-in",
         },
       ],
     }

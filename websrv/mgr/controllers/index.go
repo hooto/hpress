@@ -15,8 +15,12 @@
 package controllers
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamserver"
+	"github.com/sysinner/incore/v2/pkg/inauth"
 
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/status"
@@ -36,17 +40,32 @@ func (c Index) IndexAction() {
 		return
 	}
 
-	if !iamclient.SessionIsLogin(c.Session) {
-		c.Redirect(iamclient.AuthServiceUrl(
-			config.Config.InstanceID,
-			c.UrlBase("hp/auth/cb"),
-			c.Request.RawAbsUrl(),
-		))
+	if err := iamserver.AppVerifier.Ping(); err != nil {
+		c.RenderError(500, "iam ping fail : "+err.Error())
 		return
 	}
 
-	if status.IamServiceStatus == status.IamServiceUnRegistered {
-		c.Redirect("hp/mgr/setup/index")
+	session := iamserver.AppVerifier.Session(c.Request.Request)
+	if err := session.CheckServer(); err != nil {
+		c.RenderError(500, "iam session check fail : "+err.Error())
+		return
+	}
+
+	if redirectURL, err := session.RequireAuth(); err != nil {
+		if redirectURL != "" {
+			currentURL := c.Request.RawAbsUrl()
+			http.SetCookie(c.Response.Out, &http.Cookie{
+				Name:     inauth.AppHttpHeaderKey + "-current-url",
+				Value:    currentURL,
+				Path:     "/",
+				HttpOnly: true,
+				Expires:  time.Now().Add(1 * time.Hour),
+			})
+			c.Redirect(redirectURL)
+			return
+		}
+
+		c.RenderError(401, "iam auth fail : "+err.Error())
 		return
 	}
 

@@ -1,0 +1,67 @@
+# app_spec.toml - Application Specification v2 for hooto-press
+
+name = "hooto-press"
+description = "Hooto Press Content Management System"
+image = "sysinner/innerstack-alpine:3.23"
+
+[resources]
+cpu_limit = "200m"
+memory_limit = "128Mi"
+volume_limit = "1Gi"
+
+[[packages]]
+name = "hooto-press"
+version = "0.10"
+
+# service port
+[[service_ports]]
+port = 9533
+name = "http"
+
+# dependency on postgresql service
+[[depends]]
+name = "postgresql-v18"
+
+[[tasks]]
+name = "install"
+run_user = "root"
+on_startup = true
+script = """
+command -v git >/dev/null || apk add --no-cache git
+"""
+
+[[tasks]]
+name = "run"
+depends_on = ["install"]
+script = """
+if pidof hooto-press; then
+    exit 0
+fi
+
+mkdir -p /opt/hooto/press/
+rsync -av ${ipk.hooto_press.path}/* /opt/hooto/press/
+
+/opt/hooto/press/bin/hooto-press -log_dir=/opt/hooto/press/var/log -minloglevel=1 >> /home/action/var/log/hooto-press.log 2>&1 &
+"""
+cron = "*/60 * * * * *"
+
+[[tasks]]
+name = "shutdown"
+script = "killall hooto-press"
+on_shutdown = true
+
+[[configs]]
+name = "iam_auth_app_id"
+title = "IAM Auth - App ID"
+type = "string"
+
+[[configs]]
+name = "iam_auth_secret_key"
+title = "IAM Auth - Secret Key"
+type = "string"
+
+[[configs]]
+name = "iam_auth_endpoint_url"
+title = "IAM Auth - Endpoint URL"
+type = "string"
+

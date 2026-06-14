@@ -22,8 +22,7 @@ import (
 	"time"
 
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
 
@@ -38,11 +37,11 @@ type Index struct {
 	*httpsrv.Controller
 	urlActionPath string
 	hookPosts     []func()
-	us            iamapi.UserSession
+	us            iamserver.UserSession
 }
 
 func (c *Index) Init() int {
-	c.us, _ = iamclient.SessionInstance(c.Session)
+	c.us = iamserver.AppVerifier.Session(c.Request.Request)
 	return 0
 }
 
@@ -176,8 +175,8 @@ func (c Index) IndexAction() {
 	c.Data["srvname"] = srvname
 	c.Data["modname"] = mod.Meta.Name
 	c.Data["sys_version_sign"] = config.SysVersionSign
-	if c.us.IsLogin() {
-		c.Data["s_user"] = c.us.UserName
+	if s, err := c.us.Profile(); err == nil {
+		c.Data["s_user"] = s.Username
 	}
 
 	drs := dataRenderOK
@@ -294,7 +293,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 		var ls api.NodeList
 		qryhash := qry.Hash()
 
-		if ad.CacheTTL > 0 && (!c.us.IsLogin() || c.us.UserName != config.Config.AppInstance.Meta.User) {
+		if ad.CacheTTL > 0 && !c.us.Allow("", "editor.write") {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 				rs.JsonDecode(&ls)
 			}
@@ -402,7 +401,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 		var entry api.Node
 		qryhash := qry.Hash()
-		if ad.CacheTTL > 0 && (!c.us.IsLogin() || c.us.UserName != config.Config.AppInstance.Meta.User) {
+		if ad.CacheTTL > 0 && !c.us.Allow("", "editor.write") {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 				rs.JsonDecode(&entry)
 			}

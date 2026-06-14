@@ -16,13 +16,19 @@ var hpSys = {
   roles: {
     items: [
       {
-        idxid: 100,
+        idxid: "sa",
         meta: {
-          name: "Member",
+          name: "Sys Admin",
         },
       },
       {
-        idxid: 1000,
+        idxid: "user",
+        meta: {
+          name: "User",
+        },
+      },
+      {
+        idxid: "guest",
         meta: {
           name: "Guest",
         },
@@ -163,21 +169,27 @@ hpSys.IamStatus = function () {
       return;
     }
 
-    if (!data.instance_self.privileges) {
-      data.instance_self.privileges = [];
+    if (!data.instance_self) {
+      data.instance_self = {};
     }
-    for (var i in data.instance_self.privileges) {
-      if (!data.instance_self.privileges[i].roles) {
-        data.instance_self.privileges[i].roles = [];
+    if (!data.instance_self.permissions) {
+      data.instance_self.permissions = [];
+    }
+    for (var i in data.instance_self.permissions) {
+      if (!data.instance_self.permissions[i].roles) {
+        data.instance_self.permissions[i].roles = [];
       }
     }
 
-    if (!data.instance_registered.privileges) {
-      data.instance_registered.privileges = [];
+    if (!data.instance_registered) {
+      data.instance_registered = {};
     }
-    for (var i in data.instance_registered.privileges) {
-      if (!data.instance_registered.privileges[i].roles) {
-        data.instance_registered.privileges[i].roles = [];
+    if (!data.instance_registered.permissions) {
+      data.instance_registered.permissions = [];
+    }
+    for (var i in data.instance_registered.permissions) {
+      if (!data.instance_registered.permissions[i].roles) {
+        data.instance_registered.permissions[i].roles = [];
       }
     }
 
@@ -204,24 +216,13 @@ hpSys.IamStatus = function () {
 };
 
 hpSys.IamSync = function () {
-  var alert_id = "#hp-mgr-sys-iam-alert",
-    form = $("#hp-mgr-sys-iam"),
-    url = "";
-  if (form) {
-    var v = form.find("input[name=app_title]").val();
-    if (v) {
-      url += "&app_title=" + v;
-    }
-    v = form.find("input[name=instance_url]").val();
-    if (v) {
-      url += "&instance_url=" + v;
-    }
-  }
+  var alert_id = "#hp-mgr-sys-iam-alert";
 
-  hpMgr.Ajax("setup/app-register-sync?" + url, {
+  hpMgr.ApiCmd("sys/iam-sync", {
+    method: "POST",
     callback: function (err, data) {
       if (!data || data.kind != "AppInstanceRegister") {
-        if (data.error) {
+        if (data && data.error) {
           return lynkui.alert.innerShow(alert_id, "danger", data.error.message);
         }
 

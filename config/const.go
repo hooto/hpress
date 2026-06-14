@@ -15,7 +15,7 @@
 package config
 
 import (
-	"github.com/hooto/iam/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamapi"
 )
 
 var (
@@ -29,36 +29,36 @@ var (
 		"core/blog",
 	}
 
-	Perms = []iamapi.AppPrivilege{
+	Perms = []*iamapi.AppPermission{
 		{
-			Privilege: "frontend.list",
-			Desc:      "Frontend - List",
-			Roles:     []uint32{100, 1000},
+			Permission: "frontend.list",
+			Summary:    "Frontend - List",
+			Roles:      []string{iamapi.Role_Guest, iamapi.Role_User},
 		},
 		{
-			Privilege: "frontend.read",
-			Desc:      "Frontend - Read",
-			Roles:     []uint32{100, 1000},
+			Permission: "frontend.read",
+			Summary:    "Frontend - Read",
+			Roles:      []string{iamapi.Role_Guest, iamapi.Role_User},
 		},
 		{
-			Privilege: "editor.list",
-			Desc:      "Editor - List",
-			Roles:     []uint32{},
+			Permission: "editor.list",
+			Summary:    "Editor - List",
+			Roles:      []string{},
 		},
 		{
-			Privilege: "editor.write",
-			Desc:      "Editor - Write",
-			Roles:     []uint32{},
+			Permission: "editor.write",
+			Summary:    "Editor - Write",
+			Roles:      []string{},
 		},
 		{
-			Privilege: "editor.read",
-			Desc:      "Editor - Read",
-			Roles:     []uint32{},
+			Permission: "editor.read",
+			Summary:    "Editor - Read",
+			Roles:      []string{},
 		},
 		{
-			Privilege: "sys.admin",
-			Desc:      "System Admin",
-			Roles:     []uint32{},
+			Permission: "sys.admin",
+			Summary:    "System Admin",
+			Roles:      []string{},
 		},
 	}
 )

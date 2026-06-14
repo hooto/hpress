@@ -19,8 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
@@ -34,7 +33,7 @@ func (c ModSet) FsTplListAction() {
 
 	defer c.RenderJson(&ls)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}

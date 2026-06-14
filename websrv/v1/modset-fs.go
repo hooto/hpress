@@ -28,8 +28,8 @@ import (
 	"strings"
 
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utils"
@@ -41,15 +41,15 @@ import (
 
 type ModSetFs struct {
 	*httpsrv.Controller
-	us iamapi.UserSession
+	us iamserver.UserSession
 }
 
 func (c *ModSetFs) Init() int {
 
 	//
-	c.us, _ = iamclient.SessionInstance(c.Session)
+	c.us = iamserver.AppVerifier.Session(c.Request.Request)
 
-	if !c.us.IsLogin() {
+	if _, err := c.us.RequireAuth(); err != nil {
 		c.Response.Out.WriteHeader(401)
 		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
 		return 1
@@ -67,7 +67,7 @@ func (c ModSetFs) RenameAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -111,7 +111,7 @@ func (c ModSetFs) DelAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -154,7 +154,7 @@ func (c ModSetFs) PutAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -322,7 +322,7 @@ func (c ModSetFs) ListAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -425,7 +425,7 @@ func (c ModSetFs) GetAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "sys.admin", config.Config.InstanceID) {
+	if !c.us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}

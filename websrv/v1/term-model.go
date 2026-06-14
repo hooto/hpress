@@ -18,8 +18,8 @@ import (
 	"strings"
 
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
@@ -28,15 +28,14 @@ import (
 
 type TermModel struct {
 	*httpsrv.Controller
-	us iamapi.UserSession
+	us iamserver.UserSession
 }
 
 func (c *TermModel) Init() int {
 
-	//
-	c.us, _ = iamclient.SessionInstance(c.Session)
+	c.us = iamserver.AppVerifier.Session(c.Request.Request)
 
-	if !c.us.IsLogin() {
+	if _, err := c.us.RequireAuth(); err != nil {
 		c.Response.Out.WriteHeader(401)
 		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
 		return 1
@@ -55,7 +54,7 @@ func (c TermModel) EntryAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.read", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.read") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}

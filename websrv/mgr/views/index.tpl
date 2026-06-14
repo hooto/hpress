@@ -39,7 +39,7 @@
         </ul>
         <ul class="hpm-nav hpm-topbar-nav" id="hpm-topbar-nav-node-specls"></ul>
         <ul class="hpm-nav hpm-nav-right" id="hpm-topbar-userbar">
-          <li><a href="{{HttpSrvBasePath `hp/auth/sign-out`}}">Sign Out</a></li>
+          <li><a href="{{HttpSrvBasePath `hp/user-auth/sign-out`}}">Sign Out</a></li>
         </ul>
         <ul class="hpm-nav hpm-nav-right">
           <li><a class="lynkui-nav-item" href="#s2/index">Storage</a></li>

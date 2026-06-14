@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/iamapi"
-	"github.com/hooto/iam/iamclient"
+	"github.com/hooto/iam/v2/pkg/iamapi"
+	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
 
@@ -43,15 +43,14 @@ var (
 
 type Term struct {
 	*httpsrv.Controller
-	us iamapi.UserSession
+	us iamserver.UserSession
 }
 
 func (c *Term) Init() int {
 
-	//
-	c.us, _ = iamclient.SessionInstance(c.Session)
+	c.us = iamserver.AppVerifier.Session(c.Request.Request)
 
-	if !c.us.IsLogin() {
+	if _, err := c.us.RequireAuth(); err != nil {
 		c.Response.Out.WriteHeader(401)
 		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
 		return 1
@@ -66,7 +65,7 @@ func (c Term) ListAction() {
 
 	defer c.RenderJson(&ls)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.list", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.list") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -128,7 +127,7 @@ func (c Term) EntryAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.read", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.read") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -147,7 +146,7 @@ func (c Term) SetAction() {
 
 	defer c.RenderJson(&rsp)
 
-	if !iamclient.SessionAccessAllowed(c.Session, "editor.write", config.Config.InstanceID) {
+	if !c.us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return
 	}
@@ -170,9 +169,14 @@ func (c Term) SetAction() {
 	}
 
 	var (
-		set   = map[string]interface{}{}
-		table = fmt.Sprintf("hpt_%s_%s", idhash.HashToHexString([]byte(c.Params.Value("modname")), 12), c.Params.Value("modelid"))
+		set      = map[string]interface{}{}
+		username = ""
+		table    = fmt.Sprintf("hpt_%s_%s", idhash.HashToHexString([]byte(c.Params.Value("modname")), 12), c.Params.Value("modelid"))
 	)
+
+	if s, err := c.us.Profile(); err == nil {
+		username = s.Username
+	}
 
 	q := store.Data.NewQueryer().From(table).Limit(1)
 
@@ -216,7 +220,7 @@ func (c Term) SetAction() {
 			set["title"] = rsp.Title
 			set["status"] = rsp.Status
 			set["created"] = uint32(time.Now().Unix())
-			set["userid"] = c.us.UserId()
+			set["userid"] = username
 		}
 
 	case api.TermTaxonomy:
@@ -259,7 +263,7 @@ func (c Term) SetAction() {
 			}
 
 			if rs[0].Field("userid").String() == "" {
-				set["userid"] = c.us.UserId()
+				set["userid"] = username
 			}
 
 		} else {
@@ -269,7 +273,7 @@ func (c Term) SetAction() {
 			set["status"] = rsp.Status
 			set["weight"] = rsp.Weight
 			set["created"] = uint32(time.Now().Unix())
-			set["userid"] = c.us.UserId()
+			set["userid"] = username
 		}
 
 		datax.TermTaxonomyCacheClean(c.Params.Value("modname"), c.Params.Value("modelid"))

@@ -7,7 +7,7 @@ a:hover {
 }
 
 body .container {
-  _max-width: 1400px !important;
+  max-width: 1400px !important;
 }
 
 #hp-topbar .nav-link {
