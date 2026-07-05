@@ -17,6 +17,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -27,13 +28,14 @@ import (
 	"github.com/hooto/hflag4g/hflag"
 	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/htoml4g/htoml"
+	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 	"github.com/lynkdb/iomix/connect"
 	"github.com/lynkdb/kvgo/v2/pkg/storage"
-	"github.com/sysinner/incore/v2/pkg/inconf"
+	"github.com/sysinner/innerstack/v2/pkg/inconf"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/store"
@@ -224,7 +226,14 @@ func Setup() error {
 	}
 
 	if err := iamserver.AppVerifier.Setup(Config.IamAuth); err != nil {
-		return err
+		slog.Error("app auth verifier setup failed", "error", err)
+	} else if err = iamserver.AppVerifier.Update(&iamapi.AppInstance{
+		ID:          Config.IamAuth.AppId,
+		Version:     Version,
+		Status:      1,
+		Permissions: Perms,
+	}); err != nil {
+		slog.Error("app auth update failed", "error", err)
 	}
 
 	// Setting CAPTCHA
@@ -295,7 +304,7 @@ func syncInnerStackConfig() error {
 		return nil
 	}
 
-	conf, err := inconf.NewAppConfigHelper()
+	conf, err := inconf.NewAppReplicaHelper()
 	if err != nil {
 		return err
 	}
@@ -309,11 +318,33 @@ func syncInnerStackConfig() error {
 		Config.IamAuth = &iamserver.AppAuthConfig{}
 	}
 
-	if v, ok := conf.ConfigValueOK("iam_auth_endpoint_url"); ok {
-		if v != Config.IamAuth.BaseURL {
-			Config.IamAuth.BaseURL = v
+	if item := conf.ConfigItem("iam_auth_app_id"); item != nil {
+		if item.Value != Config.IamAuth.AppId {
+			Config.IamAuth.AppId = item.Value
+			Config.InstanceID = item.Value
 			chg = true
 		}
+	}
+
+	if item := conf.ConfigItem("iam_auth_secret_key"); item != nil {
+		if item.Value != Config.IamAuth.SecretKey {
+			Config.IamAuth.SecretKey = item.Value
+			chg = true
+		}
+	}
+
+	if item := conf.ConfigItem("iam_auth_base_url"); item != nil {
+		if item.Value != Config.IamAuth.BaseURL {
+			Config.IamAuth.BaseURL = item.Value
+			chg = true
+		}
+	}
+
+	dbName := ""
+	if item := conf.ConfigItem("database_name"); item != nil && item.Value != "" {
+		dbName = item.Value
+	} else {
+		return errors.New("No Database Name Config Found")
 	}
 
 	// Find database dependency from App Deploy Depends
@@ -343,24 +374,53 @@ func syncInnerStackConfig() error {
 		dbConnOpts.Driver = dbDriver
 	}
 
-	if v := dbDep.ConfigValue("db_name"); v != "" {
-		if dbConnOpts.Value("dbname") != v {
-			dbConnOpts.SetValue("dbname", v)
+	if dbName != "dbaction" {
+
+		gcfg := dbDep.ConfigArrayGroup("databases", "db_name", dbName)
+		if gcfg == nil {
+			return errors.New("No Database Connection Found")
+		}
+
+		if dbConnOpts.Value("dbname") != dbName {
+			dbConnOpts.SetValue("dbname", dbName)
 			chg = true
 		}
-	}
 
-	if v := dbDep.ConfigValue("db_user"); v != "" {
-		if dbConnOpts.Value("user") != v {
-			dbConnOpts.SetValue("user", v)
-			chg = true
+		if item := gcfg.ConfigItem("db_user"); item != nil && item.Value != "" {
+			if dbConnOpts.Value("user") != item.Value {
+				dbConnOpts.SetValue("user", item.Value)
+				chg = true
+			}
 		}
-	}
 
-	if v := dbDep.ConfigValue("db_auth"); v != "" {
-		if dbConnOpts.Value("pass") != v {
-			dbConnOpts.SetValue("pass", v)
-			chg = true
+		if item := gcfg.ConfigItem("db_auth"); item != nil && item.Value != "" {
+			if dbConnOpts.Value("pass") != item.Value {
+				dbConnOpts.SetValue("pass", item.Value)
+				chg = true
+			}
+		}
+
+	} else {
+
+		if item := dbDep.ConfigItem("db_name"); item != nil && item.Value != "" {
+			if dbConnOpts.Value("dbname") != item.Value {
+				dbConnOpts.SetValue("dbname", item.Value)
+				chg = true
+			}
+		}
+
+		if item := dbDep.ConfigItem("db_user"); item != nil && item.Value != "" {
+			if dbConnOpts.Value("user") != item.Value {
+				dbConnOpts.SetValue("user", item.Value)
+				chg = true
+			}
+		}
+
+		if item := dbDep.ConfigItem("db_auth"); item != nil && item.Value != "" {
+			if dbConnOpts.Value("pass") != item.Value {
+				dbConnOpts.SetValue("pass", item.Value)
+				chg = true
+			}
 		}
 	}
 

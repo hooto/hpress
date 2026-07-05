@@ -3,7 +3,7 @@
 
 [metadata]
 name        = "hooto-press"
-version     = "0.10.1"
+version     = "0.10.6"
 authors     = ["hooto.com"]
 description = "Hooto Press Content Management System"
 homepage    = "https://github.com/hooto/hpress"
@@ -12,7 +12,8 @@ categories  = ["app/cms"]
 
 [build]
 include = [
-  "misc/app_spec.toml",
+  "app_spec.toml",
+  "ipk.toml",
   "i18n/**",
   "modules/core/**",
   "websrv/mgr/views/**",
@@ -29,5 +30,5 @@ include = [
 script = """
 mkdir -p ${ipk_build_dir}/bin
 mkdir -p ${ipk_build_dir}/var/{log,storage,tmp}
-CGO_ENABLED=0 GOOS=${ipk_release_os} GOARCH=${ipk_release_arch} go build -a -ldflags "-w -s" -o ${ipk_build_dir}/bin/hooto-press cmd/server/main.go
+CGO_ENABLED=0 GOOS=${ipk_release_os} GOARCH=${ipk_release_arch} go build -trimpath -ldflags "-w -s" -o ${ipk_build_dir}/bin/hooto-press cmd/server/main.go
 """

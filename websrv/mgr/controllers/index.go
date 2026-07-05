@@ -20,7 +20,7 @@ import (
 
 	"github.com/hooto/httpsrv"
 	"github.com/hooto/iam/v2/pkg/iamserver"
-	"github.com/sysinner/incore/v2/pkg/inauth"
+	"github.com/sysinner/innerstack/v2/pkg/inauth"
 
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/status"

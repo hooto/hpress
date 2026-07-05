@@ -7,7 +7,7 @@ image = "sysinner/innerstack-alpine:3.23"
 [resources]
 cpu_limit = "200m"
 memory_limit = "128Mi"
-volume_limit = "1Gi"
+volume_limit = "5Gi"
 
 [[packages]]
 name = "hooto-press"
@@ -38,7 +38,7 @@ if pidof hooto-press; then
     exit 0
 fi
 
-mkdir -p /opt/hooto/press/
+mkdir -p /opt/hooto/press/etc
 rsync -av ${ipk.hooto_press.path}/* /opt/hooto/press/
 
 /opt/hooto/press/bin/hooto-press -log_dir=/opt/hooto/press/var/log -minloglevel=1 >> /home/action/var/log/hooto-press.log 2>&1 &
@@ -61,7 +61,12 @@ title = "IAM Auth - Secret Key"
 type = "string"
 
 [[configs]]
-name = "iam_auth_endpoint_url"
-title = "IAM Auth - Endpoint URL"
+name = "iam_auth_base_url"
+title = "IAM Auth - Base URL"
+type = "string"
+
+[[configs]]
+name = "database_name"
+title = "Database Name"
 type = "string"
 
