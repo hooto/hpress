@@ -290,10 +290,7 @@ hp.AuthSessionRefresh = function () {
           data.auth_base_url
             ? data.auth_base_url + "/iam/user/"
             : "",
-        instance_owner:
-          data.identity_token &&
-          data.identity_token.roles &&
-          data.identity_token.roles.indexOf("sa") >= 0,
+        ui_mgr_allow: !!(data.extras && data.extras.ui_mgr_allow),
       };
 
       lynkui.template.render({

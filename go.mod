@@ -8,6 +8,8 @@ replace github.com/lynkdb/lynkapi v0.0.9 => /opt/workspace/src/github.com/lynkdb
 
 replace github.com/lynkdb/lynkui v0.0.1 => /opt/workspace/src/github.com/lynkdb/lynkui
 
+replace github.com/hooto/iam/v2 v2.0.1 => /opt/workspace/src/github.com/hooto/iam
+
 require (
 	github.com/bamiaux/rez v0.0.0-20170731184118-29f4463c688b
 	github.com/hooto/hcaptcha v0.1.6

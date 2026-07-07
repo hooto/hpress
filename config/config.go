@@ -236,6 +236,18 @@ func Setup() error {
 		slog.Error("app auth update failed", "error", err)
 	}
 
+	// Inject app-specific fields into the /user-auth/session response.
+	// ui_mgr_allow tells the frontend whether to show the /hp/mgr entry
+	// link; it is driven by backend permissions (PermsManager), which IAM
+	// grants only to the app creator. Fail-closed: Allow returns false
+	// when the session is unauthenticated or IAM is unreachable.
+	iamserver.SetSessionResponseHook(func(sess iamserver.UserSession) map[string]any {
+		return map[string]any{
+			"version":      Version,
+			"ui_mgr_allow": sess.Allow("", PermsManager...),
+		}
+	})
+
 	// Setting CAPTCHA
 	captcha4g.DataConnector = store.DataLocal
 	CaptchaConfig.DataDir = Prefix + "/var/hcaptchadb"

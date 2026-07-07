@@ -5,9 +5,12 @@ description = "Hooto Press Content Management System"
 image = "sysinner/innerstack-alpine:3.23"
 
 [resources]
-cpu_limit = "200m"
-memory_limit = "128Mi"
-volume_limit = "5Gi"
+cpu_min = "200m"
+cpu_max = "4"
+memory_min = "128Mi"
+memory_max = "4Gi"
+volume_min = "1Gi"
+volume_max = "100Gi"
 
 [[packages]]
 name = "hooto-press"

@@ -61,4 +61,18 @@ var (
 			Roles:      []string{},
 		},
 	}
+
+	// PermsManager lists the permissions required to reach the management
+	// backend (/hp/mgr) and to see its entry link in the frontend. A
+	// session holding ANY of these is treated as a manager. Because each
+	// of these permissions has an empty Roles list, IAM only grants them
+	// to the app creator (app.User), so in practice "manager" == creator
+	// today; the permission-based check keeps the policy meaningful even
+	// if roles are added later.
+	PermsManager = []string{
+		"sys.admin",
+		"editor.write",
+		"editor.list",
+		"editor.read",
+	}
 )

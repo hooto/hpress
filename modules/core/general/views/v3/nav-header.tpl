@@ -69,7 +69,7 @@
       >
         <img class="iam-photo" src="{[=it.photo_url]}" />
         <div class="iam-name">{[=it.display_name]}</div>
-        {[? it.instance_owner]}
+        {[? it.ui_mgr_allow]}
         <a
           class="btn btn-outline-dark iam-btn"
           href="{[=hp.HttpSrvBasePath('mgr')]}"

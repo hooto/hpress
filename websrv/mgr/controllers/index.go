@@ -69,6 +69,14 @@ func (c Index) IndexAction() {
 		return
 	}
 
+	// Management is gated by backend permissions (PermsManager), which
+	// IAM grants only to the app creator. Fail-closed: Allow returns
+	// false when the session is unauthenticated or IAM is unreachable.
+	if !session.Allow("", config.PermsManager...) {
+		c.RenderError(403, "management access denied")
+		return
+	}
+
 	c.Response.Out.Header().Set("Cache-Control", "no-cache")
 
 	if v := config.SysConfigList.FetchString("http_h_ac_allow_origin"); v != "" {
