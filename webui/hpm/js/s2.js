@@ -534,9 +534,11 @@ hpS2._objNewUpload = function (formid, file) {
       }
 
       // var ppath = $("#" + formid + " :input[name=path]").val();
-      const ppath = document.querySelector(
-        "#" + formid + " input[name=path]"
-      ).value;
+      // Use getElementById (not a "#id" selector) because formid can start
+      // with a digit, which would make "#formid" an invalid CSS selector.
+      const ppath = document
+        .getElementById(formid)
+        .querySelector("input[name=path]").value;
 
       hpMgr.ApiCmd("s2-obj/put", {
         method: "POST",
