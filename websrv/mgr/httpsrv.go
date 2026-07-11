@@ -15,31 +15,21 @@
 package v1
 
 import (
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/websrv/mgr/controllers"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-func NewModule() *httpsrv.Module {
+// Register mounts the management backend routes on a fiber router. The caller
+// mounts the router at "/hp/mgr". It loads the admin view templates and serves
+// the Index handler at the module root and /index (reproducing the httpsrv
+// Index.IndexAction special-casing for a controller named "Index").
+func Register(router fiber.Router) {
 
-	module := httpsrv.NewModule()
+	web.Templates.Set("mgr", []string{config.Prefix + "/websrv/mgr/views"})
 
-	// module.RouteSet(httpsrv.Route{
-	// 	Type:       httpsrv.RouteTypeStatic,
-	// 	Path:       "~",
-	// 	StaticPath: config.Prefix + "/webui/",
-	// })
-
-	// module.RouteSet(httpsrv.Route{
-	// 	Type:       httpsrv.RouteTypeStatic,
-	// 	Path:       "-",
-	// 	StaticPath: config.Prefix + "/webui/hpressm/",
-	// })
-
-	module.SetTemplatePath(config.Prefix + "/websrv/mgr/views")
-
-	module.RegisterController(new(controllers.Index))
-
-	return module
+	router.All("/", controllers.Index)
+	router.All("/index", controllers.Index)
 }

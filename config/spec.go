@@ -24,7 +24,6 @@ import (
 
 	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/htoml4g/htoml"
-	"github.com/hooto/httpsrv"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/utils"
@@ -32,6 +31,7 @@ import (
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 var (
@@ -363,9 +363,9 @@ func SpecSrvRefresh(srvname string) {
 		spec.Router.Routes[i].Tree = strings.Split(strings.Trim(filepath.Clean(v.Path), "/"), "/")
 	}
 
-	httpsrv.DefaultService.TemplateLoader.Clean(spec.Meta.Name)
-	httpsrv.DefaultService.TemplateLoader.Set(spec.Meta.Name,
-		[]string{fmt.Sprintf("%s/modules/%s/views", Prefix, spec.Meta.Name)}, nil)
+	web.Templates.Clean(spec.Meta.Name)
+	web.Templates.Set(spec.Meta.Name,
+		[]string{fmt.Sprintf("%s/modules/%s/views", Prefix, spec.Meta.Name)})
 }
 
 func _instance_schema_sync(spec *api.Spec) error {

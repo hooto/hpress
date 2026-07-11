@@ -17,20 +17,20 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/hooto/httpsrv"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 func init() {
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("SysConfig", SysConfigList.FetchString)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("ThemeConfig", ThemeConfigFetchString)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("HttpSrvBasePath", HttpSrvBasePath)
+	web.RegisterFunc("SysConfig", SysConfigList.FetchString)
+	web.RegisterFunc("ThemeConfig", ThemeConfigFetchString)
+	web.RegisterFunc("HttpSrvBasePath", HttpSrvBasePath)
 }
 
 func HttpSrvBasePath(uri string) string {
 
-	if httpsrv.DefaultService.Config.UrlBasePath == "" {
+	if web.UrlBasePath == "" {
 		return filepath.Clean("/" + uri)
 	}
 
-	return filepath.Clean("/" + httpsrv.DefaultService.Config.UrlBasePath + "/" + uri)
+	return filepath.Clean("/" + web.UrlBasePath + "/" + uri)
 }

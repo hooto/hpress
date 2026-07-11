@@ -22,11 +22,11 @@ import (
 	"strings"
 
 	"github.com/hooto/hlog4g/hlog"
-	"github.com/hooto/httpsrv"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 func FilterUri(data map[string]interface{}, args ...interface{}) template.URL {
@@ -184,7 +184,7 @@ func templateRender(data map[string]interface{}, module, templatePath string) te
 	}()
 
 	var out bytes.Buffer
-	err := httpsrv.DefaultService.TemplateLoader.Render(&out, module, templatePath, data)
+	err := web.Templates.Render(&out, module, templatePath, data)
 	if err != nil {
 		fmt.Println(err)
 		return ""

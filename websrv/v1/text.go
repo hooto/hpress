@@ -15,22 +15,19 @@
 package v1
 
 import (
+	"github.com/gofiber/fiber/v3"
+
 	"github.com/hooto/hpress/internal/blackfriday"
-	"github.com/hooto/httpsrv"
 )
 
-type Text struct {
-	*httpsrv.Controller
-}
+func TextMarkdownRender(c fiber.Ctx) error {
 
-func (c Text) MarkdownRenderAction() {
+	c.Set("Access-Control-Allow-Origin", "*")
+	c.Set("Content-type", "text/x-markdown")
 
-	c.AutoRender = false
+	output := blackfriday.MarkdownBasic(c.Body())
 
-	c.Response.Out.Header().Set("Access-Control-Allow-Origin", "*")
-	c.Response.Out.Header().Set("Content-type", "text/x-markdown")
+	_, _ = c.Write(output)
 
-	output := blackfriday.MarkdownBasic(c.Request.RawBody())
-
-	c.Response.Out.Write(output)
+	return nil
 }

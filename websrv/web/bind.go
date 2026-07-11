@@ -1,4 +1,4 @@
-// Copyright 2015 Eryx <evorui аt gmаil dοt cοm>, All rights reserved.
+// Copyright 2015 Eryx <evorui at gmail dot com>, All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package module
+package web
 
 import (
+	"encoding/json"
+
 	"github.com/gofiber/fiber/v3"
 )
 
-// Register mounts the per-module static-asset route on a fiber router. The
-// caller mounts the router at the module prefix ("/hp/-").
-func Register(router fiber.Router) {
-	router.All("/static/*", StaticIndex)
+// Bind decodes the JSON request body into out, replacing httpsrv Request.JsonDecode.
+func Bind(c fiber.Ctx, out any) error {
+	return json.Unmarshal(c.Body(), out)
+}
+
+// RawBody returns the raw request body bytes, replacing httpsrv Request.RawBody.
+func RawBody(c fiber.Ctx) []byte {
+	return c.Body()
 }

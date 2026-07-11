@@ -15,13 +15,16 @@
 package frontend
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
+	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
@@ -31,21 +34,47 @@ import (
 	"github.com/hooto/hpress/datax"
 	"github.com/hooto/hpress/internal/utils"
 	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-type Index struct {
-	*httpsrv.Controller
-	urlActionPath string
-	hookPosts     []func()
-	us            iamserver.UserSession
+// indexContext holds the per-request state previously captured by the legacy
+// controller layer. It is request-scoped: one instance is created at the top of
+// IndexPage and threaded through filter and dataRender.
+type indexContext struct {
+	c      fiber.Ctx
+	data   map[string]any
+	ovr    map[string]string // route-param overrides set by filter
+	us     iamserver.UserSession
+	hooks  []func() // post-render callbacks (cache writers)
+	urlAct string
 }
 
-func (c *Index) Init() int {
-	c.us = iamserver.AppVerifier.Session(c.Request.Request)
-	return 0
+func newIndexContext(c fiber.Ctx) *indexContext {
+	return &indexContext{
+		c:    c,
+		data: map[string]any{},
+		ovr:  map[string]string{},
+		us:   web.AuthSession(c),
+	}
 }
 
-func (c Index) filter(rt []string, spec *api.Spec) (string, string, bool) {
+func (ix *indexContext) param(key string) string {
+	if v, ok := ix.ovr[key]; ok && v != "" {
+		return v
+	}
+	return web.Param(ix.c, key)
+}
+
+func (ix *indexContext) paramInt(key string) int64 {
+	v := ix.param(key)
+	if v == "" {
+		return 0
+	}
+	n, _ := strconv.ParseInt(v, 10, 64)
+	return n
+}
+
+func (ix *indexContext) filter(rt []string, spec *api.Spec) (string, string, bool) {
 
 	for _, route := range spec.Router.Routes {
 
@@ -72,7 +101,7 @@ func (c Index) filter(rt []string, spec *api.Spec) (string, string, bool) {
 		if matlen == len(route.Tree) {
 
 			for k, v := range params {
-				c.Params.SetValue(k, v)
+				ix.ovr[k] = v
 			}
 
 			return route.DataAction, route.Template, true
@@ -101,17 +130,18 @@ var (
 	gdocPathRX = regexp.MustCompile(`^view\/([a-zA-Z-_0-9]+)\/(.*)$`)
 )
 
-func (c Index) IndexAction() {
+func IndexPage(c fiber.Ctx) error {
 
-	c.AutoRender = false
 	start := time.Now().UnixNano()
 
 	if v := config.SysConfigList.FetchString("http_h_ac_allow_origin"); v != "" {
-		c.Response.Out.Header().Set("Access-Control-Allow-Origin", v)
+		c.Set("Access-Control-Allow-Origin", v)
 	}
 
+	ix := newIndexContext(c)
+
 	var (
-		reqpath = c.Request.UrlPath()
+		reqpath = web.UrlPath(c)
 		uris    = []string{}
 	)
 	if reqpath == "" || reqpath == "." {
@@ -134,20 +164,20 @@ func (c Index) IndexAction() {
 	if len(uris) < 2 {
 		uris = append(uris, "")
 	}
-	// fmt.Println(uris, srvname, c.Params.Value("referid"), c.Params.Value("id"))
+	// fmt.Println(uris, srvname, ix.param("referid"), ix.param("id"))
 
 	mod, ok := config.Modules[srvname]
 	if !ok {
 		srvname = srvnameDefault
 		mod, ok = config.Modules[srvname]
 		if !ok {
-			return
+			return nil
 		}
 	}
 
-	c.urlActionPath = strings.Join(uris[1:], "/")
+	ix.urlAct = strings.Join(uris[1:], "/")
 
-	dataAction, template, mat := c.filter(uris[1:], mod)
+	dataAction, template, mat := ix.filter(uris[1:], mod)
 	if !mat {
 		if uris[1] == "" {
 			template = "index.tpl"
@@ -156,27 +186,23 @@ func (c Index) IndexAction() {
 		}
 	}
 
-	lang := "en"
-	if lang, ok := c.Data["LANG"]; ok {
-		lang = strings.ToLower(lang.(string))
-	}
-	c.Data["LANG"] = api.LangHit(config.Languages, lang)
+	ix.data["LANG"] = api.LangHit(config.Languages, web.ResolveLang(c))
 
 	if len(config.Languages) > 1 {
-		c.Data["frontend_langs"] = config.Languages
+		ix.data["frontend_langs"] = config.Languages
 	}
 
 	// if session, err := c.Session.Instance(); err == nil {
-	// 	c.Data["session"] = session
+	// 	ix.data["session"] = session
 	// }
 
-	c.Data["baseuri"] = "/" + srvname
-	c.Data["http_request_path"] = reqpath
-	c.Data["srvname"] = srvname
-	c.Data["modname"] = mod.Meta.Name
-	c.Data["sys_version_sign"] = config.SysVersionSign
-	if s, err := c.us.Profile(); err == nil {
-		c.Data["s_user"] = s.Username
+	ix.data["baseuri"] = "/" + srvname
+	ix.data["http_request_path"] = reqpath
+	ix.data["srvname"] = srvname
+	ix.data["modname"] = mod.Meta.Name
+	ix.data["sys_version_sign"] = config.SysVersionSign
+	if s, err := ix.us.Profile(); err == nil {
+		ix.data["s_user"] = s.Username
 	}
 
 	drs := dataRenderOK
@@ -190,8 +216,8 @@ func (c Index) IndexAction() {
 			}
 
 			for _, datax := range action.Datax {
-				drs = c.dataRender(srvname, action.Name, datax)
-				c.Data["__datax_table__"] = datax.Query.Table
+				drs = ix.dataRender(srvname, action.Name, datax)
+				ix.data["__datax_table__"] = datax.Query.Table
 			}
 
 			break
@@ -202,24 +228,36 @@ func (c Index) IndexAction() {
 	case dataRenderOK:
 
 		// render_start := time.Now()
-		c.Render(mod.Meta.Name, template)
+		var buf bytes.Buffer
+		if err := web.Templates.Render(&buf, mod.Meta.Name, template, ix.data); err != nil {
+			return err
+		}
 
 		// fmt.Println("render in-time", mod.Meta.Name, template, time.Since(render_start))
 
-		c.RenderString(fmt.Sprintf("<!-- version %s, rt-time/db+render %d ms -->",
-			config.Version, (time.Now().UnixNano()-start)/1e6))
+		fmt.Fprintf(&buf, "<!-- version %s, rt-time/db+render %d ms -->",
+			config.Version, (time.Now().UnixNano()-start)/1e6)
 
-		// fmt.Println("hookPosts", len(c.hookPosts))
-		for _, fn := range c.hookPosts {
+		c.Set("Content-Type", "text/html; charset=utf-8")
+		if err := c.Send(buf.Bytes()); err != nil {
+			return err
+		}
+
+		// fmt.Println("hookPosts", len(ix.hooks))
+		for _, fn := range ix.hooks {
 			fn()
 		}
 
+		return nil
+
 	case dataRenderNotFound:
-		c.RenderError(404, "Page Not Found")
+		return web.RenderError(c, fiber.StatusNotFound, "Page Not Found")
 	}
+
+	return nil
 }
 
-func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
+func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 	mod, ok := config.Modules[srvname]
 	if !ok {
@@ -251,7 +289,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 			for _, term := range modNode.Terms {
 
-				if termVal := c.Params.Value("term_" + term.Meta.Name); termVal != "" {
+				if termVal := ix.param("term_" + term.Meta.Name); termVal != "" {
 
 					switch term.Type {
 
@@ -267,12 +305,12 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 							qry.Filter("term_"+term.Meta.Name, termVal)
 						}
 
-						c.Data["term_"+term.Meta.Name] = termVal
+						ix.data["term_"+term.Meta.Name] = termVal
 
 					case api.TermTag:
 						// TOPO
 						qry.Filter("term_"+term.Meta.Name+".like", "%"+termVal+"%")
-						c.Data["term_"+term.Meta.Name] = termVal
+						ix.data["term_"+term.Meta.Name] = termVal
 					}
 				}
 			}
@@ -280,20 +318,20 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 			break
 		}
 
-		page := c.Params.IntValue("page")
+		page := ix.paramInt("page")
 		if page > 1 {
 			qry.Offset(ad.Query.Limit * (page - 1))
 		}
 
-		if c.Params.Value("qry_text") != "" {
-			qry.Filter("field_title.like", "%"+c.Params.Value("qry_text")+"%")
-			c.Data["qry_text"] = c.Params.Value("qry_text")
+		if ix.param("qry_text") != "" {
+			qry.Filter("field_title.like", "%"+ix.param("qry_text")+"%")
+			ix.data["qry_text"] = ix.param("qry_text")
 		}
 
 		var ls api.NodeList
 		qryhash := qry.Hash()
 
-		if ad.CacheTTL > 0 && !c.us.Allow("", "editor.write") {
+		if ad.CacheTTL > 0 && !ix.us.Allow("", "editor.write") {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 				rs.JsonDecode(&ls)
 			}
@@ -301,8 +339,8 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 		if len(ls.Items) == 0 {
 
-			if c.Params.Value("qry_text") != "" {
-				ls = qry.NodeListSearch(c.Params.Value("qry_text"))
+			if ix.param("qry_text") != "" {
+				ls = qry.NodeListSearch(ix.param("qry_text"))
 				if ls.Error != nil {
 					ls = qry.NodeList([]string{}, []string{})
 				}
@@ -311,8 +349,8 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 			}
 			// fmt.Println("index node.list")
 			if ad.CacheTTL > 0 && len(ls.Items) > 0 {
-				c.hookPosts = append(
-					c.hookPosts,
+				ix.hooks = append(
+					ix.hooks,
 					func() {
 						store.DataLocal.NewWriter([]byte(qryhash), nil).SetJsonValue(ls).SetTTL(ad.CacheTTL).Exec()
 					},
@@ -320,21 +358,21 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 			}
 		}
 
-		c.Data[ad.Name] = ls
+		ix.data[ad.Name] = ls
 
 		if qry.Pager {
 			pager := utils.NewPager(uint64(page),
 				uint64(ls.Meta.TotalResults),
 				uint64(ls.Meta.ItemsPerList),
 				10)
-			c.Data[ad.Name+"_pager"] = pager
+			ix.data[ad.Name+"_pager"] = pager
 		}
 
 	case "node.entry":
 
-		nodeId := c.Params.Value(ad.Name + "_id")
+		nodeId := ix.param(ad.Name + "_id")
 		if nodeId == "" {
-			nodeId = c.Params.Value("id")
+			nodeId = ix.param("id")
 			if nodeId == "" {
 				return dataRenderNotFound
 			}
@@ -347,7 +385,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 		nodeRefer := ""
 		if nodeModel.Extensions.NodeRefer != "" {
-			if mv, ok := c.Data[action_name+"_nsr_"+nodeModel.Extensions.NodeRefer]; ok {
+			if mv, ok := ix.data[action_name+"_nsr_"+nodeModel.Extensions.NodeRefer]; ok {
 				nodeRefer = mv.(string)
 			}
 		}
@@ -358,7 +396,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 		if mod.Meta.Name == "core/gdoc" {
 			if ad.Query.Table == "page" {
-				if mat := gdocPathRX.FindAllStringSubmatch(c.urlActionPath, 1); len(mat) == 1 {
+				if mat := gdocPathRX.FindAllStringSubmatch(ix.urlAct, 1); len(mat) == 1 {
 					nodeId = strings.ToLower(mat[0][2])
 				}
 			} else if ad.Query.Table == "doc" && api.NodeIdReg.MatchString(nodeId) {
@@ -375,17 +413,19 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 		} else if staticImages.Has(nodeExt) {
 			if mod.Meta.Name == "core/gdoc" && ad.Query.Table == "page" {
 
-				if docId := datax.GdocNodeId(c.Params.Value("doc_entry_id")); docId != "" {
+				if docId := datax.GdocNodeId(ix.param("doc_entry_id")); docId != "" {
 
 					localPath := datax.GdocLocalPath(docId)
 					if localPath == "" {
 						localPath = fmt.Sprintf("%s/var/vcs/%s", config.Prefix, docId)
 					}
-					if mat := gdocPathRX.FindAllStringSubmatch(c.urlActionPath, 1); len(mat) == 1 {
+					if mat := gdocPathRX.FindAllStringSubmatch(ix.urlAct, 1); len(mat) == 1 {
 						localPath += "/" + mat[0][2]
 					}
 					localPath = filepath.Clean(localPath)
-					s2Server(c.Controller, c.urlActionPath, localPath)
+					if err := s2Server(ix.c, ix.urlAct, localPath); err != nil {
+						hlog.Printf("warn", "s2Server: %v", err)
+					}
 				}
 			}
 			return dataRenderSkip
@@ -401,7 +441,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 		var entry api.Node
 		qryhash := qry.Hash()
-		if ad.CacheTTL > 0 && !c.us.Allow("", "editor.write") {
+		if ad.CacheTTL > 0 && !ix.us.Allow("", "editor.write") {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 				rs.JsonDecode(&entry)
 			}
@@ -410,8 +450,8 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 		if entry.ID == "" {
 			entry = qry.NodeEntry()
 			if ad.CacheTTL > 0 && entry.Title != "" {
-				c.hookPosts = append(
-					c.hookPosts,
+				ix.hooks = append(
+					ix.hooks,
 					func() {
 						store.DataLocal.NewWriter([]byte(qryhash), nil).SetJsonValue(entry).SetTTL(ad.CacheTTL).Exec()
 					},
@@ -425,7 +465,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 		if nodeModel.Extensions.AccessCounter {
 
-			if ips := strings.Split(c.Request.RemoteAddr, ":"); len(ips) > 1 {
+			if ips := strings.Split(ix.c.IP(), ":"); len(ips) > 1 {
 
 				table := fmt.Sprintf("hpn_%s_%s", idhash.HashToHexString([]byte(mod.Meta.Name), 12), ad.Query.Table)
 				store.DataLocal.NewWriter([]byte("access_counter/"+table+"/"+ips[0]+"/"+entry.ID), []byte("1")).Exec()
@@ -434,14 +474,14 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 
 		if nodeModel.Extensions.NodeSubRefer != "" {
 			// fmt.Println("setting", action_name, ad.Query.Table, nodeModel.Extensions.NodeSubRefer, "_id", entry.ID)
-			c.Data[action_name+"_nsr_"+ad.Query.Table] = entry.ID
+			ix.data[action_name+"_nsr_"+ad.Query.Table] = entry.ID
 		}
 
 		if entry.Title != "" {
-			c.Data["__html_head_title__"] = datax.StringSub(datax.TextHtml2Str(entry.Title), 0, 50)
+			ix.data["__html_head_title__"] = datax.StringSub(datax.TextHtml2Str(entry.Title), 0, 50)
 		}
 
-		c.Data[ad.Name] = entry
+		ix.data[ad.Name] = entry
 
 	case "term.list":
 
@@ -460,10 +500,10 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 			}
 		}
 
-		c.Data[ad.Name] = ls
+		ix.data[ad.Name] = ls
 
 		if qry.Pager {
-			c.Data[ad.Name+"_pager"] = utils.NewPager(0,
+			ix.data[ad.Name+"_pager"] = utils.NewPager(0,
 				uint64(ls.Meta.TotalResults),
 				uint64(ls.Meta.ItemsPerList),
 				10)
@@ -487,7 +527,7 @@ func (c *Index) dataRender(srvname, action_name string, ad api.ActionData) int {
 			}
 		}
 
-		c.Data[ad.Name] = entry
+		ix.data[ad.Name] = entry
 	}
 
 	return dataRenderOK

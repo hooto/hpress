@@ -20,9 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
-	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
@@ -32,25 +31,8 @@ import (
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/datax"
 	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/websrv/web"
 )
-
-type Node struct {
-	*httpsrv.Controller
-	us iamserver.UserSession
-}
-
-func (c *Node) Init() int {
-
-	c.us = iamserver.AppVerifier.Session(c.Request.Request)
-
-	if _, err := c.us.RequireAuth(); err != nil {
-		c.Response.Out.WriteHeader(401)
-		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
-		return 1
-	}
-
-	return 0
-}
 
 var (
 	node_id_length         = 12
@@ -59,28 +41,29 @@ var (
 	node_set_lock    sync.Mutex
 )
 
-func (c Node) ListAction() {
+func NodeList(c fiber.Ctx) error {
 
 	ls := api.NodeList{}
 
-	defer c.RenderJson(&ls)
+	defer func() { _ = web.JSON(c, &ls) }()
 
-	if !c.us.Allow("", "editor.list") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.list") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	model, err := config.SpecNodeModel(c.Params.Value("modname"), c.Params.Value("modelid"))
+	model, err := config.SpecNodeModel(web.Param(c, "modname"), web.Param(c, "modelid"))
 	if err != nil {
 		ls.Error = types.NewErrorMeta("400", "Invalid modname or modelid")
-		return
+		return nil
 	}
 
-	dq := datax.NewQuery(c.Params.Value("modname"), c.Params.Value("modelid"))
+	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
 	dq.Limit(node_list_limit)
 	dq.Filter("status.gt", 0)
 
-	page := c.Params.IntValue("page")
+	page := web.ParamInt(c, "page")
 	if page < 1 {
 		page = 1
 	}
@@ -89,30 +72,30 @@ func (c Node) ListAction() {
 		dq.Offset(int64((page - 1) * node_list_limit))
 	}
 
-	dqc := datax.NewQuery(c.Params.Value("modname"), c.Params.Value("modelid"))
+	dqc := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
 	dqc.Filter("status.gt", 0)
 
-	node_refer := c.Params.Value("ext_node_refer")
+	node_refer := web.Param(c, "ext_node_refer")
 	if model.Extensions.NodeRefer != "" &&
-		api.NodeExtNodeReferReg.MatchString(c.Params.Value("ext_node_refer")) {
+		api.NodeExtNodeReferReg.MatchString(web.Param(c, "ext_node_refer")) {
 		dq.Filter("ext_node_refer", node_refer)
 		dqc.Filter("ext_node_refer", node_refer)
 	}
 
-	if c.Params.Value("qry_text") != "" {
-		dq.Filter("field_title.like", "%"+c.Params.Value("qry_text")+"%")
-		dqc.Filter("field_title.like", "%"+c.Params.Value("qry_text")+"%")
+	if web.Param(c, "qry_text") != "" {
+		dq.Filter("field_title.like", "%"+web.Param(c, "qry_text")+"%")
+		dqc.Filter("field_title.like", "%"+web.Param(c, "qry_text")+"%")
 	}
 
 	var (
-		fields = strings.Split(c.Params.Value("fields"), ",")
-		terms  = strings.Split(c.Params.Value("terms"), ",")
+		fields = strings.Split(web.Param(c, "fields"), ",")
+		terms  = strings.Split(web.Param(c, "terms"), ",")
 	)
 
 	count, err := dqc.NodeCount()
 	if err != nil {
 		ls.Error = &types.ErrorMeta{api.ErrCodeInternalError, err.Error()}
-		return
+		return nil
 	}
 
 	ls = dq.NodeList(fields, terms)
@@ -120,53 +103,59 @@ func (c Node) ListAction() {
 	ls.Meta.TotalResults = uint64(count)
 	ls.Meta.StartIndex = uint64((page - 1) * node_list_limit)
 	ls.Meta.ItemsPerList = uint64(node_list_limit)
+
+	return nil
 }
 
-func (c Node) EntryAction() {
+func NodeEntry(c fiber.Ctx) error {
 
 	rsp := api.Node{}
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "editor.read") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.read") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	dq := datax.NewQuery(c.Params.Value("modname"), c.Params.Value("modelid"))
+	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
 	dq.Limit(100)
 	dq.Filter("status.gt", 0)
 
-	dq.Filter("id", c.Params.Value("id"))
+	dq.Filter("id", web.Param(c, "id"))
 
 	rsp = dq.NodeEntry()
+
+	return nil
 }
 
-func (c Node) SetAction() {
+func NodeSet(c fiber.Ctx) error {
 
 	rsp := api.Node{}
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if err := c.Request.JsonDecode(&rsp); err != nil {
+	if err := web.Bind(c, &rsp); err != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    "400",
 			Message: "Bad Request: " + err.Error(),
 		}
-		return
+		return nil
 	}
 
-	if !c.us.Allow("", "editor.write") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	model, err := config.SpecNodeModel(c.Params.Value("modname"), c.Params.Value("modelid"))
+	model, err := config.SpecNodeModel(web.Param(c, "modname"), web.Param(c, "modelid"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    "404",
 			Message: "Spec or Model Not Found",
 		}
-		return
+		return nil
 	}
 
 	node_set_lock.Lock()
@@ -174,8 +163,8 @@ func (c Node) SetAction() {
 
 	var (
 		set          = map[string]interface{}{}
-		table_prefix = fmt.Sprintf("hpn_%s_", idhash.HashToHexString([]byte(c.Params.Value("modname")), 12))
-		table        = table_prefix + c.Params.Value("modelid")
+		table_prefix = fmt.Sprintf("hpn_%s_", idhash.HashToHexString([]byte(web.Param(c, "modname")), 12))
+		table        = table_prefix + web.Param(c, "modelid")
 		node_refer   = ""
 	)
 
@@ -184,24 +173,24 @@ func (c Node) SetAction() {
 		rsp.ExtPermalinkName, err = api.PermalinkNameFilter(rsp.ExtPermalinkName)
 		if err != nil || rsp.ExtPermalinkName == "" {
 			rsp.Error = types.NewErrorMeta("400", "Invalid Permalink Name")
-			return
+			return nil
 		}
 	}
 
 	if model.Extensions.NodeRefer != "" {
 		if !api.NodeExtNodeReferReg.MatchString(rsp.ExtNodeRefer) {
 			rsp.Error = types.NewErrorMeta("400", "Invalid Node Refer ID")
-			return
+			return nil
 		}
 		node_refer = rsp.ExtNodeRefer
 	}
 
 	if ft := rsp.Field("title"); ft == nil {
 		rsp.Error = types.NewErrorMeta("400", "Title Not Found")
-		return
+		return nil
 	} else if ft.Value = strings.TrimSpace(ft.Value); ft.Value == "" {
 		rsp.Error = types.NewErrorMeta("400", "Title can not be empty")
-		return
+		return nil
 	}
 
 	if len(rsp.ID) > 0 {
@@ -214,7 +203,7 @@ func (c Node) SetAction() {
 				Code:    "500",
 				Message: "Can not pull database instance",
 			}
-			return
+			return nil
 		}
 
 		if len(rs) < 1 {
@@ -222,7 +211,7 @@ func (c Node) SetAction() {
 				Code:    "404",
 				Message: "Node Not Found",
 			}
-			return
+			return nil
 		}
 
 		/*
@@ -319,7 +308,7 @@ func (c Node) SetAction() {
 
 				case api.TermTag:
 
-					tags, _ := datax.TermSync(c.Params.Value("modname"), modTerm.Meta.Name, term.Value)
+					tags, _ := datax.TermSync(web.Param(c, "modname"), modTerm.Meta.Name, term.Value)
 
 					if rs[0].Field("term_"+term.Name).String() != term.Value {
 						set["term_"+modTerm.Meta.Name] = tags.Content()
@@ -341,7 +330,7 @@ func (c Node) SetAction() {
 		set["created"] = uint32(time.Now().Unix())
 
 		// TODO
-		if p, _ := c.us.Profile(); p != nil {
+		if p, _ := us.Profile(); p != nil {
 			set["userid"] = p.Username
 		} else {
 			set["userid"] = ""
@@ -447,7 +436,7 @@ func (c Node) SetAction() {
 
 				case api.TermTag:
 
-					tags, _ := datax.TermSync(c.Params.Value("modname"), modTerm.Meta.Name, term.Value)
+					tags, _ := datax.TermSync(web.Param(c, "modname"), modTerm.Meta.Name, term.Value)
 					set["term_"+modTerm.Meta.Name] = tags.Content()
 					set["term_"+modTerm.Meta.Name+"_idx"] = tags.Index()
 
@@ -519,7 +508,7 @@ func (c Node) SetAction() {
 						Code:    "400",
 						Message: "Permalink Name Conflict",
 					}
-					return
+					return nil
 				}
 
 			}
@@ -541,10 +530,10 @@ func (c Node) SetAction() {
 			ref_q.Where().And("id", rsp.ExtNodeRefer)
 			if rs, err := store.Data.Query(ref_q); err != nil {
 				rsp.Error = types.NewErrorMeta("500", "Server Error")
-				return
+				return nil
 			} else if len(rs) < 1 {
 				rsp.Error = types.NewErrorMeta("400", "Node Refer ID Not Found")
-				return
+				return nil
 			}
 			set["ext_node_refer"] = rsp.ExtNodeRefer
 		}
@@ -566,7 +555,7 @@ func (c Node) SetAction() {
 		}
 
 		// clean frontend cache
-		qry := datax.NewQuery(c.Params.Value("modname"), model.Meta.Name)
+		qry := datax.NewQuery(web.Param(c, "modname"), model.Meta.Name)
 		qry.Filter("status", 1)
 		qry.Filter("id", rsp.ID)
 
@@ -577,29 +566,32 @@ func (c Node) SetAction() {
 				Code:    "500",
 				Message: err.Error(),
 			}
-			return
+			return nil
 		}
 	}
 
 	rsp.Kind = "Node"
+
+	return nil
 }
 
-func (c Node) DelAction() {
+func NodeDel(c fiber.Ctx) error {
 
 	rsp := api.Node{}
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "editor.write") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	if _, err := config.SpecNodeModel(c.Params.Value("modname"), c.Params.Value("modelid")); err != nil {
+	if _, err := config.SpecNodeModel(web.Param(c, "modname"), web.Param(c, "modelid")); err != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    "404",
 			Message: "Spec or Model Not Found",
 		}
-		return
+		return nil
 	}
 
 	//
@@ -609,10 +601,10 @@ func (c Node) DelAction() {
 	}
 
 	//
-	table := fmt.Sprintf("hpn_%s_%s", idhash.HashToHexString([]byte(c.Params.Value("modname")), 12), c.Params.Value("modelid"))
+	table := fmt.Sprintf("hpn_%s_%s", idhash.HashToHexString([]byte(web.Param(c, "modname")), 12), web.Param(c, "modelid"))
 
 	//
-	ids := strings.Split(c.Params.Value("id"), ",")
+	ids := strings.Split(web.Param(c, "id"), ",")
 
 	for _, id := range ids {
 
@@ -624,13 +616,13 @@ func (c Node) DelAction() {
 				Code:    "500",
 				Message: "Can not pull database instance",
 			}
-			return
+			return nil
 		} else if len(rs) < 1 {
 			rsp.Error = &types.ErrorMeta{
 				Code:    "404",
 				Message: "Node Not Found",
 			}
-			return
+			return nil
 		}
 
 		ft := store.Data.NewFilter()
@@ -641,9 +633,11 @@ func (c Node) DelAction() {
 				Code:    "500",
 				Message: fmt.Sprintf("id:%s err:%s", id, err.Error()),
 			}
-			return
+			return nil
 		}
 	}
 
 	rsp.Kind = "Node"
+
+	return nil
 }

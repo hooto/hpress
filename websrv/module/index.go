@@ -15,59 +15,47 @@
 package module
 
 import (
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-type Static struct {
-	*httpsrv.Controller
-}
+// StaticIndex serves per-module static assets at /hp/-/static/<mod>/...
+// (replacing the httpsrv Static.IndexAction). It dispatches by file extension
+// and serves the file from the module's static directory with Range support.
+func StaticIndex(c fiber.Ctx) error {
 
-func (c Static) IndexAction() {
-
-	c.AutoRender = false
-
-	var (
-		object_path = strings.TrimPrefix(c.Request.UrlPath(), "/hp/-/static/")
-	)
+	object_path := strings.TrimPrefix(web.UrlPath(c), "/hp/-/static/")
 
 	n := strings.Index(object_path, "/")
 	if n < 1 {
-		return
+		return nil
 	}
 	srvname := object_path[:n]
 
 	ext := strings.ToLower(filepath.Ext(object_path))
 	switch ext {
-	case ".js", ".css":
-
-	case ".jpg", ".png", ".svg", ".git", ".ico":
-
+	case ".js", ".css", ".jpg", ".png", ".svg", ".git", ".ico":
 	default:
-		return
+		return nil
 	}
 
 	mod, ok := config.Modules[srvname]
 	if !ok {
-		return
+		return nil
 	}
 
 	abs_path := config.Prefix + "/modules/" + mod.Meta.Name + "/static/" + object_path[n+1:]
 
-	if fp, err := os.Open(abs_path); err == nil {
-
-		c.Response.Out.Header().Set("Cache-Control", "max-age=86400")
-		http.ServeContent(c.Response.Out, c.Request.Request, object_path, time.Now(), fp)
-		fp.Close()
-
-	} else {
-		c.RenderError(404, "Object Not Found")
+	if _, err := os.Stat(abs_path); err != nil {
+		return web.RenderError(c, fiber.StatusNotFound, "Object Not Found")
 	}
+
+	c.Set("Cache-Control", "max-age=86400")
+	return c.SendFile(abs_path)
 }

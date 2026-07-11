@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/types"
@@ -29,6 +29,7 @@ import (
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/status"
 	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 var (
@@ -39,51 +40,35 @@ func init() {
 	uptime = time.Now()
 }
 
-type Sys struct {
-	*httpsrv.Controller
-	us iamserver.UserSession
-}
+func SysConfigList(c fiber.Ctx) error {
 
-func (c *Sys) Init() int {
+	us := web.AuthSession(c)
 
-	c.us = iamserver.AppVerifier.Session(c.Request.Request)
-
-	if _, err := c.us.RequireAuth(); err != nil {
-		c.Response.Out.WriteHeader(401)
-		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
-		return 1
-	}
-
-	return 0
-}
-
-func (c Sys) ConfigListAction() {
-
-	if !c.us.Allow("", "sys.admin") {
-		c.RenderJson(types.TypeMeta{
+	if !us.Allow("", "sys.admin") {
+		return web.JSON(c, types.TypeMeta{
 			Error: &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"},
 		})
-		return
 	}
 
-	c.RenderJson(config.SysConfigList)
+	return web.JSON(c, config.SysConfigList)
 }
 
-func (c Sys) ConfigSetAction() {
+func SysConfigSet(c fiber.Ctx) error {
 
 	var ls api.SysConfigList
 
-	defer c.RenderJson(&ls)
+	defer func() { _ = web.JSON(c, &ls) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	err := c.Request.JsonDecode(&ls)
+	err := web.Bind(c, &ls)
 	if err != nil {
 		ls.Error = &types.ErrorMeta{api.ErrCodeBadArgument, "Bad Argument " + err.Error()}
-		return
+		return nil
 	}
 
 	for _, entry := range ls.Items {
@@ -101,7 +86,7 @@ func (c Sys) ConfigSetAction() {
 				Code:    api.ErrCodeInternalError,
 				Message: "Can not pull database instance",
 			}
-			return
+			return nil
 		}
 
 		set := map[string]interface{}{
@@ -133,7 +118,7 @@ func (c Sys) ConfigSetAction() {
 				Code:    api.ErrCodeInternalError,
 				Message: err.Error(),
 			}
-			return
+			return nil
 		}
 
 		if entry.Key == "router_basepath_default" {
@@ -164,17 +149,20 @@ func (c Sys) ConfigSetAction() {
 	}
 
 	ls.Kind = "SysConfigList"
+
+	return nil
 }
 
-func (c Sys) StatusAction() {
+func SysStatus(c fiber.Ctx) error {
 
 	set := api.SysStatus{}
 
-	defer c.RenderJson(&set)
+	defer func() { _ = web.JSON(c, &set) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		set.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
 	set.InstanceID = config.Config.InstanceID
@@ -198,26 +186,31 @@ func (c Sys) StatusAction() {
 	set.Info = sysinfoFetch()
 
 	set.Kind = "SysStatus"
+
+	return nil
 }
 
-func (c Sys) IamStatusAction() {
+func SysIamStatus(c fiber.Ctx) error {
 
 	var sets api.SysIamStatus
 
-	if !c.us.Allow("", "sys.admin") {
+	defer func() { _ = web.JSON(c, &sets) }()
+
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		sets.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	inst_url := "://" + c.Request.Host
-	if c.Request.TLS != nil {
+	inst_url := "://" + c.Host()
+	if c.Secure() {
 		inst_url = "https" + inst_url
 	} else {
 		inst_url = "http" + inst_url
 	}
 
-	if len(httpsrv.DefaultService.Config.UrlBasePath) > 0 {
-		inst_url += "/" + httpsrv.DefaultService.Config.UrlBasePath
+	if len(web.UrlBasePath) > 0 {
+		inst_url += "/" + web.UrlBasePath
 	}
 
 	cfg := iamserver.AppVerifier.Config()
@@ -248,20 +241,21 @@ func (c Sys) IamStatusAction() {
 
 	sets.Kind = "SysIamStatus"
 
-	c.RenderJson(sets)
+	return nil
 }
 
-func (c Sys) IamSyncAction() {
+func SysIamSync(c fiber.Ctx) error {
 
 	var rsp struct {
 		types.TypeMeta `json:",inline"`
 	}
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
 	status.Refresh()
@@ -271,6 +265,8 @@ func (c Sys) IamSyncAction() {
 	} else {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeInternalError, "IAM sync failed"}
 	}
+
+	return nil
 }
 
 func memStatsFetch() runtime.MemStats {

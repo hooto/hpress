@@ -15,75 +15,72 @@
 package controllers
 
 import (
-	"net/http"
 	"time"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/sysinner/innerstack/v2/pkg/inauth"
 
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/status"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-type Index struct {
-	*httpsrv.Controller
-}
-
-func (c Index) IndexAction() {
+// Index is the management backend entry handler. It enforces IAM auth + the
+// PermsManager gate, then renders the admin SPA shell. Replaces httpsrv
+// controllers.Index.IndexAction.
+func Index(c fiber.Ctx) error {
 
 	status.Locker.RLock()
 	defer status.Locker.RUnlock()
 
-	if c.Params.Value("_iam_out") != "" {
-		c.Redirect(c.UrlBase(""))
-		return
+	if web.Param(c, "_iam_out") != "" {
+		return web.Redirect(c, web.UrlBase(c, ""))
 	}
 
 	if err := iamserver.AppVerifier.Ping(); err != nil {
-		c.RenderError(500, "iam ping fail : "+err.Error())
-		return
+		return web.RenderError(c, fiber.StatusInternalServerError, "iam ping fail : "+err.Error())
 	}
 
-	session := iamserver.AppVerifier.Session(c.Request.Request)
+	session := iamserver.AppVerifier.Session(c.Cookies(inauth.AppHttpHeaderKey))
 	if err := session.CheckServer(); err != nil {
-		c.RenderError(500, "iam session check fail : "+err.Error())
-		return
+		return web.RenderError(c, fiber.StatusInternalServerError, "iam session check fail : "+err.Error())
 	}
 
 	if redirectURL, err := session.RequireAuth(); err != nil {
 		if redirectURL != "" {
-			currentURL := c.Request.RawAbsUrl()
-			http.SetCookie(c.Response.Out, &http.Cookie{
+			currentURL := web.RawAbsUrl(c)
+			c.Cookie(&fiber.Cookie{
 				Name:     inauth.AppHttpHeaderKey + "-current-url",
 				Value:    currentURL,
 				Path:     "/",
-				HttpOnly: true,
+				HTTPOnly: true,
 				Expires:  time.Now().Add(1 * time.Hour),
 			})
-			c.Redirect(redirectURL)
-			return
+			return web.Redirect(c, redirectURL)
 		}
 
-		c.RenderError(401, "iam auth fail : "+err.Error())
-		return
+		return web.RenderError(c, fiber.StatusUnauthorized, "iam auth fail : "+err.Error())
 	}
 
 	// Management is gated by backend permissions (PermsManager), which
 	// IAM grants only to the app creator. Fail-closed: Allow returns
 	// false when the session is unauthenticated or IAM is unreachable.
 	if !session.Allow("", config.PermsManager...) {
-		c.RenderError(403, "management access denied")
-		return
+		return web.RenderError(c, fiber.StatusForbidden, "management access denied")
 	}
 
-	c.Response.Out.Header().Set("Cache-Control", "no-cache")
+	c.Set("Cache-Control", "no-cache")
 
 	if v := config.SysConfigList.FetchString("http_h_ac_allow_origin"); v != "" {
-		c.Response.Out.Header().Set("Access-Control-Allow-Origin", v)
+		c.Set("Access-Control-Allow-Origin", v)
 	}
 
-	c.Data["sys_version_sign"] = config.SysVersionSign
+	data := map[string]interface{}{
+		"sys_version_sign": config.SysVersionSign,
+		"LANG":             web.ResolveLang(c),
+		"URL_MOD_PATH":     "/hp/mgr",
+	}
 
-	c.Render("index.tpl")
+	return web.Render(c, "mgr", "index.tpl", data)
 }

@@ -15,13 +15,11 @@
 package frontend
 
 import (
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 )
 
-type Error struct {
-	*httpsrv.Controller
-}
-
-func (c Error) BrowserAction() {
-
+// ErrorBrowser is a no-op browser-error endpoint, replacing the empty
+// httpsrv Error.BrowserAction.
+func ErrorBrowser(c fiber.Ctx) error {
+	return nil
 }

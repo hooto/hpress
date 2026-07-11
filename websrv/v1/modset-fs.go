@@ -27,9 +27,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
-	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utils"
@@ -37,50 +36,33 @@ import (
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/modset"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-type ModSetFs struct {
-	*httpsrv.Controller
-	us iamserver.UserSession
-}
-
-func (c *ModSetFs) Init() int {
-
-	//
-	c.us = iamserver.AppVerifier.Session(c.Request.Request)
-
-	if _, err := c.us.RequireAuth(); err != nil {
-		c.Response.Out.WriteHeader(401)
-		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
-		return 1
-	}
-
-	return 0
-}
-
-func (c ModSetFs) RenameAction() {
+func ModSetFsRename(c fiber.Ctx) error {
 
 	var (
 		rsp api.FsFile
 		req api.FsFile
 	)
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	if err := c.Request.JsonDecode(&req); err != nil {
+	if err := web.Bind(c, &req); err != nil {
 		rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-		return
+		return nil
 	}
 
-	modname, err := modset.ModNameFilter(c.Params.Value("modname"))
+	modname, err := modset.ModNameFilter(web.Param(c, "modname"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"403", "Forbidden"}
-		return
+		return nil
 	}
 
 	path := filepath.Clean(req.Path)
@@ -96,36 +78,39 @@ func (c ModSetFs) RenameAction() {
 
 	if err := os.Rename(path, pathset); err != nil {
 		rsp.Error = &types.ErrorMeta{"500", err.Error()}
-		return
+		return nil
 	}
 
 	rsp.Kind = "FsFile"
+
+	return nil
 }
 
-func (c ModSetFs) DelAction() {
+func ModSetFsDel(c fiber.Ctx) error {
 
 	var (
 		rsp api.FsFile
 		req api.FsFile
 	)
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	if err := c.Request.JsonDecode(&req); err != nil {
+	if err := web.Bind(c, &req); err != nil {
 		rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-		return
+		return nil
 	}
 
 	//
-	modname, err := modset.ModNameFilter(c.Params.Value("modname"))
+	modname, err := modset.ModNameFilter(web.Param(c, "modname"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"403", "Forbidden"}
-		return
+		return nil
 	}
 
 	path := filepath.Clean(req.Path)
@@ -134,7 +119,7 @@ func (c ModSetFs) DelAction() {
 
 	if err := os.Remove(path); err != nil {
 		rsp.Error = &types.ErrorMeta{"500", err.Error()}
-		return
+		return nil
 	}
 
 	if path[len(path)-4:] == ".tpl" {
@@ -142,9 +127,11 @@ func (c ModSetFs) DelAction() {
 	}
 
 	rsp.Kind = "FsFile"
+
+	return nil
 }
 
-func (c ModSetFs) PutAction() {
+func ModSetFsPut(c fiber.Ctx) error {
 
 	var (
 		rsp api.FsFile
@@ -152,22 +139,23 @@ func (c ModSetFs) PutAction() {
 		err error
 	)
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	if err := c.Request.JsonDecode(&req); err != nil {
+	if err := web.Bind(c, &req); err != nil {
 		rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-		return
+		return nil
 	}
 
-	modname, err := modset.ModNameFilter(c.Params.Value("modname"))
+	modname, err := modset.ModNameFilter(web.Param(c, "modname"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"403", "Forbidden"}
-		return
+		return nil
 	}
 
 	path := filepath.Clean(req.Path)
@@ -180,20 +168,20 @@ func (c ModSetFs) PutAction() {
 		dataurl := strings.SplitAfter(req.Body, ";base64,")
 		if len(dataurl) != 2 {
 			rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-			return
+			return nil
 		}
 
 		body, err = base64.StdEncoding.DecodeString(dataurl[1])
 		if err != nil {
 			rsp.Error = &types.ErrorMeta{"400", err.Error()}
-			return
+			return nil
 		}
 
 	} else if req.Encode == "text" || req.Encode == "jm" {
 		body = []byte(req.Body)
 	} else {
 		rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-		return
+		return nil
 	}
 
 	projfp := filepath.Clean(path)
@@ -204,18 +192,18 @@ func (c ModSetFs) PutAction() {
 
 		if err := json.Decode([]byte(body), &jsAppend); err != nil {
 			rsp.Error = &types.ErrorMeta{"400", err.Error()}
-			return
+			return nil
 		}
 
 		file, _, err := fsFileGetRead(projfp)
 		if err != nil {
 			rsp.Error = &types.ErrorMeta{"500", err.Error()}
-			return
+			return nil
 		}
 
 		if err = json.Decode([]byte(file.Body), &jsPrev); err != nil {
 			rsp.Error = &types.ErrorMeta{"400", err.Error()}
-			return
+			return nil
 		}
 
 		jsMerged := utils.JsonMerge(jsPrev, jsAppend)
@@ -226,23 +214,25 @@ func (c ModSetFs) PutAction() {
 
 	if err := fsFilePutWrite(projfp, body); err != nil {
 		rsp.Error = &types.ErrorMeta{"500", err.Error()}
-		return
+		return nil
 	}
 
 	if path[len(path)-4:] == ".tpl" {
 
-		loaderTemplate := template.New("templateName").Funcs(httpsrv.TemplateFuncs)
+		loaderTemplate := template.New("templateName").Funcs(web.Templates.FuncMap())
 
 		if _, err := loaderTemplate.ParseFiles(path); err != nil {
 
 			rsp.Error = &types.ErrorMeta{"400", err.Error()}
-			return
+			return nil
 		}
 
 		config.SpecRefresh(modname)
 	}
 
 	rsp.Kind = "FsFile"
+
+	return nil
 }
 
 func fsFilePutWrite(path string, body []byte) error {
@@ -316,24 +306,25 @@ func fsMakeDir(path, uuid, ugid string, mode os.FileMode) error {
 	return nil
 }
 
-func (c ModSetFs) ListAction() {
+func ModSetFsList(c fiber.Ctx) error {
 
 	var rsp api.FsFileList
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	modname, err := modset.ModNameFilter(c.Params.Value("modname"))
+	modname, err := modset.ModNameFilter(web.Param(c, "modname"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"403", "Forbidden"}
-		return
+		return nil
 	}
 
-	path := filepath.Clean(c.Params.Value("path"))
+	path := filepath.Clean(web.Param(c, "path"))
 
 	projfp := filepath.Clean(config.Config.ModuleDir + "/" + modname + "/" + path)
 
@@ -341,6 +332,8 @@ func (c ModSetFs) ListAction() {
 	rsp.Items = fsDirList(projfp, "", false)
 
 	rsp.Kind = "FsFileList"
+
+	return nil
 }
 
 func fsDirList(path, ppath string, subdir bool) []api.FsFile {
@@ -418,35 +411,38 @@ func fsFileMime(v string) string {
 	return ctype
 }
 
-func (c ModSetFs) GetAction() {
+func ModSetFsGet(c fiber.Ctx) error {
 
 	var rsp api.FsFile
 	var err error
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	modname, err := modset.ModNameFilter(c.Params.Value("modname"))
+	modname, err := modset.ModNameFilter(web.Param(c, "modname"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"403", "Forbidden"}
-		return
+		return nil
 	}
 
-	path := filepath.Clean(c.Params.Value("path"))
+	path := filepath.Clean(web.Param(c, "path"))
 
 	path = filepath.Clean(config.Config.ModuleDir + "/" + modname + "/" + path)
 
 	rsp, _, err = fsFileGetRead(path)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
-		return
+		return nil
 	}
 
 	rsp.Kind = "FsFile"
+
+	return nil
 }
 
 func fsFileGetRead(path string) (api.FsFile, int, error) {

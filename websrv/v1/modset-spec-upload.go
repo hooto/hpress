@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
@@ -33,58 +34,60 @@ import (
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/modset"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 var (
 	spec_upload_size_max int64 = 8 * 1024 * 1024
 )
 
-func (c ModSet) SpecUploadCommitAction() {
+func ModSetSpecUploadCommit(c fiber.Ctx) error {
 
 	var set api.SpecUploadCommit
 
-	defer c.RenderJson(&set)
+	defer func() { _ = web.JSON(c, &set) }()
 
-	err := c.Request.JsonDecode(&set)
+	err := web.Bind(c, &set)
 	if err != nil {
 		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
-		return
+		return nil
 	}
 
 	if set.Size > spec_upload_size_max {
 		set.Error = types.NewErrorMeta("400",
 			fmt.Sprintf("the max size of Package can not more than %d", spec_upload_size_max))
-		return
+		return nil
 	}
 
 	if len(set.Name) < 10 {
 		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid Name")
-		return
+		return nil
 	}
 	ext := filepath.Ext(set.Name)
 	if ext != ".txz" && ext != ".tgz" {
 		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid file name extension")
-		return
+		return nil
 	}
 
-	if !c.us.Allow("", "editor.write") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.write") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
-		return
+		return nil
 	}
 
 	body64 := strings.SplitAfter(set.Data, ";base64,")
 	if len(body64) != 2 {
-		return
+		return nil
 	}
 	filedata, err := base64.StdEncoding.DecodeString(body64[1])
 	if err != nil {
 		set.Error = types.NewErrorMeta("400", "Package Not Found")
-		return
+		return nil
 	}
 
 	if int64(len(filedata)) != set.Size {
 		set.Error = types.NewErrorMeta("400", "Invalid Package Size")
-		return
+		return nil
 	}
 
 	var cpr io.Reader
@@ -93,24 +96,24 @@ func (c ModSet) SpecUploadCommitAction() {
 	case ".txz":
 		if cpr, err = xz.NewReader(bytes.NewReader(filedata)); err != nil {
 			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-			return
+			return nil
 		}
 
 	case ".tgz":
 		if cpr, err = gzip.NewReader(bytes.NewReader(filedata)); err != nil {
 			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-			return
+			return nil
 		}
 
 	default:
 		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid EXT")
-		return
+		return nil
 	}
 
 	tr := tar.NewReader(cpr)
 	if tr == nil {
 		set.Error = types.NewErrorMeta("400", "Invalid Encoded Data")
-		return
+		return nil
 	}
 
 	var (
@@ -127,7 +130,7 @@ func (c ModSet) SpecUploadCommitAction() {
 		}
 		if err != nil {
 			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-			return
+			return nil
 		}
 		// fmt.Printf("Contents of %s\n", hdr.Name)
 
@@ -143,14 +146,14 @@ func (c ModSet) SpecUploadCommitAction() {
 		fpo, err := os.OpenFile(tmpdir+"/"+hdr.Name, os.O_RDWR|os.O_CREATE, os.FileMode(hdr.Mode))
 		if err != nil {
 			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-			return
+			return nil
 		}
 		fpo.Seek(0, 0)
 		fpo.Truncate(0)
 
 		if _, err := io.Copy(fpo, tr); err != nil {
 			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-			return
+			return nil
 		}
 
 		fpo.Close()
@@ -161,31 +164,31 @@ func (c ModSet) SpecUploadCommitAction() {
 	var spec api.Spec
 	if err := json.DecodeFile(tmpdir+"/spec.json", &spec); err != nil {
 		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-		return
+		return nil
 	}
 
 	if !api.NewSpecVersion(spec.Meta.Version).Valid() {
 		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid Version Format")
-		return
+		return nil
 	}
 
 	//
 	spec.Meta.Name, err = modset.ModNameFilter(spec.Meta.Name)
 	if err != nil {
 		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-		return
+		return nil
 	}
 
 	spec.SrvName, err = api.SrvNameFilter(spec.SrvName)
 	if err != nil {
 		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-		return
+		return nil
 	}
 
 	if prev, err := modset.SpecFetch(spec.Meta.Name); err == nil {
 		if api.NewSpecVersion(prev.Meta.Version).Compare(api.NewSpecVersion(spec.Meta.Version)) == 1 {
 			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid Version")
-			return
+			return nil
 		}
 	}
 
@@ -194,13 +197,15 @@ func (c ModSet) SpecUploadCommitAction() {
 	for path, fmode := range files {
 		if err := spec_file_sync(tmpdir+"/"+path, spec_dir+"/"+path, os.FileMode(fmode)); err != nil {
 			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
-			return
+			return nil
 		}
 	}
 
 	modset.SpecSchemaSync(spec)
 
 	set.Kind = "Spec"
+
+	return nil
 }
 
 func spec_file_sync(src, dst string, mod os.FileMode) error {

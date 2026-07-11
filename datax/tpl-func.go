@@ -16,21 +16,21 @@ package datax
 
 import (
 	"github.com/hooto/hlang4g/hlang"
-	"github.com/hooto/httpsrv"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 func init() {
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("TimeFormat", TimeFormat)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("UnixtimeFormat", UnixtimeFormat)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FieldHtmlPrint", FieldHtmlPrint)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FieldStringPrint", FieldStringPrint)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FieldHtmlSubPrint", FieldHtmlSubPrint)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FieldDebug", FieldDebug)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FieldString", FieldString)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FieldSubString", FieldSubString)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FieldHtml", FieldHtml)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FieldSubHtml", FieldSubHtml)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("pagelet", Pagelet)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("FilterUri", FilterUri)
-	httpsrv.DefaultService.Config.RegisterTemplateFunc("T", hlang.StdLangFeed.Translate)
+	web.RegisterFunc("TimeFormat", TimeFormat)
+	web.RegisterFunc("UnixtimeFormat", UnixtimeFormat)
+	web.RegisterFunc("FieldHtmlPrint", FieldHtmlPrint)
+	web.RegisterFunc("FieldStringPrint", FieldStringPrint)
+	web.RegisterFunc("FieldHtmlSubPrint", FieldHtmlSubPrint)
+	web.RegisterFunc("FieldDebug", FieldDebug)
+	web.RegisterFunc("FieldString", FieldString)
+	web.RegisterFunc("FieldSubString", FieldSubString)
+	web.RegisterFunc("FieldHtml", FieldHtml)
+	web.RegisterFunc("FieldSubHtml", FieldSubHtml)
+	web.RegisterFunc("pagelet", Pagelet)
+	web.RegisterFunc("FilterUri", FilterUri)
+	web.RegisterFunc("T", hlang.StdLangFeed.Translate)
 }

@@ -25,7 +25,6 @@ import (
 	"image/png"
 	"io"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,10 +32,9 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/hlog4g/hlog"
-	"github.com/hooto/httpsrv"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/sync"
 
@@ -46,6 +44,7 @@ import (
 
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 const (
@@ -76,25 +75,18 @@ func init() {
 	}
 }
 
-type S2 struct {
-	*httpsrv.Controller
+func S2Index(c fiber.Ctx) error {
+	return s2Server(c, "", "")
 }
 
-// resize
-func (c S2) IndexAction() {
-	s2Server(c.Controller, "", "")
-}
+func s2Server(c fiber.Ctx, objPath, absPath string) error {
 
-func s2Server(c *httpsrv.Controller, objPath, absPath string) {
-
-	c.AutoRender = false
 	var err error
 
 	if objPath == "" {
-		objPath, err = pathFilter(strings.TrimPrefix(c.Request.UrlPath(), s3UrlPrefix))
+		objPath, err = pathFilter(strings.TrimPrefix(web.UrlPath(c), s3UrlPrefix))
 		if err != nil {
-			c.RenderError(404, "Object Not Found #1")
-			return
+			return web.RenderError(c, fiber.StatusNotFound, "Object Not Found #1")
 		}
 	}
 
@@ -103,9 +95,9 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 	}
 
 	var (
-		ipn       = c.Params.Value("ipn") // v1
-		ipl       = c.Params.Value("ipl") // v2
-		ipls      = [2]int{0, 0}          // width, height
+		ipn       = web.Param(c, "ipn") // v1
+		ipl       = web.Param(c, "ipl") // v2
+		ipls      = [2]int{0, 0}        // width, height
 		iplCrop   = false
 		fileExt   = strings.ToLower(filepath.Ext(objPath))
 		mediaType = ""
@@ -129,24 +121,19 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 		mediaType = "image/svg+xml"
 
 	default:
-		c.RenderError(400, "Bad Request (media type not support)")
-		return
+		return web.RenderError(c, fiber.StatusBadRequest, "Bad Request (media type not support)")
 	}
 
 	if (ipn == "" && ipl == "") ||
 		mediaType == "image/svg+xml" {
 
 		if fp, err := os.Open(absPath); err == nil {
-
-			c.Response.Out.Header().Set("Cache-Control", "max-age=86400")
-			http.ServeContent(c.Response.Out, c.Request.Request, objPath, time.Now(), fp)
 			fp.Close()
-
+			c.Set("Cache-Control", "max-age=86400")
+			return c.SendFile(absPath)
 		} else {
-			c.RenderError(404, "Object Not Found #2")
+			return web.RenderError(c, fiber.StatusNotFound, "Object Not Found #2")
 		}
-
-		return
 	}
 
 	if ipl != "" {
@@ -197,8 +184,7 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 			ipls[0], ipls[1] = 800, 450
 
 		default:
-			c.RenderError(400, "Bad Request (ipn)")
-			return
+			return web.RenderError(c, fiber.StatusBadRequest, "Bad Request (ipn)")
 		}
 	}
 
@@ -225,11 +211,10 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 
 	if rs := store.DataLocal.NewReader([]byte(hid)).Exec(); rs.OK() {
 		imBytes := rs.Item().Value
-		c.Response.Out.Header().Set("Cache-Control", "max-age=86400")
-		c.Response.Out.Header().Set("Content-type", mediaType)
-		c.Response.Out.Write(imBytes)
+		c.Set("Cache-Control", "max-age=86400")
+		c.Set("Content-type", mediaType)
 		hlog.Printf("debug", "image cache hit %s, bytes %d", key, len(imBytes))
-		return
+		return c.Send(imBytes)
 	}
 
 	pn := rezlocker.Pull()
@@ -237,14 +222,13 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 
 	defer func() {
 		if x := recover(); x != nil {
-			c.RenderError(404, "Object Not Found #3 ")
+			web.RenderError(c, fiber.StatusNotFound, "Object Not Found #3 ")
 		}
 	}()
 
 	fp, err := os.Open(absPath)
 	if err != nil {
-		c.RenderError(400, "Bad Request (invalid object path)")
-		return
+		return web.RenderError(c, fiber.StatusBadRequest, "Bad Request (invalid object path)")
 	}
 	defer fp.Close()
 
@@ -264,8 +248,7 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 	}
 
 	if err != nil {
-		c.RenderError(400, "Bad Request (invalid object format) "+err.Error())
-		return
+		return web.RenderError(c, fiber.StatusBadRequest, "Bad Request (invalid object format) "+err.Error())
 	}
 
 	//
@@ -345,8 +328,7 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 		err = gif.Encode(&dstBuf, dstImg, &gif.Options{NumColors: 256})
 	}
 	if err != nil {
-		c.RenderError(400, "Bad Request : "+err.Error())
-		return
+		return web.RenderError(c, fiber.StatusBadRequest, "Bad Request : "+err.Error())
 	}
 
 	//
@@ -356,14 +338,18 @@ func s2Server(c *httpsrv.Controller, objPath, absPath string) {
 	}
 
 	//
-	c.Response.Out.Header().Set("Content-type", mediaType)
-	c.Response.Out.Header().Set("Cache-Control", "max-age=86400")
-	c.Response.Out.Write(dstBuf.Bytes())
+	c.Set("Content-type", mediaType)
+	c.Set("Cache-Control", "max-age=86400")
+	if err := c.Send(dstBuf.Bytes()); err != nil {
+		return err
+	}
 
 	if st, err := fp.Stat(); err == nil {
 		hlog.Printf("info", "image resize %s from %d to %d bytes",
 			key, st.Size(), dstBuf.Len())
 	}
+
+	return nil
 }
 
 func pngCompressCmd(r io.Reader, w *bytes.Buffer) error {

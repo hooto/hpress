@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/hcaptcha/captcha4g"
-	"github.com/hooto/httpsrv"
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utils"
 	"github.com/lynkdb/iomix/rdb"
@@ -27,6 +27,7 @@ import (
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/datax"
 	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 const (
@@ -34,48 +35,47 @@ const (
 	errCaptchaNotMatch = "CaptchaNotMatch"
 )
 
-type Comment struct {
-	*httpsrv.Controller
-}
+// CommentEmbed renders the comment embed (list + new-comment form) for a given
+// refer node. Replaces httpsrv Comment.EmbedAction.
+func CommentEmbed(c fiber.Ctx) error {
 
-func (c Comment) EmbedAction() {
-
-	c.AutoRender = false
-
-	if c.Params.Value("refer_modname") == "" || c.Params.Value("refer_id") == "" {
-		return
+	if web.Param(c, "refer_modname") == "" || web.Param(c, "refer_id") == "" {
+		return nil
 	}
 
 	qry := datax.NewQuery(nsModName, "entry")
 	qry.Limit(500)
 	qry.Filter("status", 1)
 	qry.Order("created asc")
-	qry.Filter("field_refer_id", c.Params.Value("refer_id"))
-	qry.Filter("field_refer", c.Params.Value("refer_modname")+"."+c.Params.Value("refer_datax_table"))
+	qry.Filter("field_refer_id", web.Param(c, "refer_id"))
+	qry.Filter("field_refer", web.Param(c, "refer_modname")+"."+web.Param(c, "refer_datax_table"))
 
-	c.Data["list"] = qry.NodeList([]string{}, []string{})
+	data := map[string]interface{}{
+		"list":                       qry.NodeList([]string{}, []string{}),
+		"new_form_refer_id":          web.Param(c, "refer_id"),
+		"new_form_refer_modname":     web.Param(c, "refer_modname"),
+		"new_form_refer_datax_table": web.Param(c, "refer_datax_table"),
+		"new_form_author":            "Guest",
+		"LANG":                       web.ResolveLang(c),
+		"URL_MOD_PATH":               "/hp/+/comment",
+	}
 
-	c.Data["new_form_refer_id"] = c.Params.Value("refer_id")
-	c.Data["new_form_refer_modname"] = c.Params.Value("refer_modname")
-	c.Data["new_form_refer_datax_table"] = c.Params.Value("refer_datax_table")
-
-	c.Data["new_form_author"] = "Guest"
-
-	c.Render(nsModName, "embed.tpl")
+	return web.Render(c, nsModName, "embed.tpl", data)
 }
 
-func (c Comment) SetAction() {
+// CommentSet accepts a new comment submission. Replaces httpsrv Comment.SetAction.
+func CommentSet(c fiber.Ctx) error {
 
 	var set TypeComment
 
-	defer c.RenderJson(&set)
+	defer func() { _ = web.JSON(c, &set) }()
 
-	if err := c.Request.JsonDecode(&set); err != nil {
+	if err := web.Bind(c, &set); err != nil {
 		set.Error = &types.ErrorMeta{
 			Code:    "400",
 			Message: err.Error(),
 		}
-		return
+		return nil
 	}
 
 	set.Content = strings.TrimSpace(set.Content)
@@ -94,7 +94,7 @@ func (c Comment) SetAction() {
 			Code:    "400",
 			Message: "Spec Not Found",
 		}
-		return
+		return nil
 	}
 
 	if set.ReferID == "" || set.ReferDataxTable == "" {
@@ -102,7 +102,7 @@ func (c Comment) SetAction() {
 			Code:    "400",
 			Message: "ReferID or ReferDataxTable Can Not be Null",
 		}
-		return
+		return nil
 	}
 
 	re_title := "Re: "
@@ -113,7 +113,7 @@ func (c Comment) SetAction() {
 			Code:    "400",
 			Message: "Refer Content Not Found",
 		}
-		return
+		return nil
 	} else {
 		re_title += rs.Title
 	}
@@ -123,7 +123,7 @@ func (c Comment) SetAction() {
 			Code:    "400",
 			Message: "Content Can Not be Null",
 		}
-		return
+		return nil
 	}
 
 	if err := captcha4g.Verify(set.CaptchaToken, set.CaptchaWord); err != nil {
@@ -133,7 +133,7 @@ func (c Comment) SetAction() {
 			Message: "Word Verification do not match",
 		}
 
-		return
+		return nil
 	}
 
 	set.Meta.ID = utils.StringNewRand(16)
@@ -164,8 +164,10 @@ func (c Comment) SetAction() {
 			Code:    "500",
 			Message: err.Error(),
 		}
-		return
+		return nil
 	} else {
 		set.Kind = "Comment"
 	}
+
+	return nil
 }

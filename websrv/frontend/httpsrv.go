@@ -15,31 +15,76 @@
 package frontend
 
 import (
-	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/v2/pkg/iamserver"
+	"io"
+	"strings"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/hchart/pkg/webui"
+	"github.com/hooto/iam/v2/pkg/iamserver/authfiber"
+
 	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-func NewModule() *httpsrv.Module {
-
-	mod := httpsrv.NewModule()
-
-	mod.RegisterController(new(Index), new(Error))
-
-	return mod
+// Register mounts the public frontend (the spec-driven catch-all page renderer)
+// on a fiber router. The caller mounts the router at the app root group ("/")
+// and MUST register it LAST, so the explicit /hp/* routes take priority over
+// the /* catch-all. This replaces httpsrv NewModule (mounted at "/").
+func Register(router fiber.Router) {
+	router.All("/error/browser", ErrorBrowser)
+	router.All("/*", IndexPage)
 }
 
-func NewHtpModule() *httpsrv.Module {
+// RegisterHtp mounts the /hp application routes: the S2 image service, the
+// webui and hchart static assets, and the IAM user-auth routes. The caller
+// mounts the router at "/hp". This replaces httpsrv NewHtpModule.
+func RegisterHtp(router fiber.Router) {
 
-	mod := httpsrv.NewModule()
+	// S2 image serve/resize (controller S2 -> /s2, method-agnostic).
+	router.All("/s2", S2Index)
+	router.All("/s2/*", S2Index)
 
-	mod.RegisterFileServer("/~/hchart", "", webui.NewFs())
+	// Embedded hchart assets (registered before /~/* so the more-specific
+	// /~/hchart path wins).
+	router.Get("/~/hchart/*", hchartStatic)
 
-	mod.RegisterFileServer("/~", config.Prefix+"/webui/", nil)
+	// On-disk webui assets.
+	router.Get("/~/*", web.DiskStatic(config.Prefix+"/webui/"))
 
-	mod.RegisterController(new(S2), new(iamserver.UserAuth))
+	// IAM user-auth routes: /hp/user-auth/{session,sign-in,callback,sign-out}.
+	authfiber.RegisterAuthRoutes(router.Group("/user-auth"))
+}
 
-	return mod
+// hchartStatic serves the embedded hchart assets (webui.NewFs, an
+// http.FileSystem) under /hp/~/hchart/*. It reads file bytes directly — no
+// net/http server or request-cycle coupling.
+func hchartStatic(c fiber.Ctx) error {
+	fsys := webui.NewFs()
+
+	rel := c.Params("*")
+	if rel == "" || rel == "/" {
+		rel = "/index.html"
+	}
+	if !strings.HasPrefix(rel, "/") {
+		rel = "/" + rel
+	}
+
+	f, err := fsys.Open(rel)
+	if err != nil {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+	defer f.Close()
+
+	st, err := f.Stat()
+	if err != nil || st.IsDir() {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	c.Type(web.Ext(rel))
+	return c.Send(b)
 }

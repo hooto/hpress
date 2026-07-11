@@ -23,15 +23,15 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
-	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utils"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 var (
@@ -58,54 +58,36 @@ func abs_path(path string) string {
 	return filepath.Clean(config.Prefix + "/var/storage/" + path)
 }
 
-type S2Obj struct {
-	*httpsrv.Controller
-	us iamserver.UserSession
-}
-
-func (c *S2Obj) Init() int {
-
-	//
-	c.us = iamserver.AppVerifier.Session(c.Request.Request)
-
-	if _, err := c.us.RequireAuth(); err != nil {
-		c.Response.Out.WriteHeader(401)
-		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
-		return 1
-	}
-
-	return 0
-}
-
-func (c S2Obj) RenameAction() {
+func S2ObjRename(c fiber.Ctx) error {
 
 	var (
 		rsp api.FsFile
 		req api.FsFile
 	)
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	if err := c.Request.JsonDecode(&req); err != nil {
+	if err := web.Bind(c, &req); err != nil {
 		rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-		return
+		return nil
 	}
 
 	path, err := path_filter(req.Path)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
-		return
+		return nil
 	}
 
 	pathset, err := path_filter(req.PathSet)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
-		return
+		return nil
 	}
 
 	path = abs_path(path)
@@ -118,42 +100,47 @@ func (c S2Obj) RenameAction() {
 
 	if err := os.Rename(path, pathset); err != nil {
 		rsp.Error = &types.ErrorMeta{"500", err.Error()}
-		return
+		return nil
 	}
 
 	rsp.Kind = "FsFile"
+
+	return nil
 }
 
-func (c S2Obj) DelAction() {
+func S2ObjDel(c fiber.Ctx) error {
 
 	var (
 		rsp api.FsFile
 	)
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
 	//
-	path, err := path_filter(c.Params.Value("path"))
+	path, err := path_filter(web.Param(c, "path"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
-		return
+		return nil
 	}
 	path = abs_path(path)
 
 	if err := os.Remove(path); err != nil {
 		rsp.Error = &types.ErrorMeta{"500", err.Error()}
-		return
+		return nil
 	}
 
 	rsp.Kind = "FsFile"
+
+	return nil
 }
 
-func (c S2Obj) PutAction() {
+func S2ObjPut(c fiber.Ctx) error {
 
 	var (
 		rsp api.FsFile
@@ -161,22 +148,23 @@ func (c S2Obj) PutAction() {
 		err error
 	)
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	if err := c.Request.JsonDecode(&req); err != nil {
+	if err := web.Bind(c, &req); err != nil {
 		rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-		return
+		return nil
 	}
 
 	path, err := path_filter(req.Path)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
-		return
+		return nil
 	}
 
 	var body []byte
@@ -185,20 +173,20 @@ func (c S2Obj) PutAction() {
 		dataurl := strings.SplitAfter(req.Body, ";base64,")
 		if len(dataurl) != 2 {
 			rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-			return
+			return nil
 		}
 
 		body, err = base64.StdEncoding.DecodeString(dataurl[1])
 		if err != nil {
 			rsp.Error = &types.ErrorMeta{"400", err.Error()}
-			return
+			return nil
 		}
 
 	} else if req.Encode == "text" || req.Encode == "jm" {
 		body = []byte(req.Body)
 	} else {
 		rsp.Error = &types.ErrorMeta{"400", "Bad Request"}
-		return
+		return nil
 	}
 
 	path = abs_path(path)
@@ -210,19 +198,19 @@ func (c S2Obj) PutAction() {
 		err := json.Decode([]byte(body), &jsAppend)
 		if err != nil {
 			rsp.Error = &types.ErrorMeta{"400", err.Error()}
-			return
+			return nil
 		}
 
 		file, _, err := fsFileGetRead(path)
 		if err != nil {
 			rsp.Error = &types.ErrorMeta{"500", err.Error()}
-			return
+			return nil
 		}
 
 		err = json.Decode([]byte(file.Body), &jsPrev)
 		if err != nil {
 			rsp.Error = &types.ErrorMeta{"400", err.Error()}
-			return
+			return nil
 		}
 
 		jsMerged := utils.JsonMerge(jsPrev, jsAppend)
@@ -233,27 +221,30 @@ func (c S2Obj) PutAction() {
 
 	if err := fsFilePutWrite(path, body); err != nil {
 		rsp.Error = &types.ErrorMeta{"500", err.Error()}
-		return
+		return nil
 	}
 
 	rsp.Kind = "FsFile"
+
+	return nil
 }
 
-func (c S2Obj) ListAction() {
+func S2ObjList(c fiber.Ctx) error {
 
 	var rsp api.FsFileList
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	path, err := path_filter(c.Params.Value("path"))
+	path, err := path_filter(web.Param(c, "path"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
-		return
+		return nil
 	}
 
 	rsp.Path = path
@@ -267,4 +258,6 @@ func (c S2Obj) ListAction() {
 	}
 
 	rsp.Kind = "FsFileList"
+
+	return nil
 }

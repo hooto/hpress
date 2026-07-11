@@ -15,21 +15,18 @@
 package websrv
 
 import (
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 
 	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-func NewModule() *httpsrv.Module {
-
-	mod := httpsrv.NewModule()
-
-	mod.RegisterFileServer("/~",
-		config.Prefix+"/modules/core/comment/static/",
-		nil,
-	)
-
-	mod.RegisterController(new(Comment))
-
-	return mod
+// Register mounts the comment module routes on a fiber router. The caller mounts
+// the router at "/hp/+/comment" (note the literal "+", which the caller escapes).
+// Routes reproduce the httpsrv "Comment" controller paths
+// {prefix}/comment/embed, {prefix}/comment/set plus the static asset prefix /~.
+func Register(router fiber.Router) {
+	router.All("/comment/embed", CommentEmbed)
+	router.All("/comment/set", CommentSet)
+	router.Get("/~/*", web.DiskStatic(config.Prefix+"/modules/core/comment/static/"))
 }

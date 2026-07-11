@@ -15,44 +15,26 @@
 package v1
 
 import (
-	"github.com/hooto/httpsrv"
-	"github.com/hooto/iam/v2/pkg/iamapi"
-	"github.com/hooto/iam/v2/pkg/iamserver"
+	"github.com/gofiber/fiber/v3"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-type NodeModel struct {
-	*httpsrv.Controller
-	us iamserver.UserSession
-}
-
-func (c *NodeModel) Init() int {
-
-	c.us = iamserver.AppVerifier.Session(c.Request.Request)
-
-	if _, err := c.us.RequireAuth(); err != nil {
-		c.Response.Out.WriteHeader(401)
-		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
-		return 1
-	}
-
-	return 0
-}
-
-func (c NodeModel) EntryAction() {
+func NodeModelEntry(c fiber.Ctx) error {
 
 	rsp := api.NodeModel{}
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "editor.read") {
-		return
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.read") {
+		return nil
 	}
 
-	modname, modelid := c.Params.Value("modname"), c.Params.Value("modelid")
+	modname, modelid := web.Param(c, "modname"), web.Param(c, "modelid")
 
 	nmodel, err := config.SpecNodeModel(modname, modelid)
 	if err != nil {
@@ -60,9 +42,11 @@ func (c NodeModel) EntryAction() {
 			Code:    api.ErrCodeBadArgument,
 			Message: "Model Not Found",
 		}
-		return
+		return nil
 	}
 
 	rsp = *nmodel
 	rsp.Kind = "NodeModel"
+
+	return nil
 }

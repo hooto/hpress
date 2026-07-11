@@ -19,29 +19,32 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/modset"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-func (c ModSet) FsTplListAction() {
+func ModSetFsTplList(c fiber.Ctx) error {
 
 	ls := api.ViewList{}
 
-	defer c.RenderJson(&ls)
+	defer func() { _ = web.JSON(c, &ls) }()
 
-	if !c.us.Allow("", "sys.admin") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "sys.admin") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	spec, err := modset.SpecFetch(c.Params.Value("modname"))
+	spec, err := modset.SpecFetch(web.Param(c, "modname"))
 	if err != nil {
 		ls.Error = &types.ErrorMeta{api.ErrCodeBadArgument, "ModName Not Found"}
-		return
+		return nil
 	}
 
 	basepath := config.Prefix + "/modules/" + spec.Meta.Name + "/views/"
@@ -59,4 +62,6 @@ func (c ModSet) FsTplListAction() {
 	})
 
 	ls.Kind = "SpecTemplateList"
+
+	return nil
 }

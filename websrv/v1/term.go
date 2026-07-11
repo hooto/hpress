@@ -23,9 +23,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
-	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
 
@@ -33,6 +32,7 @@ import (
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/datax"
 	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/websrv/web"
 )
 
 var (
@@ -41,47 +41,30 @@ var (
 	term_list_limit_taxonomy int64 = 200
 )
 
-type Term struct {
-	*httpsrv.Controller
-	us iamserver.UserSession
-}
-
-func (c *Term) Init() int {
-
-	c.us = iamserver.AppVerifier.Session(c.Request.Request)
-
-	if _, err := c.us.RequireAuth(); err != nil {
-		c.Response.Out.WriteHeader(401)
-		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
-		return 1
-	}
-
-	return 0
-}
-
-func (c Term) ListAction() {
+func TermList(c fiber.Ctx) error {
 
 	var ls api.TermList
 
-	defer c.RenderJson(&ls)
+	defer func() { _ = web.JSON(c, &ls) }()
 
-	if !c.us.Allow("", "editor.list") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.list") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	model, err := config.SpecTermModel(c.Params.Value("modname"), c.Params.Value("modelid"))
+	model, err := config.SpecTermModel(web.Param(c, "modname"), web.Param(c, "modelid"))
 	if err != nil {
 		ls.Error = &types.ErrorMeta{
 			Code:    "404",
 			Message: "Spec or Model Not Found",
 		}
-		return
+		return nil
 	}
 
-	page, limit := c.Params.IntValue("page"), term_list_limit
+	page, limit := web.ParamInt(c, "page"), term_list_limit
 
-	dq := datax.NewQuery(c.Params.Value("modname"), c.Params.Value("modelid"))
+	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
 	if model.Type == api.TermTaxonomy {
 		limit = term_list_limit_taxonomy
 		page = 1
@@ -99,25 +82,27 @@ func (c Term) ListAction() {
 	//
 	ls = dq.TermList()
 
-	dqc := datax.NewQuery(c.Params.Value("modname"), c.Params.Value("modelid"))
+	dqc := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
 
-	if c.Params.Value("qry_text") != "" {
-		dqc.Filter("title.like", "%"+c.Params.Value("qry_text")+"%")
+	if web.Param(c, "qry_text") != "" {
+		dqc.Filter("title.like", "%"+web.Param(c, "qry_text")+"%")
 	}
 
 	count, err := dqc.TermCount()
 	if err != nil {
 		ls.Error = &types.ErrorMeta{api.ErrCodeInternalError, err.Error()}
-		return
+		return nil
 	}
 
 	ls.Kind = "TermList"
 	ls.Meta.TotalResults = uint64(count)
 	ls.Meta.StartIndex = uint64((page - 1) * limit)
 	ls.Meta.ItemsPerList = uint64(limit)
+
+	return nil
 }
 
-func (c Term) EntryAction() {
+func TermEntry(c fiber.Ctx) error {
 
 	rsp := api.Term{
 		TypeMeta: types.TypeMeta{
@@ -125,56 +110,60 @@ func (c Term) EntryAction() {
 		},
 	}
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "editor.read") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.read") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	dq := datax.NewQuery(c.Params.Value("modname"), c.Params.Value("modelid"))
+	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
 	dq.Limit(100)
 
-	dq.Filter("id", c.Params.Value("id"))
+	dq.Filter("id", web.Param(c, "id"))
 
 	rsp = dq.TermEntry()
+
+	return nil
 }
 
-func (c Term) SetAction() {
+func TermSet(c fiber.Ctx) error {
 
 	rsp := api.Term{}
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "editor.write") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	model, err := config.SpecTermModel(c.Params.Value("modname"), c.Params.Value("modelid"))
+	model, err := config.SpecTermModel(web.Param(c, "modname"), web.Param(c, "modelid"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    "404",
 			Message: "Spec or Model Not Found",
 		}
-		return
+		return nil
 	}
 
-	if err := c.Request.JsonDecode(&rsp); err != nil {
+	if err := web.Bind(c, &rsp); err != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    "400",
 			Message: "Bad Request " + err.Error(),
 		}
-		return
+		return nil
 	}
 
 	var (
 		set      = map[string]interface{}{}
 		username = ""
-		table    = fmt.Sprintf("hpt_%s_%s", idhash.HashToHexString([]byte(c.Params.Value("modname")), 12), c.Params.Value("modelid"))
+		table    = fmt.Sprintf("hpt_%s_%s", idhash.HashToHexString([]byte(web.Param(c, "modname")), 12), web.Param(c, "modelid"))
 	)
 
-	if s, err := c.us.Profile(); err == nil {
+	if s, err := us.Profile(); err == nil {
 		username = s.Username
 	}
 
@@ -199,7 +188,7 @@ func (c Term) SetAction() {
 				Code:    "500",
 				Message: "Can not pull database instance",
 			}
-			return
+			return nil
 		}
 
 		if len(rs) == 1 {
@@ -235,7 +224,7 @@ func (c Term) SetAction() {
 					Code:    "500",
 					Message: "Can not pull database instance",
 				}
-				return
+				return nil
 			}
 
 			if len(rs) < 1 {
@@ -243,7 +232,7 @@ func (c Term) SetAction() {
 					Code:    "404",
 					Message: "Term Not Found",
 				}
-				return
+				return nil
 			}
 
 			if rs[0].Field("title").String() != rsp.Title {
@@ -276,14 +265,14 @@ func (c Term) SetAction() {
 			set["userid"] = username
 		}
 
-		datax.TermTaxonomyCacheClean(c.Params.Value("modname"), c.Params.Value("modelid"))
+		datax.TermTaxonomyCacheClean(web.Param(c, "modname"), web.Param(c, "modelid"))
 
 	default:
 		rsp.Error = &types.ErrorMeta{
 			Code:    "500",
 			Message: "Server Error",
 		}
-		return
+		return nil
 	}
 
 	if len(set) > 0 {
@@ -314,11 +303,13 @@ func (c Term) SetAction() {
 				Code:    "500",
 				Message: err.Error(),
 			}
-			return
+			return nil
 		}
 	}
 
 	rsp.Model = model
 
 	rsp.Kind = "Term"
+
+	return nil
 }

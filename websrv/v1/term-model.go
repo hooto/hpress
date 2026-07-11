@@ -17,34 +17,16 @@ package v1
 import (
 	"strings"
 
-	"github.com/hooto/httpsrv"
+	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
-	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/websrv/web"
 )
 
-type TermModel struct {
-	*httpsrv.Controller
-	us iamserver.UserSession
-}
-
-func (c *TermModel) Init() int {
-
-	c.us = iamserver.AppVerifier.Session(c.Request.Request)
-
-	if _, err := c.us.RequireAuth(); err != nil {
-		c.Response.Out.WriteHeader(401)
-		c.RenderJson(types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
-		return 1
-	}
-
-	return 0
-}
-
-func (c TermModel) EntryAction() {
+func TermModelEntry(c fiber.Ctx) error {
 
 	rsp := api.TermModel{
 		TypeMeta: types.TypeMeta{
@@ -52,16 +34,17 @@ func (c TermModel) EntryAction() {
 		},
 	}
 
-	defer c.RenderJson(&rsp)
+	defer func() { _ = web.JSON(c, &rsp) }()
 
-	if !c.us.Allow("", "editor.read") {
+	us := web.AuthSession(c)
+	if !us.Allow("", "editor.read") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
-		return
+		return nil
 	}
 
-	modname, modelid := c.Params.Value("modname"), c.Params.Value("modelid")
-	if c.Params.Value("id") != "" {
-		if s := strings.Split(c.Params.Value("id"), ","); len(s) == 2 {
+	modname, modelid := web.Param(c, "modname"), web.Param(c, "modelid")
+	if web.Param(c, "id") != "" {
+		if s := strings.Split(web.Param(c, "id"), ","); len(s) == 2 {
 			modname, modelid = s[0], s[1]
 		}
 	}
@@ -72,9 +55,11 @@ func (c TermModel) EntryAction() {
 			Code:    api.ErrCodeBadArgument,
 			Message: "Model Not Found",
 		}
-		return
+		return nil
 	}
 
 	rsp = *model
 	rsp.Kind = "TermModel"
+
+	return nil
 }
