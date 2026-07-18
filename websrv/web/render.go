@@ -17,6 +17,8 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"html"
+	"net/url"
 	stdpath "path"
 	"strings"
 
@@ -78,6 +80,55 @@ func RenderError(c fiber.Ctx, status int, msg string) error {
 	c.Status(status)
 	c.Set("Content-Type", "text/html; charset=utf-8")
 	_, err := c.Write([]byte(msg))
+	return err
+}
+
+// RenderAuthRequired renders a centered, self-contained modal page prompting the
+// user to sign in. SPA shell routes (e.g. /hp/mgr2) call this when the IAM
+// session is missing or expired (e.g. "auth-denied : iat expired"): at that
+// point the SPA itself has not loaded, so it cannot show its in-app modal —
+// this server-rendered page stands in for it. The Sign In button targets the
+// local user-auth/sign-in handler with current_url set to returnURL, so a
+// successful login returns the user to the page they were trying to reach.
+func RenderAuthRequired(c fiber.Ctx, signInPath, returnURL, msg string) error {
+	href := signInPath
+	if returnURL != "" {
+		sep := "?"
+		if strings.Contains(signInPath, "?") {
+			sep = "&"
+		}
+		href = signInPath + sep + "current_url=" + url.QueryEscape(returnURL)
+	}
+	if msg == "" {
+		msg = "Your login session has expired or you are not signed in. Please sign in again."
+	}
+	c.Status(fiber.StatusUnauthorized)
+	c.Set("Content-Type", "text/html; charset=utf-8")
+	c.Set("Cache-Control", "no-cache")
+	_, err := c.Write([]byte(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session Expired</title>
+<style>
+  html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f4f5f7}
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  .box{background:#fff;border-radius:8px;width:440px;max-width:92vw;box-shadow:0 12px 40px rgba(0,0,0,.18);overflow:hidden}
+  .body{padding:24px 24px 8px}
+  .alert{border:1px solid #ffe08a;background:#fff8e1;color:#8a6d3b;border-radius:4px;padding:12px 14px;font-size:14px;line-height:1.55}
+  .foot{padding:16px 24px 24px;text-align:right}
+  .btn{display:inline-block;background:#0d6efd;color:#fff;text-decoration:none;border-radius:4px;padding:8px 20px;font-size:14px;font-weight:600}
+  .btn:hover{background:#0b5ed7}
+</style>
+</head>
+<body>
+  <div class="overlay"><div class="box">
+    <div class="body"><div class="alert">` + html.EscapeString(msg) + `</div></div>
+    <div class="foot"><a class="btn" href="` + html.EscapeString(href) + `">Sign In</a></div>
+  </div></div>
+</body>
+</html>`))
 	return err
 }
 

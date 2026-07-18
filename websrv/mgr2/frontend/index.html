@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="shortcut icon" type="image/x-icon" href="/hp/mgr2/img/ap.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hooto Press Admin</title>
+  </head>
+  <body id="body-content" style="margin: 0">
+    <div id="app">
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          background: linear-gradient(135deg, #333, #1a1a1a);
+          color: #fff;
+          font-family: sans-serif;
+        "
+      >
+        <div
+          id="app-loading-spin"
+          style="
+            width: 2rem;
+            height: 2rem;
+            margin-bottom: 1rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+          "
+        ></div>
+        <p style="margin: 0; font-size: 1.1rem">loading...</p>
+      </div>
+    </div>
+    <script>
+      // Static boot loader renders before the deferred SPA bundle. main.ts
+      // clears #app on mount (after a ≥200ms window measured from
+      // window.__hpMgr2BootStart), removing this automatically.
+      document.getElementById('app-loading-spin').animate(
+        [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }],
+        { duration: 600, iterations: Infinity },
+      );
+      window.__hpMgr2BootStart = performance.now();
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

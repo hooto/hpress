@@ -44,8 +44,10 @@ func Auth() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		us := iamserver.AppVerifier.Session(c.Cookies(inauth.AppHttpHeaderKey))
 		if _, err := us.RequireAuth(); err != nil {
+			// Surface the real IAM auth failure (e.g. "auth-denied : iat expired")
+			// so the SPA can detect session expiry and prompt re-login.
 			c.Status(401)
-			return JSON(c, types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, "Unauthorized"))
+			return JSON(c, types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, err.Error()))
 		}
 		c.Locals(sessionKey, us)
 		return c.Next()

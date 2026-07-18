@@ -1,0 +1,70 @@
+// Modal stack, mirroring lynkui.modal.{open, close, prev}. The legacy admin
+// drives most spec/sub-editor UI through a modal stack where prev(cb) pops the
+// top modal and refreshes the one beneath. Each entry renders a Svelte component
+// (or raw HTML) as its body; buttons are real handlers, replacing the old
+// eval'd onclick strings.
+import { writable } from 'svelte/store'
+import type { Component } from 'svelte'
+
+export interface ModalButton {
+  title: string
+  class?: string // btn-primary | btn-danger | btn-dark | btn-inverse
+  click?: () => void
+  dismiss?: boolean // close the modal after click (default true)
+}
+
+export interface ModalSpec {
+  id?: string
+  title?: string
+  body?: Component // Svelte component rendered as the modal body
+  props?: Record<string, any>
+  html?: string // raw HTML body (simple confirm/alerts)
+  width?: number | 'max'
+  height?: number | 'max' | 'auto'
+  buttons?: ModalButton[]
+  backEnable?: boolean // show a Back button (calls prevModal)
+  onPrev?: () => void // callback run after this modal is popped via prev
+  backdrop?: boolean // click backdrop to close (default false, matches legacy)
+}
+
+export const modals = writable<ModalSpec[]>([])
+
+export function openModal(spec: ModalSpec) {
+  modals.update((s) => [...s, spec])
+  return spec
+}
+
+// replace the top modal in-place (refresh content without growing the stack)
+export function setTopModal(spec: ModalSpec) {
+  modals.update((s) => {
+    if (s.length === 0) return [spec]
+    const n = s.slice(0, -1)
+    n.push(spec)
+    return n
+  })
+}
+
+export function closeModal() {
+  modals.update((s) => s.slice(0, -1))
+}
+
+// pop the top modal (revealing the previous one) then run cb
+export function prevModal(cb?: () => void) {
+  modals.update((s) => s.slice(0, -1))
+  if (cb) cb()
+}
+
+export function closeAllModals() {
+  modals.set([])
+}
+
+// legacy lynkui.modal.open used a synchronous html/eval body. For simple
+// confirm dialogs (e.g. node single-delete) this helper builds an html-body
+// modal with buttons in one call.
+export function confirmModal(opts: {
+  title?: string
+  html?: string
+  buttons?: ModalButton[]
+}) {
+  return openModal({ title: opts.title, html: opts.html, buttons: opts.buttons })
+}

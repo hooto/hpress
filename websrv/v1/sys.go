@@ -227,6 +227,8 @@ func SysIamStatus(c fiber.Ctx) error {
 
 	if cfg != nil {
 		sets.BaseURL = cfg.BaseURL
+		sets.AppID = cfg.AppId
+		sets.SecretKey = maskSecret(cfg.SecretKey)
 	}
 
 	if status.IamServiceStatus == status.IamServiceOK {
@@ -300,4 +302,17 @@ func sysinfoFetch() api.SysStatusInfo {
 		Procs:     0,                   // si.Procs,
 		// TimeNow: time.Now().Format(time.RFC3339),
 	}
+}
+
+// maskSecret returns a redacted view of a secret for display, keeping the
+// first 4 and last 4 characters and replacing the middle with asterisks.
+// Short or empty values are fully masked so no usable material leaks.
+func maskSecret(s string) string {
+	if s == "" {
+		return ""
+	}
+	if len(s) <= 8 {
+		return "******"
+	}
+	return s[:4] + "****" + s[len(s)-4:]
 }

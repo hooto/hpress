@@ -61,6 +61,8 @@ type SysStatusInfo struct {
 type SysIamStatus struct {
 	types.TypeMeta     `json:",inline"`
 	BaseURL            string              `json:"base_url"`
+	AppID              string              `json:"app_id"`
+	SecretKey          string              `json:"secret_key"`
 	InstanceSelf       *iamapi.AppInstance `json:"instance_self"`
 	InstanceRegistered *iamapi.AppInstance `json:"instance_registered"`
 }

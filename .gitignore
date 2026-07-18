@@ -22,4 +22,4 @@ nginx.conf
 batch-*
 webui/lynkui_data.json
 webui/lynkui_layout.json
-
+websrv/mgr2/dist/

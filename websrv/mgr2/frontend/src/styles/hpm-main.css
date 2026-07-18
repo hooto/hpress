@@ -1,0 +1,595 @@
+:root {
+  --hpm-block-cap: 8px;
+}
+
+body {
+  padding: 0px;
+}
+
+.hpm-block-zero {
+  padding: 0 !important;
+}
+
+.hpm-block-gap-frame {
+  padding: calc(var(--hpm-block-cap) * 2) !important;
+}
+
+.hpm-block-gap-row {
+  display: flex;
+  flex-direction: row;
+  gap: calc(var(--hpm-block-cap) * 2) !important;
+  _flex-wrap: wrap !important;
+}
+
+.hpm-block-gap-row > div {
+  margin-bottom: 0 !important;
+}
+
+.hpm-block-gap-row-sm {
+  display: flex;
+  flex-direction: row;
+  gap: calc(var(--hpm-block-cap) * 1) !important;
+  _flex-wrap: wrap !important;
+}
+
+.hpm-block-gap-column {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hpm-block-cap) * 2) !important;
+}
+
+.hpm-block-gap-column > div {
+  margin-bottom: 0 !important;
+}
+
+.hpm-block-m-std {
+  margin-top: var(--hpm-block-cap) !important;
+  margin-right: var(--hpm-block-cap) !important;
+  margin-bottom: calc(var(--hpm-block-cap) * 2) !important;
+  margin-left: var(--hpm-block-cap) !important;
+}
+
+.hpm-block-p-std {
+  padding: var(--hpm-block-cap) !important;
+}
+
+.hpm-block-ph {
+  height: calc(var(--hpm-block-cap) / 2) !important;
+}
+
+a.hpm-no-underline {
+  text-decoration: none;
+}
+a.hpm-no-underline:hover {
+  text-decoration: underline;
+}
+
+.hpm-hide {
+  display: none !important;
+}
+
+#hpm-topbar {
+  padding: 0 15px;
+  __margin-bottom: 10px;
+  background-color: #fff;
+  color: #777;
+  min-height: 50px;
+  top: 0;
+  left: 0;
+  right: 0;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+}
+
+.hpm-topbar-collapse {
+  position: relative;
+  display: block !important;
+  height: auto !important;
+  padding-bottom: 0;
+  overflow: visible !important;
+  white-space: nowrap;
+}
+
+.hpm-nav {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0 30px;
+  float: left;
+  min-height: 50px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.hpm-nav:first-child {
+  margin-left: 0;
+}
+
+.hpm-nav-right {
+  float: right !important;
+  margin-right: 2px;
+}
+
+.hpm-nav > li {
+  position: relative;
+  padding: 0;
+  display: inline-block;
+  zoom: 1;
+  vertical-align: middle;
+  line-height: 50px;
+}
+
+.hpm-nav > li:first-child {
+  margin-left: 0;
+}
+
+.hpm-nav > li > a {
+  padding: 0 10px;
+  display: block;
+  text-decoration: none;
+  white-space: nowrap;
+  color: #777;
+  font-size: 16px;
+}
+
+.hpm-nav > li > a:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.hpm-nav > li > a.active {
+  color: #000;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.hpm-topbar-logo {
+  margin-right: 10px;
+  max-height: 30px;
+  max-width: 100px;
+}
+
+.hpm-topbar-brand {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+#work-content {
+}
+
+.hpm-query-input {
+  padding-left: 30px !important;
+  background: url(../img/search-16.png) no-repeat 8px;
+}
+
+#hpm-node-workspace {
+}
+
+div.hpm-table-std {
+  padding: calc(var(--hpm-block-cap) / 2);
+  background-color: #fff;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+  border-radius: calc(var(--hpm-block-cap) / 2);
+}
+
+.hpm-table-std,
+.hpm-table-std > table {
+  margin-bottom: 0;
+}
+
+.hpm-table-std > tbody > tr:last-child > td,
+.hpm-table-std > table > tbody > tr:last-child > td {
+  border-bottom: 0 !important;
+}
+
+.hpm-table-std .row-checkbox {
+  margin: 0;
+  padding: 0;
+  vertical-align: middle !important;
+}
+
+/*
+ * Reusable Bootstrap .table utilities (apply alongside class="table").
+ * Composable — combine as needed. Direct-child selectors scope each rule to
+ * the table's own cells, so nested sub-tables are not affected.
+ *   hpm-table-cols   — 1rem column padding, flush at the outer edges
+ *   hpm-table-middle — vertically center cell content (text alongside inputs)
+ *   hpm-table-clean  — drop the bottom border on the last row (sub-tables)
+ */
+.hpm-table-cols > thead > tr > th,
+.hpm-table-cols > tbody > tr > td,
+.hpm-table-cols > tbody > tr > th {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.hpm-table-cols > thead > tr > th:first-child,
+.hpm-table-cols > tbody > tr > td:first-child,
+.hpm-table-cols > tbody > tr > th:first-child {
+  padding-left: 0;
+}
+.hpm-table-cols > thead > tr > th:last-child,
+.hpm-table-cols > tbody > tr > td:last-child,
+.hpm-table-cols > tbody > tr > th:last-child {
+  padding-right: 0;
+}
+
+.hpm-table-middle > thead > tr > th,
+.hpm-table-middle > tbody > tr > td,
+.hpm-table-middle > tbody > tr > th {
+  vertical-align: middle;
+}
+
+.hpm-table-clean > tbody > tr:last-child > td,
+.hpm-table-clean > tbody > tr:last-child > th {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+#hpm-termset > div:last-child {
+  margin-bottom: 0 !important;
+}
+
+.hpm-node-nav {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  vertical-align: middle;
+}
+
+.hpm-node-nav:first-child {
+  margin-left: 0 !important;
+}
+
+.hpm-node-nav > li {
+  position: relative;
+  padding: 0;
+  margin: 0 10px 0 0;
+  display: inline-block;
+  zoom: 1;
+  vertical-align: middle;
+  line-height: 30px;
+  float: left;
+}
+
+.hpm-node-nav > li:last-child {
+  margin-right: 0 !important;
+}
+
+.hpm-node-nav > li > a {
+  _padding: 0 10px;
+  display: block;
+  text-decoration: none;
+  white-space: nowrap;
+  color: #000;
+  _font-size: 12px;
+}
+
+.hpm-node-nav > li > a:hover {
+  _padding: 0 10px;
+  display: block;
+  text-decoration: none;
+  white-space: nowrap;
+  color: #fff;
+  _font-size: 12px;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.hpm-node-nav > li.active,
+.hpm-node-nav > li > a.active {
+  _background-color: #333;
+  color: #fff;
+}
+
+.hpm-node-nav > li.active > a {
+  color: #fff;
+}
+
+#hpm-node-optools > div {
+  __margin-right: var(--hpm-block-cap);
+}
+
+#hpm-node-nmodels > div.btn,
+#hpm-node-tmodels > div.btn {
+  __margin-left: var(--hpm-block-cap);
+}
+
+#hpm-node-optools button {
+  _font-size: 10px;
+}
+
+ul.pagination {
+  margin-bottom: 0;
+}
+
+#hpm-nodeset-fields div:last-child {
+  margin-bottom: 0;
+}
+
+#hpm-nodeset .CodeMirror {
+  clear: both;
+  /*border-right: 1px solid #ccc; */
+  font-size: 13px;
+  line-height: 1.4em;
+  /*height: auto;*/
+}
+
+.hpm-nodeset-auto-height > .CodeMirror {
+  height: auto !important;
+}
+
+.hpm-div-light {
+  clear: both;
+  background-color: #fff;
+  __box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+  border-radius: calc(var(--hpm-block-cap) / 2);
+}
+
+#hpm-nodeset-laymain {
+  padding: calc(var(--hpm-block-cap));
+  background-color: #fff;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+  border-radius: calc(var(--hpm-block-cap) / 2);
+}
+
+#hpm-nodeset-layside {
+  background-color: transparent;
+}
+
+.hpm-nodeset-tplx {
+  margin: 10px 0 0 0 !important;
+}
+
+.hpm-nodeset-tplx label {
+  margin: 5px 0 0 0 !important;
+  font-weight: normal;
+}
+
+#hpm-nodeset-top-title > .hpm-nodeset-tplx:first-child {
+  margin-top: 0 !important;
+}
+
+#hpm-nodeset-layside > .hpm-nodeset-tplx:first-child {
+  margin-top: 0 !important;
+}
+
+.hpm-nodeset-tplstring label {
+  margin: 0;
+  width: 100%;
+}
+
+.hpm-nodeset-tpltext label {
+  margin: 0;
+  width: 100%;
+}
+
+.hpm-nodeset-tpltext label a {
+  text-decoration: none;
+}
+
+.hpm-nodeset-tpltext label span.editor-nav {
+  height: 40px;
+}
+
+.hpm-nodeset-tpltext label a.tpltext-editor-item {
+  margin-left: 5px;
+  font-size: 12px;
+  padding: 5px 30px;
+}
+
+.hpm-nodeset-tpltext label a.active {
+  background-color: #666;
+  color: #fff;
+}
+
+.hpm-nodeset-tpltext label a:hover {
+  background-color: #888;
+  color: #fff;
+  cursor: pointer;
+}
+
+.hpm-nodeset-tplstring label select.field-nav-lang,
+.hpm-nodeset-tpltext label select.field-nav-lang {
+  padding: 1px 5px !important;
+  font-size: 12px;
+  line-height: 100%;
+  display: inline;
+  max-width: 120px;
+  height: auto;
+  float: right;
+}
+
+.hpm-nodeset-tpltext table.editor-fra {
+  margin: 0;
+}
+
+.hpm-nodeset-tpltext .editor-outbox {
+  border: 2px solid #ccc;
+  border-radius: 5px;
+}
+
+.hpm-nodeset-tpltext .editor-inner-toolbar {
+  border-bottom: 1px solid #ccc;
+  padding: 5px;
+}
+
+.hpm-nodeset-tpltext .editor-fra {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.hpm-nodeset-tpltext .editor-fra .editor-fra-item {
+  flex-grow: 2;
+}
+
+.hpm-nodeset-tpltext .editor-inner-toolbar .vline {
+  width: 1px;
+  margin: 0 5px;
+  padding: 0;
+  height: 30px;
+  border-left: 1px solid #ccc;
+}
+
+#hpm-node-set-opts-label {
+  font-size: 120%;
+  font-weight: 600;
+}
+
+#hpm-termls,
+#hpm-termset {
+  background-color: #fff;
+  padding: 10px;
+  box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+}
+
+.CodeMirror-scroll {
+  overflow-x: hidden;
+  height: hidden;
+}
+
+.CodeMirror-foldmarker {
+  color: blue;
+  text-shadow:
+    #b9f 1px 1px 2px,
+    #b9f -1px -1px 2px,
+    #b9f 1px -1px 2px,
+    #b9f -1px 1px 2px;
+  font-family: arial;
+  line-height: 0.3;
+  cursor: pointer;
+}
+
+.CodeMirror-foldgutter {
+  width: 0.7em;
+}
+
+.CodeMirror-foldgutter-open,
+.CodeMirror-foldgutter-folded {
+  color: #555;
+  cursor: pointer;
+}
+
+.CodeMirror-foldgutter-open:after {
+  content: "\25BE";
+}
+
+.CodeMirror-foldgutter-folded:after {
+  content: "\25B8";
+}
+
+.CodeMirror-lines {
+  line-height: 1.4em;
+}
+
+.CodeMirror *::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  background-color: transparent;
+  background-color: #ccc;
+}
+
+.CodeMirror *::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+.CodeMirror *::-webkit-scrollbar-button:start:decrement,
+.CodeMirror *::-webkit-scrollbar-button:end:increment {
+  display: none;
+}
+
+.CodeMirror *::-webkit-scrollbar-thumb:vertical,
+.CodeMirror *::-webkit-scrollbar-thumb:horizontal {
+  background-color: #999;
+}
+
+.CodeMirror *::-webkit-scrollbar-thumb:hover {
+  background-color: #666;
+}
+
+.CodeMirror *::-webkit-scrollbar-thumb:active {
+  background-color: #444;
+}
+
+.hp-subnav {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+  overflow: auto;
+  display: table;
+}
+
+.hp-subnav > a {
+  display: table-cell;
+  margin-right: 20px;
+  vertical-align: middle;
+  font-size: 14px;
+  padding: 5px 10px;
+  text-decoration: none;
+  color: #333;
+  border-radius: 3px;
+}
+
+.hp-subnav > a:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.hp-subnav > a.active {
+  color: #fff;
+  background-color: #428bca;
+}
+
+.hpm-modal-formset {
+  margin: 16px;
+}
+.hpm-modal-formset > div.flex-sm-row {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+.hpm-modal-formset > div.flex-sm-row:last-child {
+  border-bottom: 0;
+}
+.hpm-modal-formset > div.flex-sm-row > label {
+  width: 200px;
+}
+.hpm-modal-formset > div.flex-sm-row > div {
+}
+.hpm-modal-formset table {
+  margin-bottom: 0;
+}
+.hpm-modal-formset table > tbody > tr:last-child td {
+  border-bottom: 0;
+}
+
+.hpm-breadcrumb {
+  position: relative;
+  list-style: none;
+  /* background-color: #f5f5f5; */
+  min-height: 30px;
+  margin: 0 0 10px 10px;
+  float: left;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.hpm-breadcrumb > li {
+  position: relative;
+  padding: 0;
+  margin: 0 0 0 10px;
+  display: inline-block;
+  zoom: 1;
+  vertical-align: middle;
+  line-height: 30px;
+  float: left;
+}
+
+.hpm-breadcrumb > li + li:before {
+  padding: 0 5px;
+  color: #ccc;
+  content: "/\00a0";
+}
+
+.hpm-breadcrumb > li.active {
+  color: #777;
+}
+
+.hpm-breadcrumb > li:first-child {
+  margin-left: 0 !important;
+}

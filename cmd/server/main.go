@@ -35,6 +35,7 @@ import (
 
 	cdef "github.com/hooto/hpress/websrv/frontend"
 	cmgr "github.com/hooto/hpress/websrv/mgr"
+	cmgr2 "github.com/hooto/hpress/websrv/mgr2"
 	cmod "github.com/hooto/hpress/websrv/module"
 	capi "github.com/hooto/hpress/websrv/v1"
 
@@ -115,6 +116,7 @@ func main() {
 	// REST API + admin + /hp app routes
 	capi.Register(root.Group("/hp/v1"))
 	cmgr.Register(root.Group("/hp/mgr"))
+	cmgr2.Register(root.Group("/hp/mgr2"))
 	cdef.RegisterHtp(root.Group("/hp"))
 
 	// lynkui admin UI (mounts /hp/lynkui on the app via its fiber entry).
