@@ -174,10 +174,23 @@
     const measure = () => {
       const header = dialogEl?.querySelector('.hpm-header') as HTMLElement | null
       const footer = dialogEl?.querySelector('.modal-footer') as HTMLElement | null
+      // .modal-content (Bootstrap) carries a 1px border top + bottom. It is
+      // box-sizing:border-box, so its content box — where header/body/footer
+      // are distributed — is that much smaller than the dialog height we set.
+      // Without accounting for it, the body resolves to innerHeight − 2px and
+      // the pagelet (overflow-y:auto) shows a constant 2px scrollbar.
+      const content = dialogEl?.querySelector('.hpm-content') as HTMLElement | null
+      const contentBorder = content ? content.offsetHeight - content.clientHeight : 0
       const hh = header?.offsetHeight ?? 0
       const ff = footer?.offsetHeight ?? 0
       const cap = window.innerHeight - VIEWPORT_MARGIN * 2
-      const h = Math.min(hh + inner.offsetHeight + ff, cap)
+      // Ceil the fractional content height: the dialog height is set as an
+      // integer px, and the flex chain resolves the pagelet to exactly
+      // (dialog - header - footer). If we rounded the content height down,
+      // the pagelet (overflow-y:auto) would be a sub-pixel shorter than its
+      // content and show a spurious scrollbar even with viewport to spare.
+      const innerH = Math.ceil(inner.getBoundingClientRect().height)
+      const h = Math.min(hh + innerH + ff + contentBorder, cap)
       // Suppress identical-height writes (the 200ms width morph re-wraps content
       // and would otherwise fire the RO many times, restarting the transition).
       if (h !== lastH) {

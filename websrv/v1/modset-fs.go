@@ -162,6 +162,17 @@ func ModSetFsPut(c fiber.Ctx) error {
 
 	path = filepath.Clean(config.Config.ModuleDir + "/" + modname + "/" + path)
 
+	// Directory creation (New Folder). No body needed; just ensure the path
+	// exists as a directory (recursive, chowned to the module user).
+	if req.IsDir {
+		if err := fsMakeDir(path, config.User.Uid, config.User.Gid, 0755); err != nil {
+			rsp.Error = &types.ErrorMeta{"500", err.Error()}
+			return nil
+		}
+		rsp.Kind = "FsFile"
+		return nil
+	}
+
 	var body []byte
 	if req.Encode == "base64" {
 

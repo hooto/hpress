@@ -6,9 +6,12 @@
   // IndexedDB offline cache is omitted; online operation is fully preserved).
   import { onMount } from 'svelte'
   import { api, ApiError } from '../../lib/api'
-  import { confirmModal } from '../../lib/modal'
+  import { confirmModal, openModal } from '../../lib/modal'
+  import { navigate } from '../../lib/router'
   import { md5 } from '../../lib/util'
+  import { uploadModFsFile, joinFsPath } from '../../lib/fsupload'
   import LcEditor from './LcEditor.svelte'
+  import FsUpload from './FsUpload.svelte'
   import type { FsFile } from '../../lib/types'
 
   export let route = 'spec-editor/index'
@@ -18,6 +21,10 @@
   let treeItems: (FsFile & { _abspath: string })[] = []
   let openFiles: { path: string; name: string; content: string; origSum: string }[] = []
   let activePath = ''
+  let menuOpen = false
+  let menuWrap: HTMLElement
+  let singleInput: HTMLInputElement
+  let ctxMenu: { x: number; y: number; path: string; name: string } | null = null
 
   $: active = openFiles.find((f) => f.path === activePath)
   $: dirty = (f: { content: string; origSum: string }) => md5(f.content) !== f.origSum
@@ -103,13 +110,102 @@
     }
   }
 
+  function closeMenu() {
+    menuOpen = false
+  }
+
+  // Close the New dropdown on any click outside of it (the toggle button and
+  // menu live inside menuWrap; their own handlers manage open/close). Also
+  // dismiss the right-click context menu on any click outside its own entries.
+  function onWindowClick(e: MouseEvent) {
+    if (menuOpen && menuWrap && !menuWrap.contains(e.target as Node)) {
+      menuOpen = false
+    }
+    if (ctxMenu && !(e.target as HTMLElement)?.closest('.lcide-ctxmenu')) {
+      ctxMenu = null
+    }
+  }
+
+  // Right-click context menu on a tree item (Rename / Delete). Position at the
+  // cursor, clamped to the viewport so it never overflows the edge.
+  function openCtx(e: MouseEvent, path: string, name: string) {
+    const mw = 156
+    const mh = 86
+    const x = Math.max(4, Math.min(e.clientX, window.innerWidth - mw - 4))
+    const y = Math.max(4, Math.min(e.clientY, window.innerHeight - mh - 4))
+    ctxMenu = { x, y, path, name }
+  }
+
+  function ctxRename() {
+    if (!ctxMenu) return
+    const { path, name } = ctxMenu
+    ctxMenu = null
+    renameFile(path, name)
+  }
+
+  function ctxDelete() {
+    if (!ctxMenu) return
+    const { path, name } = ctxMenu
+    ctxMenu = null
+    deleteFile(path, name)
+  }
+
+  function rootRefresh() {
+    closeMenu()
+    loadTree('/')
+  }
+
+  function backToModules() {
+    navigate('spec/index')
+  }
+
   function newFile() {
+    closeMenu()
     const name = prompt('New file name')
     if (!name) return
     const path = joinPath(treePath, name)
     api.post('mod-set-fs/put', { path, body: '', encode: 'text' }, { modname }).then(() => {
       loadTree()
       openFile(path, name)
+    })
+  }
+
+  function newFolder() {
+    closeMenu()
+    const name = prompt('New folder name')
+    if (!name) return
+    const path = joinPath(treePath, name)
+    api.post('mod-set-fs/put', { path, isdir: true }, { modname }).then(() => loadTree())
+  }
+
+  // "Upload Single File" — open the OS picker and upload straight into the
+  // current tree directory (no modal), one file at a time.
+  function pickSingleFile() {
+    closeMenu()
+    singleInput.click()
+  }
+
+  async function onSinglePicked() {
+    if (!singleInput.files || !singleInput.files.length) return
+    for (const file of Array.from(singleInput.files)) {
+      const r = await uploadModFsFile(modname, joinFsPath(treePath, file.name), file)
+      if (!r.ok) alert(r.msg)
+    }
+    singleInput.value = ''
+    loadTree()
+  }
+
+  // "Drag & Drop Batch Upload" — dedicated drop-zone modal (recursive folder
+  // traversal), uploads into the current tree directory.
+  function uploadBatch() {
+    closeMenu()
+    openModal({
+      title: 'Drag & Drop Batch Upload',
+      width: 640,
+      height: 'auto',
+      body: FsUpload,
+      props: { modname, path: treePath, onDone: () => loadTree() },
+      buttons: [{ title: 'Close', click: () => {} }],
     })
   }
 
@@ -133,40 +229,81 @@
   onMount(() => loadTree('/'))
 </script>
 
-<div class="lcide">
+<svelte:window on:click={onWindowClick} />
+
+<div class="lcide-wrap">
+  <div class="lcide-header">
+    <button class="lcide-back" type="button" on:click={backToModules}>
+      <i class="bi bi-arrow-left-short"></i> Modules
+    </button>
+    <span class="lcide-header-mod">{modname}</span>
+  </div>
+
+  <div class="lcide">
+    <input type="file" class="lcide-hidden" bind:this={singleInput} on:change={onSinglePicked} />
+
+  {#if ctxMenu}
+    <div class="lcide-ctxmenu" style={`top:${ctxMenu.y}px;left:${ctxMenu.x}px`}>
+      <button on:click={ctxRename}><i class="bi bi-pencil"></i> Rename</button>
+      <button class="text-danger" on:click={ctxDelete}><i class="bi bi-trash"></i> Delete</button>
+    </div>
+  {/if}
+
   <div class="lcide-fsnav lynkui-scroll">
-    <div class="lcide-toolbar">
-      <button class="btn btn-sm btn-primary" on:click={newFile}>New File</button>
+    <div class="lcide-fsbar">
+      <span class="lcide-fsbar-title">Files</span>
+      <div class="lcide-fsbar-actions">
+        <div class="lcide-menu-wrap" bind:this={menuWrap}>
+          <button class="lcide-fsbtn" title="New" on:click={() => (menuOpen = !menuOpen)}>
+            <i class="bi bi-plus-lg"></i>
+          </button>
+          {#if menuOpen}
+            <ul class="lcide-menu">
+              <li>
+                <button on:click={newFile}><i class="bi bi-file-earmark"></i> New File</button>
+              </li>
+              <li>
+                <button on:click={newFolder}><i class="bi bi-folder-plus"></i> New Folder</button>
+              </li>
+              <li class="lcide-menu-sep"></li>
+              <li>
+                <button on:click={pickSingleFile}><i class="bi bi-upload"></i> Upload Single File</button>
+              </li>
+              <li>
+                <button on:click={uploadBatch}
+                  ><i class="bi bi-cloud-arrow-up"></i> Drag &amp; Drop Batch Upload</button
+                >
+              </li>
+            </ul>
+          {/if}
+        </div>
+        <button class="lcide-fsbtn" title="Refresh" on:click={rootRefresh}>
+          <i class="bi bi-arrow-repeat"></i>
+        </button>
+      </div>
     </div>
     <div class="lcide-breadcrumb">
-      <a href="javascript:void(0)" on:click={() => loadTree('/')}>root</a>
+      <button class="lcide-bc-root" title="Go to root" on:click={() => loadTree('/')}>
+        <i class="bi bi-house-door"></i>
+      </button>
       {#each breadcrumbs as crumb, i}
-        <span>/</span>
+        <span class="lcide-bc-sep">/</span>
         <a href="javascript:void(0)" on:click={() => navTo(breadcrumbs.slice(0, i + 1).join('/'))}>{crumb}</a>
       {/each}
     </div>
     <ul class="lcide-tree">
       {#each treeItems as it (it._abspath)}
         <li>
-          {#if it.isdir}
-            <a href="javascript:void(0)" on:click={() => loadTree(it._abspath)}>
-              <i class="bi bi-folder"></i> {it.name}
-            </a>
-          {:else}
-            <span class="lcide-file">
-              <a href="javascript:void(0)" on:click={() => openFile(it._abspath, it.name || '')}>
-                <i class="bi bi-file-earmark"></i> {it.name}
-              </a>
-              <span class="lcide-file-actions">
-                <button class="btn btn-sm btn-link py-0" on:click={() => renameFile(it._abspath, it.name || '')}
-                  >ren</button
-                >
-                <button class="btn btn-sm btn-link py-0 text-danger" on:click={() => deleteFile(it._abspath, it.name || '')}
-                  >del</button
-                >
-              </span>
-            </span>
-          {/if}
+          <a
+            class="lcide-tree-link"
+            href="javascript:void(0)"
+            title={it.name || ''}
+            on:click={() => (it.isdir ? loadTree(it._abspath) : openFile(it._abspath, it.name || ''))}
+            on:contextmenu|preventDefault={(e) => openCtx(e, it._abspath, it.name || '')}
+          >
+            <i class={(it.isdir ? 'bi bi-folder' : 'bi bi-file-earmark') + ' lcide-tree-icon'}></i>
+            <span class="lcide-tree-name">{it.name}</span>
+          </a>
         </li>
       {/each}
     </ul>
@@ -196,20 +333,136 @@
       {/if}
     </div>
   </div>
+  </div>
 </div>
 
 <style>
+  .lcide-wrap {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px);
+  }
+  .lcide-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 2px 8px 2px;
+    flex-shrink: 0;
+  }
+  .lcide-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+  }
+  .lcide-back:hover {
+    background: #f1f1f1;
+    border-color: #aaa;
+  }
+  .lcide-back i {
+    font-size: 16px;
+    line-height: 1;
+  }
+  .lcide-header-mod {
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+  }
   .lcide {
     display: flex;
-    height: calc(100vh - 120px);
+    flex: 1;
+    min-height: 0;
     border: 1px solid #ddd;
   }
   .lcide-fsnav {
     width: 240px;
     border-right: 1px solid #ddd;
     overflow: auto;
-    padding: 8px;
     background: #fafafa;
+    display: flex;
+    flex-direction: column;
+  }
+  .lcide-hidden {
+    display: none;
+  }
+  /* top bar — dark, matches the legacy /hp/mgr/ .lcx-fsnav */
+  .lcide-fsbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 28px;
+    flex-shrink: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #f5f5f5;
+  }
+  .lcide-fsbar-title {
+    padding-left: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 28px;
+  }
+  .lcide-fsbar-actions {
+    display: flex;
+    align-items: center;
+    height: 28px;
+  }
+  .lcide-fsbtn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #f5f5f5;
+    cursor: pointer;
+  }
+  .lcide-fsbtn:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+  .lcide-menu-wrap {
+    position: relative;
+    height: 28px;
+  }
+  .lcide-menu {
+    position: absolute;
+    top: 28px;
+    right: 0;
+    z-index: 100;
+    min-width: 190px;
+    margin: 0;
+    padding: 3px;
+    list-style: none;
+    background-color: rgba(0, 0, 0, 0.9);
+    text-align: left;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  .lcide-menu li button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 5px 8px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .lcide-menu li button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+  .lcide-menu-sep {
+    height: 1px;
+    margin: 4px 2px;
+    background-color: rgba(255, 255, 255, 0.2);
   }
   .lcide-main {
     flex: 1;
@@ -264,28 +517,101 @@
   }
   .lcide-tree {
     list-style: none;
-    padding-left: 0;
+    padding: 0 8px 8px 8px;
+    margin: 0;
     font-size: 13px;
   }
   .lcide-tree li {
-    padding: 2px 0;
+    padding: 0;
   }
-  .lcide-file {
+  /* tree item: icon column + wrappable name column, so a wrapped line indents
+     past the icon instead of flowing back under it. No underline. */
+  .lcide-tree-link {
     display: flex;
-    justify-content: space-between;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    text-decoration: none;
+    color: #1a1a1a;
+  }
+  .lcide-tree-link:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+  .lcide-tree-icon {
+    flex: 0 0 auto;
+    line-height: 19px;
+  }
+  .lcide-tree-name {
+    min-width: 0;
+    word-break: break-all;
+    line-height: 19px;
+  }
+  /* right-click context menu (Rename / Delete) */
+  .lcide-ctxmenu {
+    position: fixed;
+    z-index: 200;
+    min-width: 150px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  .lcide-ctxmenu button {
+    display: flex;
     align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 5px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    color: #1a1a1a;
   }
-  .lcide-file-actions {
-    visibility: hidden;
-  }
-  .lcide-file:hover .lcide-file-actions {
-    visibility: visible;
+  .lcide-ctxmenu button:hover {
+    background-color: #f1f1f1;
   }
   .lcide-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 8px 8px 4px 8px;
     font-size: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
   }
-  .lcide-toolbar {
-    margin-bottom: 8px;
+  .lcide-breadcrumb a {
+    color: #1a1a1a;
+    text-decoration: none;
+  }
+  .lcide-breadcrumb a:hover {
+    color: #0d6efd;
+    text-decoration: underline;
+  }
+  .lcide-bc-root {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: #555;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .lcide-bc-root:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+    color: #1a1a1a;
+  }
+  .lcide-bc-sep {
+    color: #999;
+    margin: 0 1px;
   }
 </style>
