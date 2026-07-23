@@ -9,6 +9,7 @@
   import { trim, timeParseFormat, fmtResourceSize, md5 } from '../../lib/util'
   import S2Upload from '../../lib/s2/S2Upload.svelte'
   import type { FsFile } from '../../lib/types'
+    import { print } from 'svelte/compiler';
 
   // the s2 browser is always at s2/index; route is accepted for shell uniformity
   export let route = 's2/index'
@@ -36,6 +37,7 @@
     }
     path = p
     s2ObjPathActive.set(p)
+
     try {
       const data = await api.get<{ items?: FsFile[] }>('s2-obj/list', { path: p })
       if (!data || !data.items) {
@@ -47,6 +49,7 @@
           const abspath = p + '/' + name
           const ext = name.lastIndexOf('.') > 0 ? name.toLowerCase().slice(name.lastIndexOf('.') + 1) : ''
           const isimg = ['jpg', 'jpeg', 'png', 'gif', 'svg'].indexOf(ext) >= 0
+
           list.push({
             ...it,
             _id: md5(abspath),
@@ -96,20 +99,19 @@
       /* ignore */
     }
   }
-
   onMount(() => load())
 </script>
 
 <div class="hpm-block-gap-column">
   <div class="d-flex flex-row justify-content-between hpm-block-gap-row">
-    <div class="align-self-center hpm-breadcrumb">
-      <ul class="hpm-breadcrumb-list">
+    <div class="breadcrumb">
+      <ol class="breadcrumb">
         {#each dirnav as d (d.path)}
-          <li>
+          <li class="breadcrumb-item">
             <a href="javascript:void(0)" on:click={() => load(d.path)}>{d.name}</a>
           </li>
         {/each}
-      </ul>
+      </ol>
     </div>
     <div class="hpm-node-nav hpm-nav-right">
       <button class="btn btn-primary" on:click={upload}>Upload New File</button>

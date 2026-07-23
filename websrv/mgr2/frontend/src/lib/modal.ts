@@ -44,6 +44,19 @@ export function setTopModal(spec: ModalSpec) {
   })
 }
 
+// Merge `patch` (e.g. { buttons }) into the TOP modal so a body component can
+// populate the fixed footer after mount. Creates a new top object (so the
+// footer, which reads top.buttons, re-renders) without growing the stack. The
+// Modal.svelte {#each} is keyed by index, so the body component stays mounted.
+export function patchTopModal(patch: Partial<ModalSpec>) {
+  modals.update((s) => {
+    if (!s.length) return s
+    const n = s.slice(0, -1)
+    n.push({ ...s[s.length - 1], ...patch })
+    return n
+  })
+}
+
 export function closeModal() {
   modals.update((s) => s.slice(0, -1))
 }

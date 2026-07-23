@@ -1,86 +1,123 @@
 <script lang="ts">
-  // spec InfoSet modal body. Ports spec/info-set.tpl + InfoSet/InfoSetCommit.
-  import { onMount } from 'svelte'
-  import { api, ApiError } from '../../lib/api'
-  import { closeModal } from '../../lib/modal'
-  import { innerShow } from '../../lib/alert'
-  import Alert from '../../lib/Alert.svelte'
-  import { objectClone, specdef, statuses } from './defs'
+  // spec InfoSet modal body / carousel pagelet. Ports spec/info-set.tpl +
+  // InfoSet/InfoSetCommit. Save/Cancel live in the modal's fixed footer (only
+  // the body scrolls) via patchTopModal — matches NodeSet. On Save →
+  // spec-info-set, then onSaved() + closeModal.
+  import { onMount } from "svelte";
+  import { api, ApiError } from "../../lib/api";
+  import { closeModal, patchTopModal } from "../../lib/modal";
+  import { innerShow } from "../../lib/alert";
+  import Alert from "../../lib/Alert.svelte";
+  import { objectClone, specdef, statuses } from "./defs";
 
-  export let name: string | undefined = undefined
-  export let onSaved: () => void = () => {}
+  let {
+    name = undefined,
+    onSaved = () => {},
+  }: { name?: string; onSaved?: () => void } = $props();
 
-  let form: any = objectClone(specdef)
-  let loaded = false
-  const alertId = 'hpm-specset-alert'
+  let form: any = $state(objectClone(specdef));
+  const alertId = "hpm-specset-alert";
 
   onMount(async () => {
+    innerShow(alertId, "", ""); // clear stale banner from a prior instance
+    patchTopModal({
+      buttons: [
+        { title: "Save", class: "btn-primary", click: save, dismiss: false },
+        { title: "Cancel", class: "btn-outline-primary" },
+      ],
+    });
     if (name) {
       try {
-        const data = await api.get<any>('mod-set/spec-entry', { name })
-        if (data && data.kind === 'Spec') form = data
+        const data = await api.get<any>("mod-set/spec-entry", { name });
+        if (data && data.kind === "Spec") {
+          // theme_config is edited as text in a textarea; if the server returns
+          // a JSON object, stringify it so the field doesn't render [object Object].
+          const tc = data.theme_config;
+          form = {
+            ...data,
+            theme_config:
+              tc && typeof tc === "object"
+                ? JSON.stringify(tc, null, 2)
+                : tc || "",
+          };
+        }
       } catch {
         /* ignore */
       }
     }
-    loaded = true
-  })
+  });
 
   async function save() {
     try {
-      const rsp = await api.put('mod-set/spec-info-set', {
+      const rsp = await api.put("mod-set/spec-info-set", {
         meta: { name: form.meta.name },
         srvname: form.srvname,
         title: form.title,
         status: parseInt(form.status),
-        theme_config: form.theme_config || '',
-      })
-      if (!rsp || rsp.kind !== 'Spec') return
-      innerShow(alertId, 'success', 'Successful updated')
-      onSaved()
-      setTimeout(closeModal, 1000)
+        theme_config: form.theme_config || "",
+      });
+      if (!rsp || rsp.kind !== "Spec") return;
+      innerShow(alertId, "success", "Successful updated");
+      onSaved();
+      setTimeout(closeModal, 600);
     } catch (e) {
-      if (e instanceof ApiError) innerShow(alertId, 'danger', e.message)
+      if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
+      else innerShow(alertId, "danger", String(e));
     }
   }
 </script>
 
-{#if loaded}
-  <form id="hpm-specset" on:submit|preventDefault>
-    <Alert id={alertId} />
-    <div class="mb-3">
+<form id="hpm-specset" onsubmit={(e) => e.preventDefault()} class="hpm-form-rows">
+  <Alert id={alertId} />
+  <div class="row mb-2 align-items-center">
+    <div class="col col-2">
       <label class="form-label">Module Name</label>
+    </div>
+    <div class="col">
       <input
         type="text"
         class="form-control"
-        value={form.meta.name}
-        on:input={(e) => (form.meta.name = e.currentTarget.value)}
+        bind:value={form.meta.name}
         placeholder="lowercase, [a-z][a-z0-9_]+"
         disabled={!!name}
       />
     </div>
-    <div class="mb-3">
+  </div>
+  <div class="row mb-2 align-items-center">
+    <div class="col-2">
       <label class="form-label">Service Name</label>
+    </div>
+    <div class="col">
       <input type="text" class="form-control" bind:value={form.srvname} />
     </div>
-    <div class="mb-3">
+  </div>
+  <div class="row mb-2 align-items-center">
+    <div class="col-2">
       <label class="form-label">Title</label>
+    </div>
+    <div class="col">
       <input type="text" class="form-control" bind:value={form.title} />
     </div>
-    {#if form.meta.name !== 'core/general'}
-      <div class="mb-3">
+  </div>
+  {#if form.meta.name !== "core/general"}
+    <div class="row mb-2 align-items-center">
+      <div class="col-2">
         <label class="form-label">Status</label>
+      </div>
+      <div class="col">
         <select class="form-select" bind:value={form.status}>
-          {#each statuses as s}<option value={s.value}>{s.name}</option>{/each}
+          {#each statuses as s (s.value)}<option value={s.value}>{s.name}</option>{/each}
         </select>
       </div>
-    {/if}
-    <div class="mb-3">
-      <label class="form-label">Theme Config (JSON)</label>
-      <textarea class="form-control" rows="6" bind:value={form.theme_config}></textarea>
     </div>
-  </form>
-  <div class="text-center" style="margin-top:8px">
-    <button class="btn btn-primary" on:click={save}>Save</button>
+  {/if}
+  <div class="row mb-2 align-items-start">
+    <div class="col-2">
+      <label class="form-label">Theme Config (JSON)</label>
+    </div>
+    <div class="col">
+      <textarea class="form-control" rows="6" bind:value={form.theme_config
+      }></textarea>
+    </div>
   </div>
-{/if}
+</form>

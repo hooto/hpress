@@ -1,6 +1,7 @@
 // Utility helpers — direct ports of lynkui.utilx.* and hpMgr.* used across the
 // legacy admin JS (webui/hpm/js/main.js, *.js and the .tpl templates).
-import { SparkMD5 } from 'spark-md5'
+import SparkMD5 from 'spark-md5'
+import { tick } from 'svelte'
 import type { Pager } from './types'
 
 // lynkui.utilx.cryptoMd5 — hex md5 of a string (used to mint stable element /
@@ -13,6 +14,24 @@ export function md5(str: string): string {
 export function objectClone<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj
   return JSON.parse(JSON.stringify(obj))
+}
+
+// Removing a row inside a scrolling modal pagelet can leave it scrolled past
+// the now-shorter content (looks blank). Capture scrollTop before the mutation,
+// run it, then restore (clamped to the valid range) after Svelte flushes. Used
+// by the spec form bodies (NodeSet/RouteSet/ActionSet) where add/remove rows
+// change body height.
+export async function withStableScroll(mutate: () => void): Promise<void> {
+  const pagelet = document.querySelector(
+    '.hpm-pagelet.is-active',
+  ) as HTMLElement | null
+  const before = pagelet?.scrollTop ?? 0
+  ;(document.activeElement as HTMLElement | null)?.blur?.()
+  mutate()
+  await tick()
+  if (!pagelet) return
+  const max = Math.max(0, pagelet.scrollHeight - pagelet.clientHeight)
+  pagelet.scrollTop = Math.min(before, max)
 }
 
 // trim arbitrary leading/trailing chars; default whitespace.

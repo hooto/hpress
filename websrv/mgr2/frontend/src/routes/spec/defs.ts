@@ -1,5 +1,5 @@
 // spec module type/option definitions — direct ports of hpSpec.*def in spec.js.
-export { objectClone } from '../../lib/util'
+export { objectClone, withStableScroll } from '../../lib/util'
 
 export const statuses = [
   { name: 'Enable', value: 1 },

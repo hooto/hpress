@@ -56,28 +56,41 @@
 <Modal />
 
 {#if $blockingAlert}
-  <div class="hpm-modal-overlay" style="z-index:2000">
-    <div class="hpm-modal-box" style="width:440px;height:auto">
-      <div class="hpm-modal-body">
-        <div class={`alert ${alertClass($blockingAlert.type)}`} style="margin-bottom:0">
-          {$blockingAlert.msg}
+  <!-- Session-expired hard overlay (non-dismissable). Kept separate from the
+       Modal.svelte carousel: it must sit above any open form modal and is a
+       one-shot navigate-to-sign-in, not a stack step. Bootstrap modal markup
+       keeps it visually consistent with the new chrome. -->
+  <div
+    class="modal show"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    style="display:block;z-index:2000"
+  >
+    <div class="modal-dialog modal-dialog-centered" style="--bs-modal-width:440px">
+      <div class="modal-content">
+        <div class="modal-body">
+          <div class={`alert ${alertClass($blockingAlert.type)}`} style="margin-bottom:0">
+            {$blockingAlert.msg}
+          </div>
         </div>
-      </div>
-      <div class="hpm-modal-foot">
-        {#if ($blockingAlert.options?.buttons || []).length}
-          {#each $blockingAlert.options!.buttons! as b}
-            <a
-              class="btn btn-primary"
-              href={b.href || 'javascript:void(0)'}
-              on:click={() => {
-                if (!b.href) alertClose()
-              }}>{b.title}</a
-            >
-          {/each}
-        {:else}
-          <button class="btn btn-primary" on:click={alertClose}>OK</button>
-        {/if}
+        <div class="modal-footer">
+          {#if ($blockingAlert.options?.buttons || []).length}
+            {#each $blockingAlert.options!.buttons! as b}
+              <a
+                class="btn btn-primary"
+                href={b.href || 'javascript:void(0)'}
+                on:click={() => {
+                  if (!b.href) alertClose()
+                }}>{b.title}</a
+              >
+            {/each}
+          {:else}
+            <button class="btn btn-primary" on:click={alertClose}>OK</button>
+          {/if}
+        </div>
       </div>
     </div>
   </div>
+  <div class="modal-backdrop fade show" style="z-index:1999"></div>
 {/if}
