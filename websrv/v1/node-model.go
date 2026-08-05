@@ -30,7 +30,7 @@ func NodeModelEntry(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.read") {
+	if us == nil || !us.Allow("", "editor.read") {
 		return nil
 	}
 

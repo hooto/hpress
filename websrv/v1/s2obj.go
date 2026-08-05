@@ -68,7 +68,7 @@ func S2ObjRename(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -117,7 +117,7 @@ func S2ObjDel(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -151,7 +151,11 @@ func S2ObjPut(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	// Publishing a node (editor.write) inherently includes uploading its
+	// images, so s2-obj/put is gated on editor.write rather than sys.admin —
+	// this lets an editor's access-key-signed request (web-extract publish)
+	// upload without needing admin rights.
+	if us == nil || !us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -236,7 +240,7 @@ func S2ObjList(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}

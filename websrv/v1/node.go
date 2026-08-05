@@ -48,7 +48,7 @@ func NodeList(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &ls) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.list") {
+	if us == nil || !us.Allow("", "editor.list") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -114,7 +114,7 @@ func NodeEntry(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.read") {
+	if us == nil || !us.Allow("", "editor.read") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -144,7 +144,7 @@ func NodeSet(c fiber.Ctx) error {
 	}
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.write") {
+	if us == nil || !us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -581,7 +581,7 @@ func NodeDel(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.write") {
+	if us == nil || !us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}

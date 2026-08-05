@@ -70,7 +70,7 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 	}
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.write") {
+	if us == nil || !us.Allow("", "editor.write") {
 		set.Error = types.NewErrorMeta(iamapi.ErrCodeAccessDenied, "Access Denied")
 		return nil
 	}

@@ -49,7 +49,7 @@ func ModSetFsRename(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -96,7 +96,7 @@ func ModSetFsDel(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -142,7 +142,7 @@ func ModSetFsPut(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -324,7 +324,7 @@ func ModSetFsList(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -430,7 +430,7 @@ func ModSetFsGet(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}

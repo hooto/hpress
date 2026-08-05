@@ -36,7 +36,7 @@ func ModSetFsTplList(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &ls) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}

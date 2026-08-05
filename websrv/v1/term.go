@@ -48,7 +48,7 @@ func TermList(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &ls) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.list") {
+	if us == nil || !us.Allow("", "editor.list") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -113,7 +113,7 @@ func TermEntry(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.read") {
+	if us == nil || !us.Allow("", "editor.read") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -135,7 +135,7 @@ func TermSet(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "editor.write") {
+	if us == nil || !us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}

@@ -409,7 +409,7 @@ func TermSync(modname, modelid, terms string) (TermList, error) {
 			continue
 		}
 
-		if rs, err := store.Data.Insert(table, map[string]interface{}{
+		if _, err := store.Data.Insert(table, map[string]interface{}{
 			"uid":     tv.UID,
 			"title":   tv.Title,
 			"userid":  "sysadmin",
@@ -418,8 +418,12 @@ func TermSync(modname, modelid, terms string) (TermList, error) {
 			"updated": timenow,
 		}); err == nil {
 
-			if incrid, err := rs.LastInsertId(); err == nil && incrid > 0 {
-				ls.Items[tk].ID = uint32(incrid)
+			// LastInsertId() is unsupported on pgsqlgo, so re-read the row by
+			// its deterministic uid to get the server-assigned id.
+			q := store.Data.NewQueryer().From(table).Limit(1)
+			q.Where().And("uid", tv.UID)
+			if rs2, err := store.Data.Query(q); err == nil && len(rs2) > 0 {
+				ls.Items[tk].ID = rs2[0].Field("id").Uint32()
 			}
 		}
 	}

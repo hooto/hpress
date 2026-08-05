@@ -75,6 +75,81 @@ func Setup(dbc *storage.Options, cfg connect.MultiConnOptions) error {
 		return err
 	}
 
+	if err = db_fix_term_autoincr(Data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// db_fix_term_autoincr repairs hpress term tables (hpt_*) whose integer id
+// column lost its nextval() default, so newly inserted terms were stored with
+// id=0 (the literal column default) instead of an auto-incremented value.
+//
+// Root cause: the pgsqlgo modeler declares these ids IncrAble (sequence
+// seq_<table>__id) and emits ALTER ... SET DEFAULT nextval(), but that default
+// did not stick for tables created under older code, and SchemaSync only
+// re-runs on a module version bump, so the wrong default (0) persisted.
+// rdb.Base.Insert omits the id column, so it fell back to the column default.
+// With api.Term.ID being omitempty, id=0 then serializes as missing -> the
+// admin UI shows "id == undefined".
+//
+// This runs at every startup and is idempotent: for each hpt_ table it wires
+// the id default to its sequence, reseats the sequence past max(id), and
+// reassigns any leftover id=0 row to a fresh id. mysqlgo is unaffected because
+// its AUTO_INCREMENT column assigns ids at insert time.
+func db_fix_term_autoincr(data rdb.Connector) error {
+
+	if DataOptions.Driver != "lynkdb/pgsqlgo" {
+		return nil
+	}
+
+	rows, err := data.QueryRaw("SELECT tablename FROM pg_tables WHERE tablename LIKE 'hpt\\_%' ORDER BY tablename")
+	if err != nil {
+		return fmt.Errorf("term autoincr fix: list tables: %w", err)
+	}
+
+	for _, r := range rows {
+
+		t := r.Field("tablename").String()
+		if t == "" {
+			continue
+		}
+
+		seq := "seq_" + t + "__id"
+		qt := "\"" + t + "\""
+
+		// ensure the sequence exists (no-op if already present)
+		if _, err := data.ExecRaw(fmt.Sprintf("CREATE SEQUENCE IF NOT EXISTS %s", seq)); err != nil {
+			hlog.Printf("warn", "term autoincr fix: %s create sequence: %s", t, err.Error())
+			continue
+		}
+
+		// wire the id default to the sequence
+		if _, err := data.ExecRaw(fmt.Sprintf(
+			"ALTER TABLE %s ALTER COLUMN id SET DEFAULT nextval('%s')", qt, seq)); err != nil {
+			hlog.Printf("warn", "term autoincr fix: %s set default: %s", t, err.Error())
+			continue
+		}
+
+		// reseat the sequence past the current max(id) so the next insert continues correctly
+		maxid := uint64(1)
+		if mr, err := data.QueryRaw(fmt.Sprintf("SELECT COALESCE(max(id), 0) AS m FROM %s", qt)); err == nil && len(mr) > 0 {
+			if v := mr[0].Field("m").Uint64(); v > maxid {
+				maxid = v
+			}
+		}
+		_, _ = data.ExecRaw(fmt.Sprintf("SELECT setval('%s', %d)", seq, maxid))
+
+		// reassign any leftover id=0 row to a fresh id (id is PK, so at most one)
+		if ur, err := data.ExecRaw(fmt.Sprintf(
+			"UPDATE %s SET id = nextval('%s') WHERE id = 0", qt, seq)); err == nil {
+			if n, _ := ur.RowsAffected(); n > 0 {
+				hlog.Printf("warn", "term autoincr fix: %s reassigned %d id=0 row(s)", t, n)
+			}
+		}
+	}
+
 	return nil
 }
 

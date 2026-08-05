@@ -35,35 +35,52 @@ const (
 // cookieKeyLocale is the locale cookie name (httpsrv Config.CookieKeyLocale).
 const cookieKeyLocale = "lang"
 
-// Auth is the authentication gate middleware. It resolves the IAM user session
-// from the access-token cookie (exactly as iamserver.verifier.Session does for
-// an *http.Request), calls RequireAuth, and on failure returns 401 + the same
-// JSON error body the per-controller Init() gates produced. On success the
-// session is stored for retrieval via AuthSession.
+// Auth is the authentication gate middleware. It resolves the caller's session
+// via iamserver.AppVerifier.Resolve, which accepts either a browser session
+// cookie (x-inauth2) or a CLI access-key token (Authorization: Bearer). On
+// success the session is stored for retrieval via AuthSession; on failure it
+// returns 401 + a JSON error body carrying the real reason (e.g.
+// "auth-denied : access token not active") so CLI failures are diagnosable.
 func Auth() fiber.Handler {
 	return func(c fiber.Ctx) error {
-		us := iamserver.AppVerifier.Session(c.Cookies(inauth.AppHttpHeaderKey))
+		us := resolveSession(c)
 		if _, err := us.RequireAuth(); err != nil {
-			// Surface the real IAM auth failure (e.g. "auth-denied : iat expired")
-			// so the SPA can detect session expiry and prompt re-login.
 			c.Status(401)
-			return JSON(c, types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized, err.Error()))
+			return JSON(c, types.NewTypeErrorMeta(iamapi.ErrCodeUnauthorized,
+				"auth-denied : "+err.Error()))
 		}
 		c.Locals(sessionKey, us)
 		return c.Next()
 	}
 }
 
+// resolveSession extracts the caller's credential — preferring an
+// Authorization: Bearer token (CLI access key) and falling back to the IAM
+// session cookie (browser) — and resolves it to a UserSession via the IAM
+// verifier. This mirrors iamserver.verifier.Resolve for an *http.Request.
+func resolveSession(c fiber.Ctx) iamserver.UserSession {
+	cred := ""
+	if h := c.Get("Authorization"); h != "" {
+		if parts := strings.SplitN(h, " ", 2); len(parts) == 2 && parts[0] == "Bearer" {
+			cred = parts[1]
+		}
+	}
+	if cred == "" {
+		cred = c.Cookies(inauth.AppHttpHeaderKey)
+	}
+	return iamserver.AppVerifier.Resolve(cred)
+}
+
 // AuthSession returns the IAM user session stashed by Auth. If Auth did not run
-// (or stored nothing) it resolves a fresh session from the cookie so handlers
-// always have a usable session, mirroring the old c.us field.
+// (or stored nothing) it resolves a fresh session, so handlers always have a
+// usable session, mirroring the old c.us field.
 func AuthSession(c fiber.Ctx) iamserver.UserSession {
 	if v := c.Locals(sessionKey); v != nil {
 		if us, ok := v.(iamserver.UserSession); ok {
 			return us
 		}
 	}
-	return iamserver.AppVerifier.Session(c.Cookies(inauth.AppHttpHeaderKey))
+	return nil
 }
 
 // Locale is middleware that resolves the request language and stores it for

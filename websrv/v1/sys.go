@@ -44,7 +44,7 @@ func SysConfigList(c fiber.Ctx) error {
 
 	us := web.AuthSession(c)
 
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		return web.JSON(c, types.TypeMeta{
 			Error: &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"},
 		})
@@ -60,7 +60,7 @@ func SysConfigSet(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &ls) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -160,7 +160,7 @@ func SysStatus(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &set) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		set.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -197,7 +197,7 @@ func SysIamStatus(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &sets) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		sets.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
@@ -255,7 +255,7 @@ func SysIamSync(c fiber.Ctx) error {
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
-	if !us.Allow("", "sys.admin") {
+	if us == nil || !us.Allow("", "sys.admin") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
