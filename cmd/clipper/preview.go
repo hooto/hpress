@@ -1,3 +1,17 @@
+// Copyright 2015 Eryx <evorui аt gmаil dοt cοm>, All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Local markdown → HTML preview server (renders the .md with its local images).
 
 package main
@@ -35,7 +49,7 @@ func runPreview(mdPath, outDir string, port int, openBrowser bool) error {
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>web-extract preview</title>
+<title>clipper preview</title>
 <style>
   body{max-width:820px;margin:24px auto;padding:0 16px;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#222}
   img{max-width:100%;height:auto}

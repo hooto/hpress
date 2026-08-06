@@ -10,7 +10,7 @@ go 1.26.0
 
 // use the local iam checkout: it carries the access-key (HMAC) request-signing
 // support (pkg/iamserver/request_sign.go, signed_auth.go) consumed by the
-// web-extract publish CLI and the websrv/web signature-auth fallback.
+// clipper publish CLI and the websrv/web signature-auth fallback.
 replace github.com/hooto/iam/v2 => /opt/workspace/src/github.com/hooto/iam
 
 require (
@@ -39,8 +39,9 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/oliamb/cutter v0.2.2
 	github.com/russross/blackfriday v1.6.0
-	github.com/shurcooL/markdownfmt v0.0.0-20231025213440-c8f16ef0855c
+	github.com/sashabaranov/go-openai v1.42.0
 	github.com/shurcooL/sanitized_anchor_name v1.0.0
+	github.com/spf13/cobra v1.10.2
 	github.com/sysinner/innerstack/v2 v2.0.0-alpha.7
 	github.com/ulikunitz/xz v0.5.16
 	golang.org/x/image v0.44.0
@@ -56,7 +57,6 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/cockroachdb/errors v1.14.0 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240816210425-c5d0cb0b6fc0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
@@ -83,6 +83,7 @@ require (
 	github.com/hooto/hmetrics v0.0.2 // indirect
 	github.com/hooto/httpsrv v0.13.1 // indirect
 	github.com/hooto/httpsrv/v2 v2.0.0-beta.2 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -91,7 +92,6 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20260801144041-2fc331e7910f // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
-	github.com/mattn/go-runewidth v0.0.27 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -103,7 +103,7 @@ require (
 	github.com/rakyll/statik v0.1.8 // indirect
 	github.com/rogpeppe/go-internal v1.15.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.26.7 // indirect
-	github.com/shurcooL/go v0.0.0-20230706063926-5fe729b41b3a // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect

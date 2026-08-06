@@ -73,14 +73,17 @@ func resolveSession(c fiber.Ctx) iamserver.UserSession {
 
 // AuthSession returns the IAM user session stashed by Auth. If Auth did not run
 // (or stored nothing) it resolves a fresh session, so handlers always have a
-// usable session, mirroring the old c.us field.
+// usable session, mirroring the old c.us field. This matters for the public
+// frontend catch-all (IndexPage), which is mounted without the Auth gate:
+// resolving here yields a safe anonymous session rather than nil, which would
+// panic on the subsequent Profile/Allow calls.
 func AuthSession(c fiber.Ctx) iamserver.UserSession {
 	if v := c.Locals(sessionKey); v != nil {
 		if us, ok := v.(iamserver.UserSession); ok {
 			return us
 		}
 	}
-	return nil
+	return resolveSession(c)
 }
 
 // Locale is middleware that resolves the request language and stores it for

@@ -1,4 +1,18 @@
-// Client configuration and per-article state for the web-extract publish CLI.
+// Copyright 2015 Eryx <evorui аt gmаil dοt cοm>, All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Client configuration and per-article state for the clipper publish CLI.
 
 package main
 
@@ -16,6 +30,8 @@ type ClientConfig struct {
 	Server  ClientServer  `toml:"server"`
 	Auth    ClientAuth    `toml:"auth"`
 	Publish ClientPublish `toml:"publish"`
+	Extract ClientExtract `toml:"extract"`
+	LLM     ClientLLM     `toml:"llm"`
 }
 
 type ClientServer struct {
@@ -27,9 +43,33 @@ type ClientAuth struct {
 }
 
 type ClientPublish struct {
-	Module     string `toml:"module"`      // e.g. "core/blog"
-	ModelID    string `toml:"model_id"`    // e.g. "entry"
+	Module      string `toml:"module"`        // e.g. "core/blog"
+	ModelID     string `toml:"model_id"`      // e.g. "entry"
 	ImageOutDir string `toml:"image_out_dir"` // where extracted images live
+}
+
+// ClientExtract selects the HTML -> markdown conversion backend.
+type ClientExtract struct {
+	Mode string `toml:"mode"` // "classic" (default) | "llm"
+}
+
+// ClientLLM holds credentials for the DeepSeek-compatible OpenAI chat API used by
+// the "llm" extract backend. Independent of [auth] (publish) credentials.
+type ClientLLM struct {
+	BaseURL string `toml:"base_url"` // e.g. "https://api.deepseek.com"
+	APIKey  string `toml:"api_key"`
+	Model   string `toml:"model"`   // e.g. "deepseek-chat"
+	Timeout int    `toml:"timeout"` // overall per-request timeout in seconds (default 600)
+	// EnableThinking controls the model's reasoning ("thinking") phase. false
+	// (default) sends reasoning_effort="none", which skips the slow reasoning
+	// phase reasoning models (deepseek-v4-flash, deepseek-reasoner) would
+	// otherwise emit before the answer — ideal for HTML extraction. Set true to
+	// let the model reason for hard layouts.
+	EnableThinking bool `toml:"enable_thinking"`
+	// Prefilter controls HTML sanitization before the LLM call: "" or "on"
+	// (default) strip scripts/styles/noise attributes to save tokens; "off"
+	// sends the raw HTML. Applies only to the llm backend.
+	Prefilter string `toml:"prefilter"`
 }
 
 // clientConfigPath returns ~/.hooto-press.toml.
@@ -74,7 +114,7 @@ type ArticleState struct {
 	ServerBaseURL string            `toml:"server_base_url"`
 	Module        string            `toml:"module"`
 	ModelID       string            `toml:"model_id"`
-	NodeID        string            `toml:"node_id"` // server unique id
+	NodeID        string            `toml:"node_id"` // server unique id (empty until first publish)
 	Title         string            `toml:"title"`
 	Status        int16             `toml:"status"`
 	Created       uint32            `toml:"created"`
@@ -82,6 +122,7 @@ type ArticleState struct {
 	Categories    map[string]string `toml:"categories"` // termModel name -> term id
 	Tags          map[string]string `toml:"tags"`       // termModel name -> comma titles
 	Images        []ArticleImage    `toml:"images"`
+	Keywords      []string          `toml:"keywords"` // curated keyword list extracted from the source (llm mode); pre-publish this is the only populated field
 }
 
 type ArticleImage struct {

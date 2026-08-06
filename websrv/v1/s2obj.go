@@ -153,7 +153,7 @@ func S2ObjPut(c fiber.Ctx) error {
 	us := web.AuthSession(c)
 	// Publishing a node (editor.write) inherently includes uploading its
 	// images, so s2-obj/put is gated on editor.write rather than sys.admin —
-	// this lets an editor's access-key-signed request (web-extract publish)
+	// this lets an editor's access-key-signed request (clipper publish)
 	// upload without needing admin rights.
 	if us == nil || !us.Allow("", "editor.write") {
 		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}

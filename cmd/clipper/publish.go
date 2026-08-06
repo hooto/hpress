@@ -1,3 +1,17 @@
+// Copyright 2015 Eryx <evorui аt gmаil dοt cοm>, All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Publish / update flow: fetch the module spec, interactively gather metadata,
 // upload images, and create (or update) the node.
 
@@ -85,7 +99,7 @@ func runPublish(mdPath string, isUpdate bool) error {
 
 	outDir := cfg.Publish.ImageOutDir
 	if outDir == "" {
-		outDir = "./var/output"
+		outDir = defaultOutDir
 	}
 
 	// load prior state (required for update)
@@ -124,8 +138,10 @@ func runPublish(mdPath string, isUpdate bool) error {
 	terms := []api.NodeTerm{}
 	stateCats := map[string]string{}
 	stateTags := map[string]string{}
+	var keywords []string
 	if state != nil {
 		stateCats, stateTags = state.Categories, state.Tags
+		keywords = state.Keywords
 	}
 
 	for _, tm := range model.Terms {
@@ -140,6 +156,11 @@ func runPublish(mdPath string, isUpdate bool) error {
 			stateCats[tm.Meta.Name] = id
 		case "tag":
 			def := stateTags[tm.Meta.Name]
+			// Offer the extracted keyword list as the starting point for a tag
+			// field that has no prior value; the operator can edit or clear it.
+			if def == "" && len(keywords) > 0 {
+				def = strings.Join(keywords, ", ")
+			}
 			val := prompt(reader, "Tags ("+tm.Title+", comma-separated)", def)
 			if strings.TrimSpace(val) != "" {
 				terms = append(terms, api.NodeTerm{Name: tm.Meta.Name, Value: val, Type: "tag"})
@@ -213,6 +234,10 @@ func runPublish(mdPath string, isUpdate bool) error {
 		Categories:    stateCats,
 		Tags:          stateTags,
 		Images:        images,
+	}
+	// carry the extracted keyword list forward so update/re-publish keeps it
+	if state != nil {
+		newState.Keywords = state.Keywords
 	}
 	if err := SaveArticleState(mdPath, newState); err != nil {
 		return fmt.Errorf("save state: %w", err)
@@ -423,10 +448,9 @@ func uploadReferencedImages(client *Client, md, outDir string, prior []ArticleIm
 
 // defaultTitle returns the first "# heading" in md, else the file base name.
 func defaultTitle(md, mdPath string) string {
-	for _, line := range strings.Split(md, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "# ") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "# "))
+	for line := range strings.SplitSeq(md, "\n") {
+		if rest, ok := strings.CutPrefix(strings.TrimSpace(line), "# "); ok {
+			return strings.TrimSpace(rest)
 		}
 	}
 	base := filepath.Base(mdPath)

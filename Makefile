@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all build_frontend build_backend build release run run-be run-fe check install-deps version clean
+.PHONY: all build_frontend build_backend build clipper release run run-be run-fe check install-deps version clean
 
 # Vite outDir; the Go binary embeds this directory via go:embed.
 FRONTEND_DIR := websrv/mgr2/frontend
@@ -38,6 +38,10 @@ build_frontend:
 build_backend:
 	@echo "Building backend..."
 	CGO_ENABLED=0 go build -o $(BINARY) $(MAIN)
+
+clipper:
+	@echo "Building clipper..."
+	CGO_ENABLED=0 go build -o bin/clipper cmd/clipper/*.go
 
 # Stripped, static linux/amd64 build for deployment (embeds current frontend).
 release: build_frontend
