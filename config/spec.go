@@ -24,9 +24,7 @@ import (
 
 	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/htoml4g/htoml"
-	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
-	"github.com/lessos/lessgo/utils"
 	"github.com/lynkdb/iomix/rdb/modeler"
 
 	"github.com/hooto/hpress/api"
@@ -174,7 +172,7 @@ func module_init() error {
 					}
 
 					//
-					table := fmt.Sprintf("hpn_%s_%s", utils.StringEncode16(mod.Meta.Name, 12), v2.Meta.Name)
+					table := api.NodeTableName(mod.Meta.Name, v2.Meta.Name)
 					qs := store.Data.NewQueryer().
 						Select("id,title,field_title").
 						From(table).
@@ -328,6 +326,20 @@ func module_init() error {
 		json.EncodeToFile(mod, fmt.Sprintf("%s/modules/%s/spec.json", Prefix, mod.Meta.Name), "  ")
 	}
 
+	// Migrate legacy hash-keyed tables for modules that were not yet in
+	// hp_modules at store.Setup time (e.g. exp modules loaded from disk or
+	// exp_module_inits that are not persisted). Uses the now-complete in-memory
+	// module list. Idempotent; a no-op on an already-migrated database.
+	moduleNames := make([]string, 0, len(Modules))
+	for _, mod := range Modules {
+		if mod.Meta.Name != "" {
+			moduleNames = append(moduleNames, mod.Meta.Name)
+		}
+	}
+	if err := store.UpgradeModuleTableNaming(moduleNames); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -385,7 +397,7 @@ func _instance_schema_sync(spec *api.Spec) error {
 			continue
 		}
 
-		tbl.Name = fmt.Sprintf("hpn_%s_%s", idhash.HashToHexString([]byte(spec.Meta.Name), 12), nodeModel.Meta.Name)
+		tbl.Name = api.NodeTableName(spec.Meta.Name, nodeModel.Meta.Name)
 
 		if nodeModel.Extensions.AccessCounter {
 			tbl.AddColumn(&modeler.Column{
@@ -553,7 +565,7 @@ func _instance_schema_sync(spec *api.Spec) error {
 			continue
 		}
 
-		tbl.Name = fmt.Sprintf("hpt_%s_%s", idhash.HashToHexString([]byte(spec.Meta.Name), 12), termModel.Meta.Name)
+		tbl.Name = api.TermTableName(spec.Meta.Name, termModel.Meta.Name)
 
 		switch termModel.Type {
 
@@ -608,10 +620,18 @@ func _instance_schema_sync(spec *api.Spec) error {
 		return err
 	}
 
-	err = dm.SchemaSync(ds)
-	if err != nil {
-		return err
-	}
+	// SchemaSync is intentionally disabled during the module table-naming
+	// migration stabilization window: hpn_/hpt_ table structures must not be
+	// created or altered while the rename upgrade is settling. Tables are
+	// expected to already exist (from the rename upgrade or a prior run).
+	// Re-enable the call below once the upgrade is stable.
+	//
+	// err = dm.SchemaSync(ds)
+	// if err != nil {
+	// 	return err
+	// }
+	_ = dm
+	_ = ds
 
 	for _, termModel := range spec.TermModels {
 
@@ -619,8 +639,7 @@ func _instance_schema_sync(spec *api.Spec) error {
 
 		case api.TermTaxonomy:
 
-			tblName := fmt.Sprintf("hpt_%s_%s",
-				idhash.HashToHexString([]byte(spec.Meta.Name), 12), termModel.Meta.Name)
+			tblName := api.TermTableName(spec.Meta.Name, termModel.Meta.Name)
 			rs, _ := store.Data.Fetch(store.Data.NewQueryer().From(tblName))
 			if rs.NotFound() {
 				store.Data.Insert(tblName, map[string]interface{}{

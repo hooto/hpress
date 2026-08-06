@@ -162,10 +162,9 @@ func NodeSet(c fiber.Ctx) error {
 	defer node_set_lock.Unlock()
 
 	var (
-		set          = map[string]interface{}{}
-		table_prefix = fmt.Sprintf("hpn_%s_", idhash.HashToHexString([]byte(web.Param(c, "modname")), 12))
-		table        = table_prefix + web.Param(c, "modelid")
-		node_refer   = ""
+		set        = map[string]interface{}{}
+		table      = api.NodeTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
+		node_refer = ""
 	)
 
 	//
@@ -526,7 +525,7 @@ func NodeSet(c fiber.Ctx) error {
 	if model.Extensions.NodeRefer != "" {
 
 		if prev, ok := set["ext_node_refer"]; !ok || prev != rsp.ExtNodeRefer {
-			ref_q := store.Data.NewQueryer().From(table_prefix + model.Extensions.NodeRefer).Limit(1)
+			ref_q := store.Data.NewQueryer().From(api.NodeTableName(web.Param(c, "modname"), model.Extensions.NodeRefer)).Limit(1)
 			ref_q.Where().And("id", rsp.ExtNodeRefer)
 			if rs, err := store.Data.Query(ref_q); err != nil {
 				rsp.Error = types.NewErrorMeta("500", "Server Error")
@@ -601,7 +600,7 @@ func NodeDel(c fiber.Ctx) error {
 	}
 
 	//
-	table := fmt.Sprintf("hpn_%s_%s", idhash.HashToHexString([]byte(web.Param(c, "modname")), 12), web.Param(c, "modelid"))
+	table := api.NodeTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
 
 	//
 	ids := strings.Split(web.Param(c, "id"), ",")

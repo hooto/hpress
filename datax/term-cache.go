@@ -15,11 +15,8 @@
 package datax
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
-
-	"github.com/lessos/lessgo/utils"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
@@ -47,7 +44,7 @@ func _termTaxonomyCacheRefresh(modname, table string) {
 		return
 	}
 
-	tx_table := fmt.Sprintf("hpt_%s_%s", utils.StringEncode16(modname, 12), table)
+	tx_table := api.TermTableName(modname, table)
 
 	qs := store.Data.NewQueryer().From(tx_table).Limit(200).Order("weight desc")
 	qs.Where().And("status", 1)

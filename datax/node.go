@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"github.com/lessos/lessgo/types"
-	"github.com/lessos/lessgo/utils"
 	"github.com/lessos/lessgo/utilx"
 
 	"github.com/hooto/hpress/api"
@@ -29,7 +28,7 @@ import (
 
 func (q *QuerySet) NodeCount() (int64, error) {
 
-	table := fmt.Sprintf("hpn_%s_%s", utils.StringEncode16(q.ModName, 12), q.Table)
+	table := api.NodeTableName(q.ModName, q.Table)
 
 	return store.Data.Count(table, q.filter)
 }
@@ -47,7 +46,7 @@ func (q *QuerySet) NodeList(fields, terms []string) api.NodeList {
 		return rsp
 	}
 
-	table := fmt.Sprintf("hpn_%s_%s", utils.StringEncode16(q.ModName, 12), q.Table)
+	table := api.NodeTableName(q.ModName, q.Table)
 
 	qs := store.Data.NewQueryer().
 		Select(q.cols).
@@ -202,7 +201,7 @@ func (q *QuerySet) NodeList(fields, terms []string) api.NodeList {
 
 		case api.TermTaxonomy:
 
-			table := fmt.Sprintf("hpt_%s_%s", utils.StringEncode16(q.ModName, 12), term.Meta.Name)
+			table := api.TermTableName(q.ModName, term.Meta.Name)
 			qs := store.Data.NewQueryer().From(table).Limit(1000)
 			qs.Where().And("id.in", ids...)
 
@@ -285,7 +284,7 @@ func (q *QuerySet) NodeEntry() api.Node {
 		return rsp
 	}
 
-	table := fmt.Sprintf("hpn_%s_%s", utils.StringEncode16(q.ModName, 12), q.Table)
+	table := api.NodeTableName(q.ModName, q.Table)
 
 	qs := store.Data.NewQueryer().
 		Select(q.cols).

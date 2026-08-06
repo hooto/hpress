@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/hooto/hlog4g/hlog"
-	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
@@ -138,8 +137,6 @@ func data_search_sync() error {
 			continue
 		}
 
-		modid := idhash.HashToHexString([]byte(mod.Meta.Name), 12)
-
 		modCache, _ := searchCaches[mod.Meta.Name]
 		if modCache == nil {
 			modCache = &searchModuleCache{
@@ -156,7 +153,7 @@ func data_search_sync() error {
 
 			case api.TermTaxonomy:
 
-				table := fmt.Sprintf("hpt_%s_%s", modid, term.Meta.Name)
+				table := api.TermTableName(mod.Meta.Name, term.Meta.Name)
 				qs := store.Data.NewQueryer().From(table).Limit(2000)
 
 				if rs, err := store.Data.Query(qs); err == nil && len(rs) > 0 {
@@ -180,7 +177,7 @@ func data_search_sync() error {
 			var (
 				indexStart = time.Now()
 				indexNum   = 0
-				tblname    = fmt.Sprintf("hpn_%s_%s", modid, model.Meta.Name)
+				tblname    = api.NodeTableName(mod.Meta.Name, model.Meta.Name)
 				cfgs       types.KvPairs
 				offset     = int64(0)
 				q          = store.Data.NewQueryer().From(tblname).Limit(limit)
@@ -355,8 +352,7 @@ func (q *QuerySet) NodeListSearch(qry string) api.NodeList {
 		return rsp
 	}
 
-	table := fmt.Sprintf("hpn_%s_%s",
-		idhash.HashToHexString([]byte(q.ModName), 12), q.Table)
+	table := api.NodeTableName(q.ModName, q.Table)
 
 	return nodeSearcher.Query(table, qry, q)
 }

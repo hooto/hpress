@@ -24,6 +24,7 @@ import (
 	"github.com/lessos/lessgo/utils"
 	"github.com/lynkdb/iomix/rdb"
 
+	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/datax"
 	"github.com/hooto/hpress/store"
@@ -159,7 +160,7 @@ func CommentSet(c fiber.Ctx) error {
 		"field_content_attrs": "[]",
 	}
 
-	if _, err := store.Data.Insert("hpn_"+utils.StringEncode16("core/comment", 12)+"_entry", item); err != nil {
+	if _, err := store.Data.Insert(api.NodeTableName("core/comment", "entry"), item); err != nil {
 		set.Error = &types.ErrorMeta{
 			Code:    "500",
 			Message: err.Error(),

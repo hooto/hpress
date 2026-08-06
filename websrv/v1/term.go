@@ -25,7 +25,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/hooto/iam/v2/pkg/iamapi"
-	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
@@ -160,7 +159,7 @@ func TermSet(c fiber.Ctx) error {
 	var (
 		set      = map[string]interface{}{}
 		username = ""
-		table    = fmt.Sprintf("hpt_%s_%s", idhash.HashToHexString([]byte(web.Param(c, "modname")), 12), web.Param(c, "modelid"))
+		table    = api.TermTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
 	)
 
 	if s, err := us.Profile(); err == nil {

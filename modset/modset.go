@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utilx"
@@ -854,7 +853,7 @@ func SpecSchemaSync(spec api.Spec) error {
 			continue
 		}
 
-		tbl.Name = fmt.Sprintf("hpn_%s_%s", idhash.HashToHexString([]byte(spec.Meta.Name), 12), nodeModel.Meta.Name)
+		tbl.Name = api.NodeTableName(spec.Meta.Name, nodeModel.Meta.Name)
 
 		if nodeModel.Extensions.AccessCounter {
 			tbl.AddColumn(&modeler.Column{
@@ -1020,7 +1019,7 @@ func SpecSchemaSync(spec api.Spec) error {
 			continue
 		}
 
-		tbl.Name = fmt.Sprintf("hpt_%s_%s", idhash.HashToHexString([]byte(spec.Meta.Name), 12), termModel.Meta.Name)
+		tbl.Name = api.TermTableName(spec.Meta.Name, termModel.Meta.Name)
 
 		switch termModel.Type {
 
@@ -1074,10 +1073,19 @@ func SpecSchemaSync(spec api.Spec) error {
 	if err != nil {
 		return err
 	}
-	err = ms.SchemaSync(ds)
-	if err != nil {
-		return err
-	}
+
+	// SchemaSync is intentionally disabled during the module table-naming
+	// migration stabilization window: hpn_/hpt_ table structures must not be
+	// created or altered while the rename upgrade is settling. Tables are
+	// expected to already exist (from the rename upgrade or a prior run).
+	// Re-enable the call below once the upgrade is stable.
+	//
+	// err = ms.SchemaSync(ds)
+	// if err != nil {
+	// 	return err
+	// }
+	_ = ms
+	_ = ds
 
 	for _, termModel := range spec.TermModels {
 
@@ -1085,8 +1093,7 @@ func SpecSchemaSync(spec api.Spec) error {
 
 		case api.TermTaxonomy:
 
-			tblName := fmt.Sprintf("hpt_%s_%s",
-				idhash.HashToHexString([]byte(spec.Meta.Name), 12), termModel.Meta.Name)
+			tblName := api.TermTableName(spec.Meta.Name, termModel.Meta.Name)
 			rs, _ := store.Data.Fetch(store.Data.NewQueryer().From(tblName))
 			if rs.NotFound() {
 				store.Data.Insert(tblName, map[string]interface{}{

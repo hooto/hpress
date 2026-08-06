@@ -30,7 +30,6 @@ import (
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
-	"github.com/lessos/lessgo/utils"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
@@ -257,8 +256,8 @@ func expGdocRefreshPath() {
 func gdocRefreshItem(docId, userId, ver, dir string) error {
 
 	var (
-		tableDoc = fmt.Sprintf("hpn_%s_%s", utils.StringEncode16("core/gdoc", 12), "doc")
-		table    = fmt.Sprintf("hpn_%s_%s", utils.StringEncode16("core/gdoc", 12), "page")
+		tableDoc = api.NodeTableName("core/gdoc", "doc")
+		table    = api.NodeTableName("core/gdoc", "page")
 	)
 
 	hlog.Printf("debug", "vcs %s, version %s", docId, ver)

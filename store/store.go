@@ -71,7 +71,11 @@ func Setup(dbc *storage.Options, cfg connect.MultiConnOptions) error {
 
 	DataOptions = opts
 
-	if err = db_upgrade_0_5(Data); err != nil {
+	// if err = db_upgrade_0_5(Data); err != nil {
+	// 	return err
+	// }
+
+	if err = db_upgrade_module_table_naming(Data); err != nil {
 		return err
 	}
 

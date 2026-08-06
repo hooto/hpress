@@ -467,7 +467,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 
 			if ips := strings.Split(ix.c.IP(), ":"); len(ips) > 1 {
 
-				table := fmt.Sprintf("hpn_%s_%s", idhash.HashToHexString([]byte(mod.Meta.Name), 12), ad.Query.Table)
+				table := api.NodeTableName(mod.Meta.Name, ad.Query.Table)
 				store.DataLocal.NewWriter([]byte("access_counter/"+table+"/"+ips[0]+"/"+entry.ID), []byte("1")).Exec()
 			}
 		}
