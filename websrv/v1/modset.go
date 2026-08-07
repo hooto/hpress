@@ -21,15 +21,15 @@ import (
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/modset"
-	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/modset"
+	"github.com/hooto/hpress/internal/store"
 	"github.com/hooto/hpress/websrv/web"
 )
 
 func ModSetSpecList(c fiber.Ctx) error {
 
-	rsp := api.SpecList{}
+	rsp := hpapi.SpecList{}
 
 	defer func() { _ = web.JSON(c, &rsp) }()
 
@@ -42,16 +42,16 @@ func ModSetSpecList(c fiber.Ctx) error {
 	q := store.Data.NewQueryer().From("hp_modules").Limit(100)
 	rs, err := store.Data.Query(q)
 	if err != nil {
-		rsp.Error = types.NewErrorMeta(api.ErrCodeInternalError, "Can not pull database instance")
+		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, "Can not pull database instance")
 		return nil
 	}
 
 	for _, v := range rs {
 
-		var entry api.Spec
+		var entry hpapi.Spec
 
 		if err := v.Field("body").JsonDecode(&entry); err == nil {
-			entry.SrvName, _ = api.SrvNameFilter(v.Field("srvname").String())
+			entry.SrvName, _ = hpapi.SrvNameFilter(v.Field("srvname").String())
 			rsp.Items = append(rsp.Items, entry)
 		}
 	}
@@ -63,7 +63,7 @@ func ModSetSpecList(c fiber.Ctx) error {
 
 func ModSetSpecEntry(c fiber.Ctx) error {
 
-	rsp := api.Spec{}
+	rsp := hpapi.Spec{}
 
 	defer func() { _ = web.JSON(c, &rsp) }()
 
@@ -74,13 +74,13 @@ func ModSetSpecEntry(c fiber.Ctx) error {
 	}
 
 	if web.Param(c, "name") == "" {
-		rsp.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Object Not Found")
+		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Object Not Found")
 		return nil
 	}
 
 	name, err := modset.ModNameFilter(web.Param(c, "name"))
 	if err != nil {
-		rsp.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
@@ -88,21 +88,21 @@ func ModSetSpecEntry(c fiber.Ctx) error {
 	q.Where().And("name", name)
 	rs, err := store.Data.Query(q)
 	if err != nil {
-		rsp.Error = types.NewErrorMeta(api.ErrCodeInternalError, "Can not pull database instance")
+		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, "Can not pull database instance")
 		return nil
 	}
 
 	if len(rs) < 1 {
-		rsp.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Object Not Found")
+		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Object Not Found")
 		return nil
 	}
 
 	if err := rs[0].Field("body").JsonDecode(&rsp); err != nil {
-		rsp.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	rsp.SrvName, _ = api.SrvNameFilter(rs[0].Field("srvname").String())
+	rsp.SrvName, _ = hpapi.SrvNameFilter(rs[0].Field("srvname").String())
 
 	rsp.Kind = "Spec"
 
@@ -111,7 +111,7 @@ func ModSetSpecEntry(c fiber.Ctx) error {
 
 func ModSetSpecInfoSet(c fiber.Ctx) error {
 
-	var set api.Spec
+	var set hpapi.Spec
 
 	defer func() { _ = web.JSON(c, &set) }()
 
@@ -123,40 +123,40 @@ func ModSetSpecInfoSet(c fiber.Ctx) error {
 
 	err := web.Bind(c, &set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Bad Argument "+err.Error())
 		return nil
 	}
 
 	set.Meta.Name, err = modset.ModNameFilter(set.Meta.Name)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
-	set.SrvName, err = api.SrvNameFilter(set.SrvName)
+	set.SrvName, err = hpapi.SrvNameFilter(set.SrvName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	if _, err = modset.SpecFetch(set.Meta.Name); err != nil {
 
 		if err = modset.SpecInfoNew(set); err != nil {
-			set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 			return nil
 		}
 
 	} else {
 
 		if err = modset.SpecInfoSet(set); err != nil {
-			set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 			return nil
 		}
 	}
 
 	seted, err := modset.SpecFetch(set.Meta.Name)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
@@ -169,7 +169,7 @@ func ModSetSpecInfoSet(c fiber.Ctx) error {
 
 func ModSetSpecTermSet(c fiber.Ctx) error {
 
-	var set api.TermModel
+	var set hpapi.TermModel
 
 	defer func() { _ = web.JSON(c, &set) }()
 
@@ -181,44 +181,44 @@ func ModSetSpecTermSet(c fiber.Ctx) error {
 
 	err := web.Bind(c, &set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Bad Argument "+err.Error())
 		return nil
 	}
 
 	set.Meta.Name, err = modset.ModelNameFilter(set.Meta.Name)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	set.ModName, err = modset.ModNameFilter(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	set.Type = strings.ToLower(set.Type)
 	if set.Type != "tag" && set.Type != "taxonomy" {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid Type")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid Type")
 		return nil
 	}
 
 	_, err = modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "ModName Not Found")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "ModName Not Found")
 		return nil
 	}
 
 	err = modset.SpecTermSet(set.ModName, set)
 
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
 	seted, err := modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
@@ -231,7 +231,7 @@ func ModSetSpecTermSet(c fiber.Ctx) error {
 
 func ModSetSpecNodeSet(c fiber.Ctx) error {
 
-	var set api.NodeModel
+	var set hpapi.NodeModel
 
 	defer func() { _ = web.JSON(c, &set) }()
 
@@ -243,37 +243,37 @@ func ModSetSpecNodeSet(c fiber.Ctx) error {
 
 	err := web.Bind(c, &set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Bad Argument "+err.Error())
 		return nil
 	}
 
 	set.Meta.Name, err = modset.ModelNameFilter(set.Meta.Name)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	set.ModName, err = modset.ModNameFilter(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	_, err = modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "ModName Not Found")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "ModName Not Found")
 		return nil
 	}
 
 	err = modset.SpecNodeSet(set.ModName, &set)
 
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 	seted, err := modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
@@ -286,7 +286,7 @@ func ModSetSpecNodeSet(c fiber.Ctx) error {
 
 func ModSetSpecActionSet(c fiber.Ctx) error {
 
-	var set api.Action
+	var set hpapi.Action
 
 	defer func() { _ = web.JSON(c, &set) }()
 
@@ -298,38 +298,38 @@ func ModSetSpecActionSet(c fiber.Ctx) error {
 
 	err := web.Bind(c, &set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Bad Argument "+err.Error())
 		return nil
 	}
 
 	set.Name, err = modset.ModelNameFilter(set.Name)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	set.ModName, err = modset.ModNameFilter(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	_, err = modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "ModName Not Found")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "ModName Not Found")
 		return nil
 	}
 
 	err = modset.SpecActionSet(set.ModName, set)
 
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
 	seted, err := modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
@@ -342,7 +342,7 @@ func ModSetSpecActionSet(c fiber.Ctx) error {
 
 func ModSetSpecActionDel(c fiber.Ctx) error {
 
-	var set api.Action
+	var set hpapi.Action
 
 	defer func() { _ = web.JSON(c, &set) }()
 
@@ -354,38 +354,38 @@ func ModSetSpecActionDel(c fiber.Ctx) error {
 
 	err := web.Bind(c, &set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Bad Argument "+err.Error())
 		return nil
 	}
 
 	set.Name, err = modset.ModelNameFilter(set.Name)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	set.ModName, err = modset.ModNameFilter(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	_, err = modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "ModName Not Found")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "ModName Not Found")
 		return nil
 	}
 
 	err = modset.SpecActionDel(set.ModName, set)
 
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
 	seted, err := modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
@@ -398,7 +398,7 @@ func ModSetSpecActionDel(c fiber.Ctx) error {
 
 func ModSetSpecRouteSet(c fiber.Ctx) error {
 
-	var set api.Route
+	var set hpapi.Route
 
 	defer func() { _ = web.JSON(c, &set) }()
 
@@ -410,38 +410,38 @@ func ModSetSpecRouteSet(c fiber.Ctx) error {
 
 	err := web.Bind(c, &set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Bad Argument "+err.Error())
 		return nil
 	}
 
 	set.Path, err = modset.RoutePathFilter(set.Path)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	set.ModName, err = modset.ModNameFilter(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	_, err = modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "ModName Not Found")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "ModName Not Found")
 		return nil
 	}
 
 	err = modset.SpecRouteSet(set.ModName, set)
 
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
 	seted, err := modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
@@ -454,7 +454,7 @@ func ModSetSpecRouteSet(c fiber.Ctx) error {
 
 func ModSetSpecRouteDel(c fiber.Ctx) error {
 
-	var set api.Route
+	var set hpapi.Route
 
 	defer func() { _ = web.JSON(c, &set) }()
 
@@ -466,31 +466,31 @@ func ModSetSpecRouteDel(c fiber.Ctx) error {
 
 	err := web.Bind(c, &set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Bad Argument "+err.Error())
 		return nil
 	}
 
 	set.Path, err = modset.RoutePathFilter(set.Path)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	set.ModName, err = modset.ModNameFilter(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	err = modset.SpecRouteDel(set.ModName, set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
 	seted, err := modset.SpecFetch(set.ModName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeInternalError, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
@@ -502,8 +502,8 @@ func ModSetSpecRouteDel(c fiber.Ctx) error {
 }
 
 func ModSetSpecLangList(c fiber.Ctx) error {
-	ls := api.LangList{
-		Items: api.LangArray,
+	ls := hpapi.LangList{
+		Items: hpapi.LangArray,
 	}
 	ls.Kind = "SpecLangList"
 	return web.JSON(c, ls)

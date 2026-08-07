@@ -27,11 +27,11 @@ import (
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utilx"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/datax"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/datax"
+	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/store"
 	"github.com/hooto/hpress/internal/utils"
-	"github.com/hooto/hpress/store"
 	"github.com/hooto/hpress/websrv/web"
 )
 
@@ -44,7 +44,7 @@ var (
 
 func NodeList(c fiber.Ctx) error {
 
-	ls := api.NodeList{}
+	ls := hpapi.NodeList{}
 
 	defer func() { _ = web.JSON(c, &ls) }()
 
@@ -78,7 +78,7 @@ func NodeList(c fiber.Ctx) error {
 
 	node_refer := web.Param(c, "ext_node_refer")
 	if model.Extensions.NodeRefer != "" &&
-		api.NodeExtNodeReferReg.MatchString(web.Param(c, "ext_node_refer")) {
+		hpapi.NodeExtNodeReferReg.MatchString(web.Param(c, "ext_node_refer")) {
 		dq.Filter("ext_node_refer", node_refer)
 		dqc.Filter("ext_node_refer", node_refer)
 	}
@@ -95,7 +95,7 @@ func NodeList(c fiber.Ctx) error {
 
 	count, err := dqc.NodeCount()
 	if err != nil {
-		ls.Error = &types.ErrorMeta{api.ErrCodeInternalError, err.Error()}
+		ls.Error = &types.ErrorMeta{hpapi.ErrCodeInternalError, err.Error()}
 		return nil
 	}
 
@@ -110,7 +110,7 @@ func NodeList(c fiber.Ctx) error {
 
 func NodeEntry(c fiber.Ctx) error {
 
-	rsp := api.Node{}
+	rsp := hpapi.Node{}
 
 	defer func() { _ = web.JSON(c, &rsp) }()
 
@@ -133,7 +133,7 @@ func NodeEntry(c fiber.Ctx) error {
 
 func NodeSet(c fiber.Ctx) error {
 
-	rsp := api.Node{}
+	rsp := hpapi.Node{}
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	if err := web.Bind(c, &rsp); err != nil {
@@ -164,13 +164,13 @@ func NodeSet(c fiber.Ctx) error {
 
 	var (
 		set        = map[string]interface{}{}
-		table      = api.NodeTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
+		table      = hpapi.NodeTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
 		node_refer = ""
 	)
 
 	//
 	if model.Extensions.Permalink != "" && rsp.ExtPermalinkName != "" {
-		rsp.ExtPermalinkName, err = api.PermalinkNameFilter(rsp.ExtPermalinkName)
+		rsp.ExtPermalinkName, err = hpapi.PermalinkNameFilter(rsp.ExtPermalinkName)
 		if err != nil || rsp.ExtPermalinkName == "" {
 			rsp.Error = types.NewErrorMeta("400", "Invalid Permalink Name")
 			return nil
@@ -178,7 +178,7 @@ func NodeSet(c fiber.Ctx) error {
 	}
 
 	if model.Extensions.NodeRefer != "" {
-		if !api.NodeExtNodeReferReg.MatchString(rsp.ExtNodeRefer) {
+		if !hpapi.NodeExtNodeReferReg.MatchString(rsp.ExtNodeRefer) {
 			rsp.Error = types.NewErrorMeta("400", "Invalid Node Refer ID")
 			return nil
 		}
@@ -272,12 +272,12 @@ func NodeSet(c fiber.Ctx) error {
 					// langs
 					if attr := modField.Attrs.Get("langs"); attr != nil && valField.Langs != nil {
 
-						var langs api.NodeFieldLangs
+						var langs hpapi.NodeFieldLangs
 						if len(rs[0].Field("field_"+modField.Name+"_langs").String()) > 5 {
 							rs[0].Field("field_" + modField.Name + "_langs").JsonDecode(&langs)
 						}
 
-						attr_langs := api.LangsStringFilterArray(attr.String())
+						attr_langs := hpapi.LangsStringFilterArray(attr.String())
 						for li := 1; li < len(attr_langs); li++ {
 							if lang_entry := valField.Langs.Items.Get(attr_langs[li]); lang_entry != nil {
 								langs.Items.Set(attr_langs[li], lang_entry.String())
@@ -306,7 +306,7 @@ func NodeSet(c fiber.Ctx) error {
 
 				switch modTerm.Type {
 
-				case api.TermTag:
+				case hpapi.TermTag:
 
 					tags, _ := datax.TermSync(web.Param(c, "modname"), modTerm.Meta.Name, term.Value)
 
@@ -315,7 +315,7 @@ func NodeSet(c fiber.Ctx) error {
 						set["term_"+modTerm.Meta.Name+"_idx"] = tags.Index()
 					}
 
-				case api.TermTaxonomy:
+				case hpapi.TermTaxonomy:
 
 					set["term_"+modTerm.Meta.Name] = term.Value
 				}
@@ -378,9 +378,9 @@ func NodeSet(c fiber.Ctx) error {
 					// langs
 					if attr := modField.Attrs.Get("langs"); attr != nil && valField.Langs != nil {
 
-						var langs api.NodeFieldLangs
+						var langs hpapi.NodeFieldLangs
 
-						attr_langs := api.LangsStringFilterArray(attr.String())
+						attr_langs := hpapi.LangsStringFilterArray(attr.String())
 						for li := 1; li < len(attr_langs); li++ {
 							if lang_entry := valField.Langs.Items.Get(attr_langs[li]); lang_entry != nil {
 								langs.Items.Set(attr_langs[li], lang_entry.String())
@@ -434,13 +434,13 @@ func NodeSet(c fiber.Ctx) error {
 
 				switch modTerm.Type {
 
-				case api.TermTag:
+				case hpapi.TermTag:
 
 					tags, _ := datax.TermSync(web.Param(c, "modname"), modTerm.Meta.Name, term.Value)
 					set["term_"+modTerm.Meta.Name] = tags.Content()
 					set["term_"+modTerm.Meta.Name+"_idx"] = tags.Index()
 
-				case api.TermTaxonomy:
+				case hpapi.TermTaxonomy:
 
 					set["term_"+modTerm.Meta.Name] = term.Value
 				}
@@ -452,11 +452,11 @@ func NodeSet(c fiber.Ctx) error {
 
 				switch modTerm.Type {
 
-				case api.TermTag:
+				case hpapi.TermTag:
 					set["term_"+modTerm.Meta.Name+"_idx"] = ""
 					set["term_"+modTerm.Meta.Name] = ""
 
-				case api.TermTaxonomy:
+				case hpapi.TermTaxonomy:
 					set["term_"+modTerm.Meta.Name] = ""
 				}
 			}
@@ -526,7 +526,7 @@ func NodeSet(c fiber.Ctx) error {
 	if model.Extensions.NodeRefer != "" {
 
 		if prev, ok := set["ext_node_refer"]; !ok || prev != rsp.ExtNodeRefer {
-			ref_q := store.Data.NewQueryer().From(api.NodeTableName(web.Param(c, "modname"), model.Extensions.NodeRefer)).Limit(1)
+			ref_q := store.Data.NewQueryer().From(hpapi.NodeTableName(web.Param(c, "modname"), model.Extensions.NodeRefer)).Limit(1)
 			ref_q.Where().And("id", rsp.ExtNodeRefer)
 			if rs, err := store.Data.Query(ref_q); err != nil {
 				rsp.Error = types.NewErrorMeta("500", "Server Error")
@@ -577,7 +577,7 @@ func NodeSet(c fiber.Ctx) error {
 
 func NodeDel(c fiber.Ctx) error {
 
-	rsp := api.Node{}
+	rsp := hpapi.Node{}
 	defer func() { _ = web.JSON(c, &rsp) }()
 
 	us := web.AuthSession(c)
@@ -601,7 +601,7 @@ func NodeDel(c fiber.Ctx) error {
 	}
 
 	//
-	table := api.NodeTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
+	table := hpapi.NodeTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
 
 	//
 	ids := strings.Split(web.Param(c, "id"), ",")

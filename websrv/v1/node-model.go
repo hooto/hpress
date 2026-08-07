@@ -18,14 +18,14 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/websrv/web"
 )
 
 func NodeModelEntry(c fiber.Ctx) error {
 
-	rsp := api.NodeModel{}
+	rsp := hpapi.NodeModel{}
 
 	defer func() { _ = web.JSON(c, &rsp) }()
 
@@ -39,7 +39,7 @@ func NodeModelEntry(c fiber.Ctx) error {
 	nmodel, err := config.SpecNodeModel(modname, modelid)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{
-			Code:    api.ErrCodeBadArgument,
+			Code:    hpapi.ErrCodeBadArgument,
 			Message: "Model Not Found",
 		}
 		return nil

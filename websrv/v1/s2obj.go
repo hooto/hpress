@@ -29,8 +29,8 @@ import (
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utils"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/websrv/web"
 )
 
@@ -61,8 +61,8 @@ func abs_path(path string) string {
 func S2ObjRename(c fiber.Ctx) error {
 
 	var (
-		rsp api.FsFile
-		req api.FsFile
+		rsp hpapi.FsFile
+		req hpapi.FsFile
 	)
 
 	defer func() { _ = web.JSON(c, &rsp) }()
@@ -111,7 +111,7 @@ func S2ObjRename(c fiber.Ctx) error {
 func S2ObjDel(c fiber.Ctx) error {
 
 	var (
-		rsp api.FsFile
+		rsp hpapi.FsFile
 	)
 
 	defer func() { _ = web.JSON(c, &rsp) }()
@@ -143,8 +143,8 @@ func S2ObjDel(c fiber.Ctx) error {
 func S2ObjPut(c fiber.Ctx) error {
 
 	var (
-		rsp api.FsFile
-		req api.FsFile
+		rsp hpapi.FsFile
+		req hpapi.FsFile
 		err error
 	)
 
@@ -235,7 +235,7 @@ func S2ObjPut(c fiber.Ctx) error {
 
 func S2ObjList(c fiber.Ctx) error {
 
-	var rsp api.FsFileList
+	var rsp hpapi.FsFileList
 
 	defer func() { _ = web.JSON(c, &rsp) }()
 

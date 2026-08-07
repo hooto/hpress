@@ -29,11 +29,11 @@ import (
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/datax"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/datax"
+	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/store"
 	"github.com/hooto/hpress/internal/utils"
-	"github.com/hooto/hpress/store"
 	"github.com/hooto/hpress/websrv/web"
 )
 
@@ -74,7 +74,7 @@ func (ix *indexContext) paramInt(key string) int64 {
 	return n
 }
 
-func (ix *indexContext) filter(rt []string, spec *api.Spec) (string, string, bool) {
+func (ix *indexContext) filter(rt []string, spec *hpapi.Spec) (string, string, bool) {
 
 	for _, route := range spec.Router.Routes {
 
@@ -186,7 +186,7 @@ func IndexPage(c fiber.Ctx) error {
 		}
 	}
 
-	ix.data["LANG"] = api.LangHit(config.Languages, web.ResolveLang(c))
+	ix.data["LANG"] = hpapi.LangHit(config.Languages, web.ResolveLang(c))
 
 	if len(config.Languages) > 1 {
 		ix.data["frontend_langs"] = config.Languages
@@ -257,7 +257,7 @@ func IndexPage(c fiber.Ctx) error {
 	return nil
 }
 
-func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionData) int {
+func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionData) int {
 
 	mod, ok := config.Modules[srvname]
 	if !ok {
@@ -293,7 +293,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 
 					switch term.Type {
 
-					case api.TermTaxonomy:
+					case hpapi.TermTaxonomy:
 
 						if idxs := datax.TermTaxonomyCacheIndexes(mod.Meta.Name, term.Meta.Name, termVal); len(idxs) > 1 {
 							args := []interface{}{}
@@ -307,7 +307,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 
 						ix.data["term_"+term.Meta.Name] = termVal
 
-					case api.TermTag:
+					case hpapi.TermTag:
 						// TOPO
 						qry.Filter("term_"+term.Meta.Name+".like", "%"+termVal+"%")
 						ix.data["term_"+term.Meta.Name] = termVal
@@ -328,7 +328,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 			ix.data["qry_text"] = ix.param("qry_text")
 		}
 
-		var ls api.NodeList
+		var ls hpapi.NodeList
 		qryhash := qry.Hash()
 
 		if ad.CacheTTL > 0 && !ix.us.Allow("", "editor.write") {
@@ -399,7 +399,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 				if mat := gdocPathRX.FindAllStringSubmatch(ix.urlAct, 1); len(mat) == 1 {
 					nodeId = strings.ToLower(mat[0][2])
 				}
-			} else if ad.Query.Table == "doc" && api.NodeIdReg.MatchString(nodeId) {
+			} else if ad.Query.Table == "doc" && hpapi.NodeIdReg.MatchString(nodeId) {
 				nodeExt = "html"
 			}
 		}
@@ -439,7 +439,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 			return dataRenderNotFound
 		}
 
-		var entry api.Node
+		var entry hpapi.Node
 		qryhash := qry.Hash()
 		if ad.CacheTTL > 0 && !ix.us.Allow("", "editor.write") {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
@@ -467,7 +467,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 
 			if ips := strings.Split(ix.c.IP(), ":"); len(ips) > 1 {
 
-				table := api.NodeTableName(mod.Meta.Name, ad.Query.Table)
+				table := hpapi.NodeTableName(mod.Meta.Name, ad.Query.Table)
 				store.DataLocal.NewWriter([]byte("access_counter/"+table+"/"+ips[0]+"/"+entry.ID), []byte("1")).Exec()
 			}
 		}
@@ -485,7 +485,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 
 	case "term.list":
 
-		var ls api.TermList
+		var ls hpapi.TermList
 		qryhash := qry.Hash()
 		if ad.CacheTTL > 0 {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
@@ -511,7 +511,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 
 	case "term.entry":
 
-		var entry api.Term
+		var entry hpapi.Term
 		qryhash := qry.Hash()
 
 		if ad.CacheTTL > 0 {

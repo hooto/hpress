@@ -28,9 +28,9 @@ import (
 	"github.com/lynkdb/lynkui/go/lynkui"
 	"github.com/lynkdb/lynkui/go/uiserver"
 
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/datax"
-	"github.com/hooto/hpress/status"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/datax"
+	"github.com/hooto/hpress/internal/status"
 	"github.com/hooto/hpress/websrv/web"
 
 	cdef "github.com/hooto/hpress/websrv/frontend"

@@ -21,7 +21,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/websrv/web"
 )
 

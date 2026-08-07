@@ -38,7 +38,7 @@ import (
 
 	"github.com/sysinner/innerstack/v2/pkg/inauth"
 
-	"github.com/hooto/hpress/api"
+	"github.com/hooto/hpress/internal/hpapi"
 )
 
 // tokenLifetime is how long a minted access-key token is good for. It must
@@ -164,8 +164,8 @@ func (c *Client) do(method, apiPath string, query url.Values, body []byte, out a
 }
 
 // SpecGet fetches a module's full spec (nodeModels, termModels, ...).
-func (c *Client) SpecGet(modname string) (*api.Spec, error) {
-	var rsp api.Spec
+func (c *Client) SpecGet(modname string) (*hpapi.Spec, error) {
+	var rsp hpapi.Spec
 	if err := c.do(http.MethodGet, "/hp/v1/mod-set/spec-entry",
 		url.Values{"name": {modname}}, nil, &rsp); err != nil {
 		return nil, err
@@ -174,8 +174,8 @@ func (c *Client) SpecGet(modname string) (*api.Spec, error) {
 }
 
 // TermList fetches the terms (categories/tags) for a module + termModel.
-func (c *Client) TermList(modname, modelID string) (*api.TermList, error) {
-	var rsp api.TermList
+func (c *Client) TermList(modname, modelID string) (*hpapi.TermList, error) {
+	var rsp hpapi.TermList
 	if err := c.do(http.MethodGet, "/hp/v1/term/list",
 		url.Values{"modname": {modname}, "modelid": {modelID}}, nil, &rsp); err != nil {
 		return nil, err
@@ -185,12 +185,12 @@ func (c *Client) TermList(modname, modelID string) (*api.TermList, error) {
 
 // NodeSet creates (empty id) or updates (set id) a node and returns the stored
 // node (carrying the server-assigned id on create).
-func (c *Client) NodeSet(modname, modelID string, node *api.Node) (*api.Node, error) {
+func (c *Client) NodeSet(modname, modelID string, node *hpapi.Node) (*hpapi.Node, error) {
 	body, err := json.Marshal(node)
 	if err != nil {
 		return nil, err
 	}
-	var rsp api.Node
+	var rsp hpapi.Node
 	if err := c.do(http.MethodPost, "/hp/v1/node/set",
 		url.Values{"modname": {modname}, "modelid": {modelID}}, body, &rsp); err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func (c *Client) NodeSet(modname, modelID string, node *api.Node) (*api.Node, er
 
 // S2Put uploads a file (raw bytes) to storage path "/deft/<date>/<file>".
 func (c *Client) S2Put(storagePath string, data []byte) error {
-	req := api.FsFile{
+	req := hpapi.FsFile{
 		Path:   storagePath,
 		Encode: "base64",
 		Body:   "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(data),

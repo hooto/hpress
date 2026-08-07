@@ -42,8 +42,8 @@ import (
 	"github.com/nfnt/resize"
 	"github.com/oliamb/cutter"
 
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/store"
 	"github.com/hooto/hpress/websrv/web"
 )
 

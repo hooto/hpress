@@ -21,8 +21,8 @@ import (
 	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/sysinner/innerstack/v2/pkg/inauth"
 
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/status"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/status"
 	"github.com/hooto/hpress/websrv/web"
 )
 

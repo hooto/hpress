@@ -30,5 +30,5 @@ include = [
 script = """
 mkdir -p ${ipk_build_dir}/bin
 mkdir -p ${ipk_build_dir}/var/{log,storage,tmp}
-CGO_ENABLED=0 GOOS=${ipk_release_os} GOARCH=${ipk_release_arch} go build -trimpath -ldflags "-w -s" -o ${ipk_build_dir}/bin/hooto-press cmd/server/main.go
+CGO_ENABLED=0 GOOS=${ipk_release_os} GOARCH=${ipk_release_arch} go build -trimpath -ldflags "-w -s -X main.version=${ipk_version}" -o ${ipk_build_dir}/bin/hooto-press cmd/server/main.go
 """

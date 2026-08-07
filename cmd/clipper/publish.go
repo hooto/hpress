@@ -29,7 +29,7 @@ import (
 
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/hpress/api"
+	"github.com/hooto/hpress/internal/hpapi"
 )
 
 var (
@@ -141,7 +141,7 @@ func runPublish(mdPath string, isUpdate bool) error {
 	title := prompt(reader, "Title", defTitle)
 
 	// 3) terms (taxonomy → interactive tree pick; tag → comma list)
-	terms := []api.NodeTerm{}
+	terms := []hpapi.NodeTerm{}
 	stateCats := map[string]string{}
 	stateTags := map[string]string{}
 	var keywords []string
@@ -158,7 +158,7 @@ func runPublish(mdPath string, isUpdate bool) error {
 				fmt.Fprint(os.Stderr, "skip term: ", err, authScopeSuffix(err), "\n")
 				continue
 			}
-			terms = append(terms, api.NodeTerm{Name: tm.Meta.Name, Value: id, Type: "taxonomy"})
+			terms = append(terms, hpapi.NodeTerm{Name: tm.Meta.Name, Value: id, Type: "taxonomy"})
 			stateCats[tm.Meta.Name] = id
 		case "tag":
 			def := stateTags[tm.Meta.Name]
@@ -169,7 +169,7 @@ func runPublish(mdPath string, isUpdate bool) error {
 			}
 			val := prompt(reader, "Tags ("+tm.Title+", comma-separated)", def)
 			if strings.TrimSpace(val) != "" {
-				terms = append(terms, api.NodeTerm{Name: tm.Meta.Name, Value: val, Type: "tag"})
+				terms = append(terms, hpapi.NodeTerm{Name: tm.Meta.Name, Value: val, Type: "tag"})
 				stateTags[tm.Meta.Name] = val
 			}
 		}
@@ -194,13 +194,13 @@ func runPublish(mdPath string, isUpdate bool) error {
 	}
 
 	// 6) build + send the node
-	fields := []*api.NodeField{
+	fields := []*hpapi.NodeField{
 		{Name: "title", Value: title},
 		{Name: "content", Value: mdContent, Attrs: types.KvPairs{&types.KvPair{Key: "format", Value: "md"}}},
 	}
 	fields = append(fields, extraFields...)
 
-	node := &api.Node{
+	node := &hpapi.Node{
 		Status: 1,
 		Title:  title,
 		Fields: fields,
@@ -254,7 +254,7 @@ func runPublish(mdPath string, isUpdate bool) error {
 
 // pickNodeModel resolves the target node model: configured/prior id → single
 // available → interactive numbered pick.
-func pickNodeModel(reader *bufio.Reader, spec *api.Spec, configured string, state *ArticleState) *api.NodeModel {
+func pickNodeModel(reader *bufio.Reader, spec *hpapi.Spec, configured string, state *ArticleState) *hpapi.NodeModel {
 	if state != nil && state.ModelID != "" {
 		if m := spec.NodeModelGet(state.ModelID); m != nil {
 			return m
@@ -291,7 +291,7 @@ func pickNodeModel(reader *bufio.Reader, spec *api.Spec, configured string, stat
 
 // pickTermInteractive fetches a taxonomy's terms, prints the tree, and returns
 // the selected term id. Pressing Enter keeps the defaultID (used on update).
-func pickTermInteractive(reader *bufio.Reader, client *Client, modname string, tm api.TermModel, defaultID string) (string, error) {
+func pickTermInteractive(reader *bufio.Reader, client *Client, modname string, tm hpapi.TermModel, defaultID string) (string, error) {
 	tl, err := client.TermList(modname, tm.Meta.Name)
 	if err != nil {
 		return "", err
@@ -340,11 +340,11 @@ func pickTermInteractive(reader *bufio.Reader, client *Client, modname string, t
 }
 
 type flatTerm struct {
-	term  api.Term
+	term  hpapi.Term
 	depth int
 }
 
-func flattenTerms(items []api.Term) []flatTerm {
+func flattenTerms(items []hpapi.Term) []flatTerm {
 	byID := map[uint32]*flatTerm{}
 	order := []uint32{}
 	for i := range items {
@@ -377,8 +377,8 @@ func flattenTerms(items []api.Term) []flatTerm {
 }
 
 // promptExtraFields prompts for every declared field that is not title/content.
-func promptExtraFields(reader *bufio.Reader, model *api.NodeModel) ([]*api.NodeField, error) {
-	var fields []*api.NodeField
+func promptExtraFields(reader *bufio.Reader, model *hpapi.NodeModel) ([]*hpapi.NodeField, error) {
+	var fields []*hpapi.NodeField
 	for _, f := range model.Fields {
 		if f.Name == "title" || f.Name == "content" {
 			continue
@@ -391,7 +391,7 @@ func promptExtraFields(reader *bufio.Reader, model *api.NodeModel) ([]*api.NodeF
 		if val == "" {
 			continue
 		}
-		nf := &api.NodeField{Name: f.Name, Value: val}
+		nf := &hpapi.NodeField{Name: f.Name, Value: val}
 		if f.Type == "text" {
 			nf.Attrs = types.KvPairs{&types.KvPair{Key: "format", Value: "md"}}
 		}

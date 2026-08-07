@@ -23,15 +23,15 @@ import (
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/modset"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/modset"
 	"github.com/hooto/hpress/websrv/web"
 )
 
 func ModSetFsTplList(c fiber.Ctx) error {
 
-	ls := api.ViewList{}
+	ls := hpapi.ViewList{}
 
 	defer func() { _ = web.JSON(c, &ls) }()
 
@@ -43,7 +43,7 @@ func ModSetFsTplList(c fiber.Ctx) error {
 
 	spec, err := modset.SpecFetch(web.Param(c, "modname"))
 	if err != nil {
-		ls.Error = &types.ErrorMeta{api.ErrCodeBadArgument, "ModName Not Found"}
+		ls.Error = &types.ErrorMeta{hpapi.ErrCodeBadArgument, "ModName Not Found"}
 		return nil
 	}
 
@@ -53,7 +53,7 @@ func ModSetFsTplList(c fiber.Ctx) error {
 		path = strings.TrimPrefix(path, basepath)
 
 		if len(path) > 4 && path[len(path)-4:] == ".tpl" {
-			ls.Items = append(ls.Items, api.View{
+			ls.Items = append(ls.Items, hpapi.View{
 				Path: path,
 			})
 		}

@@ -21,16 +21,16 @@ import (
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/websrv/web"
 )
 
 func TermModelEntry(c fiber.Ctx) error {
 
-	rsp := api.TermModel{
+	rsp := hpapi.TermModel{
 		TypeMeta: types.TypeMeta{
-			APIVersion: api.Version,
+			APIVersion: hpapi.Version,
 		},
 	}
 
@@ -52,7 +52,7 @@ func TermModelEntry(c fiber.Ctx) error {
 	model, err := config.SpecTermModel(modname, modelid)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{
-			Code:    api.ErrCodeBadArgument,
+			Code:    hpapi.ErrCodeBadArgument,
 			Message: "Model Not Found",
 		}
 		return nil

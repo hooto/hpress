@@ -22,7 +22,7 @@ import (
 	"github.com/hooto/hchart/pkg/webui"
 	"github.com/hooto/iam/v2/pkg/iamserver/authfiber"
 
-	"github.com/hooto/hpress/config"
+	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/websrv/web"
 )
 

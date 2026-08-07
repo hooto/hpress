@@ -1,3 +1,0 @@
-[submodule "deps/sphinxsearch"]
-	path = deps/sphinxsearch
-	url = https://github.com/lynkdb/sphinx.git

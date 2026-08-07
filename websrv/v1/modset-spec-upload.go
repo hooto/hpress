@@ -31,9 +31,9 @@ import (
 	"github.com/lessos/lessgo/types"
 	"github.com/ulikunitz/xz"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/modset"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/modset"
 	"github.com/hooto/hpress/websrv/web"
 )
 
@@ -43,13 +43,13 @@ var (
 
 func ModSetSpecUploadCommit(c fiber.Ctx) error {
 
-	var set api.SpecUploadCommit
+	var set hpapi.SpecUploadCommit
 
 	defer func() { _ = web.JSON(c, &set) }()
 
 	err := web.Bind(c, &set)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Bad Argument "+err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Bad Argument "+err.Error())
 		return nil
 	}
 
@@ -60,12 +60,12 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 	}
 
 	if len(set.Name) < 10 {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid Name")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid Name")
 		return nil
 	}
 	ext := filepath.Ext(set.Name)
 	if ext != ".txz" && ext != ".tgz" {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid file name extension")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid file name extension")
 		return nil
 	}
 
@@ -95,18 +95,18 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 	switch ext {
 	case ".txz":
 		if cpr, err = xz.NewReader(bytes.NewReader(filedata)); err != nil {
-			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
 
 	case ".tgz":
 		if cpr, err = gzip.NewReader(bytes.NewReader(filedata)); err != nil {
-			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
 
 	default:
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid EXT")
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid EXT")
 		return nil
 	}
 
@@ -129,7 +129,7 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 			break
 		}
 		if err != nil {
-			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
 		// fmt.Printf("Contents of %s\n", hdr.Name)
@@ -145,14 +145,14 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 
 		fpo, err := os.OpenFile(tmpdir+"/"+hdr.Name, os.O_RDWR|os.O_CREATE, os.FileMode(hdr.Mode))
 		if err != nil {
-			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
 		fpo.Seek(0, 0)
 		fpo.Truncate(0)
 
 		if _, err := io.Copy(fpo, tr); err != nil {
-			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
 
@@ -161,33 +161,33 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 		files[hdr.Name] = hdr.Mode
 	}
 
-	var spec api.Spec
+	var spec hpapi.Spec
 	if err := json.DecodeFile(tmpdir+"/spec.json", &spec); err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
-	if !api.NewSpecVersion(spec.Meta.Version).Valid() {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid Version Format")
+	if !hpapi.NewSpecVersion(spec.Meta.Version).Valid() {
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid Version Format")
 		return nil
 	}
 
 	//
 	spec.Meta.Name, err = modset.ModNameFilter(spec.Meta.Name)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
-	spec.SrvName, err = api.SrvNameFilter(spec.SrvName)
+	spec.SrvName, err = hpapi.SrvNameFilter(spec.SrvName)
 	if err != nil {
-		set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
 
 	if prev, err := modset.SpecFetch(spec.Meta.Name); err == nil {
-		if api.NewSpecVersion(prev.Meta.Version).Compare(api.NewSpecVersion(spec.Meta.Version)) == 1 {
-			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, "Invalid Version")
+		if hpapi.NewSpecVersion(prev.Meta.Version).Compare(hpapi.NewSpecVersion(spec.Meta.Version)) == 1 {
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid Version")
 			return nil
 		}
 	}
@@ -196,7 +196,7 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 
 	for path, fmode := range files {
 		if err := spec_file_sync(tmpdir+"/"+path, spec_dir+"/"+path, os.FileMode(fmode)); err != nil {
-			set.Error = types.NewErrorMeta(api.ErrCodeBadArgument, err.Error())
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
 	}

@@ -33,17 +33,17 @@ import (
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utils"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/modset"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/modset"
 	"github.com/hooto/hpress/websrv/web"
 )
 
 func ModSetFsRename(c fiber.Ctx) error {
 
 	var (
-		rsp api.FsFile
-		req api.FsFile
+		rsp hpapi.FsFile
+		req hpapi.FsFile
 	)
 
 	defer func() { _ = web.JSON(c, &rsp) }()
@@ -89,8 +89,8 @@ func ModSetFsRename(c fiber.Ctx) error {
 func ModSetFsDel(c fiber.Ctx) error {
 
 	var (
-		rsp api.FsFile
-		req api.FsFile
+		rsp hpapi.FsFile
+		req hpapi.FsFile
 	)
 
 	defer func() { _ = web.JSON(c, &rsp) }()
@@ -134,8 +134,8 @@ func ModSetFsDel(c fiber.Ctx) error {
 func ModSetFsPut(c fiber.Ctx) error {
 
 	var (
-		rsp api.FsFile
-		req api.FsFile
+		rsp hpapi.FsFile
+		req hpapi.FsFile
 		err error
 	)
 
@@ -319,7 +319,7 @@ func fsMakeDir(path, uuid, ugid string, mode os.FileMode) error {
 
 func ModSetFsList(c fiber.Ctx) error {
 
-	var rsp api.FsFileList
+	var rsp hpapi.FsFileList
 
 	defer func() { _ = web.JSON(c, &rsp) }()
 
@@ -347,9 +347,9 @@ func ModSetFsList(c fiber.Ctx) error {
 	return nil
 }
 
-func fsDirList(path, ppath string, subdir bool) []api.FsFile {
+func fsDirList(path, ppath string, subdir bool) []hpapi.FsFile {
 
-	var ret []api.FsFile
+	var ret []hpapi.FsFile
 
 	globpath := path
 	if !strings.Contains(globpath, "*") {
@@ -368,7 +368,7 @@ func fsDirList(path, ppath string, subdir bool) []api.FsFile {
 
 	for _, v := range rs {
 
-		var file api.FsFile
+		var file hpapi.FsFile
 		// file.Path = v
 
 		st, err := os.Stat(v)
@@ -424,7 +424,7 @@ func fsFileMime(v string) string {
 
 func ModSetFsGet(c fiber.Ctx) error {
 
-	var rsp api.FsFile
+	var rsp hpapi.FsFile
 	var err error
 
 	defer func() { _ = web.JSON(c, &rsp) }()
@@ -456,9 +456,9 @@ func ModSetFsGet(c fiber.Ctx) error {
 	return nil
 }
 
-func fsFileGetRead(path string) (api.FsFile, int, error) {
+func fsFileGetRead(path string) (hpapi.FsFile, int, error) {
 
-	var file api.FsFile
+	var file hpapi.FsFile
 	file.Path = path
 
 	reg, _ := regexp.Compile("/+")

@@ -27,10 +27,10 @@ import (
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/datax"
-	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/datax"
+	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/store"
 	"github.com/hooto/hpress/websrv/web"
 )
 
@@ -42,7 +42,7 @@ var (
 
 func TermList(c fiber.Ctx) error {
 
-	var ls api.TermList
+	var ls hpapi.TermList
 
 	defer func() { _ = web.JSON(c, &ls) }()
 
@@ -64,7 +64,7 @@ func TermList(c fiber.Ctx) error {
 	page, limit := web.ParamInt(c, "page"), term_list_limit
 
 	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
-	if model.Type == api.TermTaxonomy {
+	if model.Type == hpapi.TermTaxonomy {
 		limit = term_list_limit_taxonomy
 		page = 1
 	}
@@ -89,7 +89,7 @@ func TermList(c fiber.Ctx) error {
 
 	count, err := dqc.TermCount()
 	if err != nil {
-		ls.Error = &types.ErrorMeta{api.ErrCodeInternalError, err.Error()}
+		ls.Error = &types.ErrorMeta{hpapi.ErrCodeInternalError, err.Error()}
 		return nil
 	}
 
@@ -103,9 +103,9 @@ func TermList(c fiber.Ctx) error {
 
 func TermEntry(c fiber.Ctx) error {
 
-	rsp := api.Term{
+	rsp := hpapi.Term{
 		TypeMeta: types.TypeMeta{
-			APIVersion: api.Version,
+			APIVersion: hpapi.Version,
 		},
 	}
 
@@ -129,7 +129,7 @@ func TermEntry(c fiber.Ctx) error {
 
 func TermSet(c fiber.Ctx) error {
 
-	rsp := api.Term{}
+	rsp := hpapi.Term{}
 
 	defer func() { _ = web.JSON(c, &rsp) }()
 
@@ -159,7 +159,7 @@ func TermSet(c fiber.Ctx) error {
 	var (
 		set      = map[string]interface{}{}
 		username = ""
-		table    = api.TermTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
+		table    = hpapi.TermTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
 	)
 
 	if s, err := us.Profile(); err == nil {
@@ -170,7 +170,7 @@ func TermSet(c fiber.Ctx) error {
 
 	switch model.Type {
 
-	case api.TermTag:
+	case hpapi.TermTag:
 
 		uniTitle := spaceReg.ReplaceAllString(strings.TrimSpace(strings.ToLower(rsp.Title)), " ")
 
@@ -211,7 +211,7 @@ func TermSet(c fiber.Ctx) error {
 			set["userid"] = username
 		}
 
-	case api.TermTaxonomy:
+	case hpapi.TermTaxonomy:
 
 		if rsp.ID > 0 {
 

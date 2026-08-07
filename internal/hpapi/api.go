@@ -12,21 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package websrv
+package hpapi
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"fmt"
 
-	"github.com/hooto/hpress/internal/config"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/lessos/lessgo/encoding/json"
 )
 
-// Register mounts the comment module routes on a fiber router. The caller mounts
-// the router at "/hp/+/comment" (note the literal "+", which the caller escapes).
-// Routes reproduce the httpsrv "Comment" controller paths
-// {prefix}/comment/embed, {prefix}/comment/set plus the static asset prefix /~.
-func Register(router fiber.Router) {
-	router.All("/comment/embed", CommentEmbed)
-	router.All("/comment/set", CommentSet)
-	router.Get("/~/*", web.DiskStatic(config.Prefix+"/modules/core/comment/static/"))
+const (
+	Version = "0.0.0.dev00"
+)
+
+const (
+	ErrCodeBadArgument   = "BadArgument"
+	ErrCodeInternalError = "InternalError"
+	ErrCodeNotFound      = "NotFound"
+)
+
+func NsSysDataPull() []byte {
+	return []byte("hp:sys:config:ext_data_pull")
+}
+
+func NsSysNodeSearch(bukname string) []byte {
+	return []byte("hp:sys:config:ext_node_search:" + bukname)
+}
+
+func NsTextSearchCacheNodeEntry(bukname, id string) []byte {
+	return []byte("hp:cache:node:" + bukname + ":" + id)
+}
+
+func ObjPrint(name string, obj interface{}) {
+	js, _ := json.Encode(obj, "  ")
+	fmt.Println(name, string(js))
 }

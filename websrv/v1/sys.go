@@ -25,10 +25,10 @@ import (
 	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/types"
 
-	"github.com/hooto/hpress/api"
-	"github.com/hooto/hpress/config"
-	"github.com/hooto/hpress/status"
-	"github.com/hooto/hpress/store"
+	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/status"
+	"github.com/hooto/hpress/internal/store"
 	"github.com/hooto/hpress/websrv/web"
 )
 
@@ -55,7 +55,7 @@ func SysConfigList(c fiber.Ctx) error {
 
 func SysConfigSet(c fiber.Ctx) error {
 
-	var ls api.SysConfigList
+	var ls hpapi.SysConfigList
 
 	defer func() { _ = web.JSON(c, &ls) }()
 
@@ -67,7 +67,7 @@ func SysConfigSet(c fiber.Ctx) error {
 
 	err := web.Bind(c, &ls)
 	if err != nil {
-		ls.Error = &types.ErrorMeta{api.ErrCodeBadArgument, "Bad Argument " + err.Error()}
+		ls.Error = &types.ErrorMeta{hpapi.ErrCodeBadArgument, "Bad Argument " + err.Error()}
 		return nil
 	}
 
@@ -83,7 +83,7 @@ func SysConfigSet(c fiber.Ctx) error {
 		rs, err := store.Data.Query(q)
 		if err != nil {
 			ls.Error = &types.ErrorMeta{
-				Code:    api.ErrCodeInternalError,
+				Code:    hpapi.ErrCodeInternalError,
 				Message: "Can not pull database instance",
 			}
 			return nil
@@ -115,7 +115,7 @@ func SysConfigSet(c fiber.Ctx) error {
 
 		if err != nil {
 			ls.Error = &types.ErrorMeta{
-				Code:    api.ErrCodeInternalError,
+				Code:    hpapi.ErrCodeInternalError,
 				Message: err.Error(),
 			}
 			return nil
@@ -133,10 +133,10 @@ func SysConfigSet(c fiber.Ctx) error {
 		}
 
 		if sync && entry.Key == "frontend_languages" {
-			config.Languages = []*api.LangEntry{}
-			if langs := api.LangsStringFilterArray(entry.Value); len(langs) > 0 {
+			config.Languages = []*hpapi.LangEntry{}
+			if langs := hpapi.LangsStringFilterArray(entry.Value); len(langs) > 0 {
 				for _, lv := range langs {
-					for _, lv2 := range api.LangArray {
+					for _, lv2 := range hpapi.LangArray {
 						if lv == lv2.Id {
 							config.Languages = append(config.Languages, lv2)
 						}
@@ -155,7 +155,7 @@ func SysConfigSet(c fiber.Ctx) error {
 
 func SysStatus(c fiber.Ctx) error {
 
-	set := api.SysStatus{}
+	set := hpapi.SysStatus{}
 
 	defer func() { _ = web.JSON(c, &set) }()
 
@@ -192,7 +192,7 @@ func SysStatus(c fiber.Ctx) error {
 
 func SysIamStatus(c fiber.Ctx) error {
 
-	var sets api.SysIamStatus
+	var sets hpapi.SysIamStatus
 
 	defer func() { _ = web.JSON(c, &sets) }()
 
@@ -215,7 +215,7 @@ func SysIamStatus(c fiber.Ctx) error {
 
 	cfg := iamserver.AppVerifier.Config()
 
-	sets = api.SysIamStatus{
+	sets = hpapi.SysIamStatus{
 		InstanceSelf: &iamapi.AppInstance{
 			ID:          config.Config.InstanceID,
 			Name:        config.AppName,
@@ -280,7 +280,7 @@ func memStatsFetch() runtime.MemStats {
 	return ms
 }
 
-func sysinfoFetch() api.SysStatusInfo {
+func sysinfoFetch() hpapi.SysStatusInfo {
 
 	// var si syscall.Sysinfo_t
 	// syscall.Sysinfo(&si)
@@ -288,7 +288,7 @@ func sysinfoFetch() api.SysStatusInfo {
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 
-	return api.SysStatusInfo{
+	return hpapi.SysStatusInfo{
 		CpuNum:    runtime.NumCPU(),
 		Uptime:    uptime.Unix(),       // si.Uptime,
 		Loads:     [3]uint64{0, 0, 0},  // si.Loads,
