@@ -26,7 +26,6 @@ import (
 
 	"github.com/hooto/hcaptcha/captcha4g"
 	"github.com/hooto/hflag4g/hflag"
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/htoml4g/htoml"
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/hooto/iam/v2/pkg/iamserver"
@@ -151,7 +150,7 @@ func init() {
 		for {
 			time.Sleep(60e9)
 			if err := syncInnerStackConfig(); err != nil {
-				hlog.Printf("error", "syncInnerStackConfig err: %s", err.Error())
+				slog.Error(fmt.Sprintf("syncInnerStackConfig err: %s", err.Error()))
 			}
 		}
 	}()
@@ -259,7 +258,7 @@ func Setup() error {
 	{
 		rs, err := store.Data.Query(store.Data.NewQueryer().From("hp_sys_config").Limit(1000))
 		if err != nil {
-			hlog.Print("error", err.Error())
+			slog.Error(err.Error())
 			return err
 		}
 
@@ -304,8 +303,8 @@ func Setup() error {
 
 	inited = true
 
-	hlog.Printf("info", "hooto-press inited, version %s, release %s",
-		Version, Release)
+	slog.Info(fmt.Sprintf("hooto-press inited, version %s, release %s",
+		Version, Release))
 
 	return nil
 }
@@ -466,7 +465,7 @@ func syncInnerStackConfig() error {
 
 	if chg {
 		Save()
-		hlog.Printf("warn", "sysinner configs synced")
+		slog.Warn("sysinner configs synced")
 	}
 
 	return nil
@@ -512,19 +511,19 @@ func storeSetup() error {
 	}
 
 	if err := store.Setup(Config.DataCache, Config.IoConnectors); err != nil {
-		hlog.Printf("error", "storeSetup %s", err.Error())
+		slog.Error(fmt.Sprintf("storeSetup %s", err.Error()))
 		return err
 	}
 
 	dm, err := store.Data.Modeler()
 	if err != nil {
-		hlog.Printf("error", "storeSetup %s", err.Error())
+		slog.Error(fmt.Sprintf("storeSetup %s", err.Error()))
 		return err
 	}
 
 	err = dm.SchemaSyncByJson(dsBase)
 	if err != nil {
-		hlog.Printf("error", "storeSetup %s", err.Error())
+		slog.Error(fmt.Sprintf("storeSetup %s", err.Error()))
 	}
 
 	Save()

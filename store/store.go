@@ -17,9 +17,9 @@ package store
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/lynkdb/iomix/connect"
 	"github.com/lynkdb/iomix/rdb"
 	"github.com/lynkdb/kvgo/v2/pkg/kvapi"
@@ -48,7 +48,7 @@ func Setup(dbc *storage.Options, cfg connect.MultiConnOptions) error {
 
 	opts := cfg.Options("hpress_database")
 	if opts == nil {
-		hlog.Print("error", err.Error())
+		slog.Error(err.Error())
 		return errors.New("No hpress_database Config.IoConnectors Found")
 	}
 
@@ -65,7 +65,7 @@ func Setup(dbc *storage.Options, cfg connect.MultiConnOptions) error {
 	}
 
 	if err != nil {
-		hlog.Printf("error", "store_init %s", err.Error())
+		slog.Error(fmt.Sprintf("store_init %s", err.Error()))
 		return err
 	}
 
@@ -125,14 +125,14 @@ func db_fix_term_autoincr(data rdb.Connector) error {
 
 		// ensure the sequence exists (no-op if already present)
 		if _, err := data.ExecRaw(fmt.Sprintf("CREATE SEQUENCE IF NOT EXISTS %s", seq)); err != nil {
-			hlog.Printf("warn", "term autoincr fix: %s create sequence: %s", t, err.Error())
+			slog.Warn(fmt.Sprintf("term autoincr fix: %s create sequence: %s", t, err.Error()))
 			continue
 		}
 
 		// wire the id default to the sequence
 		if _, err := data.ExecRaw(fmt.Sprintf(
 			"ALTER TABLE %s ALTER COLUMN id SET DEFAULT nextval('%s')", qt, seq)); err != nil {
-			hlog.Printf("warn", "term autoincr fix: %s set default: %s", t, err.Error())
+			slog.Warn(fmt.Sprintf("term autoincr fix: %s set default: %s", t, err.Error()))
 			continue
 		}
 
@@ -149,7 +149,7 @@ func db_fix_term_autoincr(data rdb.Connector) error {
 		if ur, err := data.ExecRaw(fmt.Sprintf(
 			"UPDATE %s SET id = nextval('%s') WHERE id = 0", qt, seq)); err == nil {
 			if n, _ := ur.RowsAffected(); n > 0 {
-				hlog.Printf("warn", "term autoincr fix: %s reassigned %d id=0 row(s)", t, n)
+				slog.Warn(fmt.Sprintf("term autoincr fix: %s reassigned %d id=0 row(s)", t, n))
 			}
 		}
 	}
@@ -181,8 +181,8 @@ func db_upgrade_0_5(data rdb.Connector) error {
 
 				sqls := []string{}
 
-				hlog.Printf("warn", "store_init upgrade table %s, colume %s, to int",
-					tbl.Name, cv.Name)
+				slog.Warn(fmt.Sprintf("store_init upgrade table %s, colume %s, to int",
+					tbl.Name, cv.Name))
 
 				switch DataOptions.Driver {
 
@@ -209,8 +209,8 @@ func db_upgrade_0_5(data rdb.Connector) error {
 					}
 				}
 
-				hlog.Printf("warn", "store_init upgrade table %s, colume %s, to int, DONE",
-					tbl.Name, cv.Name)
+				slog.Warn(fmt.Sprintf("store_init upgrade table %s, colume %s, to int, DONE",
+					tbl.Name, cv.Name))
 			}
 		}
 
@@ -228,7 +228,7 @@ func db_upgrade_0_5(data rdb.Connector) error {
 				tbl_name_new = "hp_" + tbl.Name
 			}
 
-			hlog.Printf("warn", "store_init rename table %s to %s", tbl.Name, tbl_name_new)
+			slog.Warn(fmt.Sprintf("store_init rename table %s to %s", tbl.Name, tbl_name_new))
 
 			sql := ""
 
@@ -245,7 +245,7 @@ func db_upgrade_0_5(data rdb.Connector) error {
 				return err
 			}
 
-			hlog.Printf("warn", "store_init rename table %s to %s, DONE", tbl.Name, tbl_name_new)
+			slog.Warn(fmt.Sprintf("store_init rename table %s to %s, DONE", tbl.Name, tbl_name_new))
 		}
 
 	}

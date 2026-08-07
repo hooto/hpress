@@ -18,10 +18,9 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"regexp"
 	"strings"
-
-	"github.com/hooto/hlog4g/hlog"
 
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
@@ -63,7 +62,7 @@ func Pagelet(data map[string]interface{}, args ...string) template.HTML {
 
 	defer func() {
 		if err := recover(); err != nil {
-			hlog.Printf("error", "Pagelet Panic %s", err)
+			slog.Error(fmt.Sprintf("Pagelet Panic %s", err))
 		}
 	}()
 

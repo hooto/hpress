@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"runtime"
 	"time"
@@ -23,7 +24,6 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/hooto/hlang4g/hlang"
-	"github.com/hooto/hlog4g/hlog"
 
 	"github.com/lynkdb/lynkui/go/lynkui"
 	"github.com/lynkdb/lynkui/go/uiserver"
@@ -50,6 +50,13 @@ var (
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	// Default slog logger: text format to stderr with source location. LevelInfo
+	// preserves the prior hlog4g effective behavior (INFO+ shown, DEBUG dropped).
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level:     slog.LevelInfo,
+		AddSource: true,
+	})))
 }
 
 func main() {
@@ -80,7 +87,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		hlog.Printf("error", "config.Setup error: %v", err)
+		slog.Error(fmt.Sprintf("config.Setup error: %v", err))
 		time.Sleep(retry)
 
 		if retry < time.Minute {

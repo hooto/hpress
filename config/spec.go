@@ -17,12 +17,12 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/htoml4g/htoml"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lynkdb/iomix/rdb/modeler"
@@ -166,7 +166,7 @@ func module_init() error {
 						sync = true
 
 						if err := _instance_schema_sync(&mod); err != nil {
-							hlog.Printf("error", err.Error())
+							slog.Error(err.Error())
 							return err
 						}
 					}
@@ -198,7 +198,7 @@ func module_init() error {
 							}
 						}
 
-						hlog.Printf("warn", "upgrade %s/%s %d/%d", mod.Meta.Name, table, num, len(rs))
+						slog.Warn(fmt.Sprintf("upgrade %s/%s %d/%d", mod.Meta.Name, table, num, len(rs)))
 					}
 				}
 
@@ -220,7 +220,7 @@ func module_init() error {
 
 				Modules[mod.SrvName] = &mod
 			} else {
-				hlog.Printf("error", "Module.Init(%s) Failed", v.Field("name").String())
+				slog.Error(fmt.Sprintf("Module.Init(%s) Failed", v.Field("name").String()))
 			}
 		}
 	}

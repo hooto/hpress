@@ -19,11 +19,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/api"
@@ -332,10 +332,10 @@ func data_search_sync() error {
 			if indexNum > 0 {
 				cfgs.Set("index_updated", indexUpdated)
 				if rs := store.DataLocal.NewWriter(kvKey, nil).SetJsonValue(cfgs).Exec(); !rs.OK() {
-					hlog.Printf("warn", "search index error")
+					slog.Warn("search index error")
 				}
-				hlog.Printf("info", "search data sync %d at %v",
-					indexNum, time.Since(indexStart))
+				slog.Info(fmt.Sprintf("search data sync %d at %v",
+					indexNum, time.Since(indexStart)))
 			}
 		}
 	}

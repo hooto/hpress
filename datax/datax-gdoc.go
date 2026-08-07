@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io/ioutil"
+	"log/slog"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -26,7 +27,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
@@ -193,17 +193,17 @@ func gdocRefresh() {
 
 			ver, err := vcsAction(repo)
 			if err != nil {
-				hlog.Printf("warn", "vcs %s, err %s", v.ID, err.Error())
+				slog.Warn(fmt.Sprintf("vcs %s, err %s", v.ID, err.Error()))
 				continue
 			}
 
 			if ver != gdocVerDef && ver == v.Field("repo_version").Value {
-				hlog.Printf("debug", "vcs %s, version %s, skip", v.ID, ver)
+				slog.Debug(fmt.Sprintf("vcs %s, version %s, skip", v.ID, ver))
 				continue
 			}
 
 			if err := gdocRefreshItem(v.ID, v.UserID, ver, dir); err != nil {
-				hlog.Printf("warn", "vcs %s, version %s, err %s", v.ID, ver, err.Error())
+				slog.Warn(fmt.Sprintf("vcs %s, version %s, err %s", v.ID, ver, err.Error()))
 			}
 		}
 
@@ -246,7 +246,7 @@ func expGdocRefreshPath() {
 		docId := idhash.HashToHexString([]byte(dir), 12)
 
 		if err := gdocRefreshItem(docId, "sysadmin", ver, dir); err != nil {
-			hlog.Printf("warn", "vcs %s, version %s, err %s", docId, ver, err.Error())
+			slog.Warn(fmt.Sprintf("vcs %s, version %s, err %s", docId, ver, err.Error()))
 		} else {
 			gdocLocalPaths[docId] = dir
 		}
@@ -260,7 +260,7 @@ func gdocRefreshItem(docId, userId, ver, dir string) error {
 		table    = api.NodeTableName("core/gdoc", "page")
 	)
 
-	hlog.Printf("debug", "vcs %s, version %s", docId, ver)
+	slog.Debug(fmt.Sprintf("vcs %s, version %s", docId, ver))
 
 	args := []string{
 		dir,
@@ -304,7 +304,7 @@ func gdocRefreshItem(docId, userId, ver, dir string) error {
 
 		bs, err := ioutil.ReadFile(path)
 		if err != nil {
-			hlog.Printf("warn", "doc %s, path walk err %s", docId, err.Error())
+			slog.Warn(fmt.Sprintf("doc %s, path walk err %s", docId, err.Error()))
 			continue
 		}
 		txt := gdocTextFilter(string(bs))
@@ -374,17 +374,17 @@ func gdocRefreshItem(docId, userId, ver, dir string) error {
 				_, err = store.Data.Update(table, sets, fr)
 			} else {
 				err = nil
-				hlog.Printf("debug", "doc %s, page %s, path %s, skip",
-					docId, nodeId, subPath)
+				slog.Debug(fmt.Sprintf("doc %s, page %s, path %s, skip",
+					docId, nodeId, subPath))
 			}
 		}
 
 		if err != nil {
-			hlog.Printf("info", "doc %s, page %s, path %s, refreshed err %s",
-				docId, nodeId, subPath, err.Error())
+			slog.Info(fmt.Sprintf("doc %s, page %s, path %s, refreshed err %s",
+				docId, nodeId, subPath, err.Error()))
 		} else {
-			hlog.Printf("debug", "doc %s, page %s, path %s, refreshed %d",
-				docId, nodeId, subPath, len(bs))
+			slog.Debug(fmt.Sprintf("doc %s, page %s, path %s, refreshed %d",
+				docId, nodeId, subPath, len(bs)))
 		}
 	}
 

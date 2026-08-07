@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,7 +32,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 
@@ -249,7 +249,7 @@ func (it *NodeSphinxSearchEngine) configRefresh() error {
 		return err
 	}
 
-	hlog.Printf("info", "config/refresh buckets: %d", len(it.cfgs.Buckets))
+	slog.Info(fmt.Sprintf("config/refresh buckets: %d", len(it.cfgs.Buckets)))
 
 	return nil
 }
@@ -291,7 +291,7 @@ func (it *NodeSphinxSearchEngine) setupServer() error {
 			}
 
 			if _, err := it.dataRefresh(buk.Name, v, nil); err != nil {
-				hlog.Printf("error", "setup/DataSource %s/%s, ER %s", buk.Name, v, err.Error())
+				slog.Error(fmt.Sprintf("setup/DataSource %s/%s, ER %s", buk.Name, v, err.Error()))
 			}
 
 			args := []string{
@@ -304,16 +304,16 @@ func (it *NodeSphinxSearchEngine) setupServer() error {
 			}
 
 			if _, err := exec.Command(it.binIndexer, args...).Output(); err != nil {
-				hlog.Printf("warn", "setup/DataIndex %s, ER %s", idxname, err.Error())
+				slog.Warn(fmt.Sprintf("setup/DataIndex %s, ER %s", idxname, err.Error()))
 			}
 		}
 
-		hlog.Printf("info", "server/setup %s", buk.Name)
+		slog.Info(fmt.Sprintf("server/setup %s", buk.Name))
 		buk.statsActive = true
 	}
 
 	if !running {
-		hlog.Printf("info", "setup/ServerStart")
+		slog.Info(fmt.Sprintf("setup/ServerStart"))
 		if _, err = exec.Command(it.binServer, "-c", it.cfgVendorPath).Output(); err != nil {
 			return err
 		}
@@ -342,7 +342,7 @@ func (it *NodeSphinxSearchEngine) runAction() {
 	}
 
 	if err := it.setupServer(); err != nil {
-		hlog.Printf("error", "server %s", err.Error())
+		slog.Error(fmt.Sprintf("server %s", err.Error()))
 		return
 	}
 
@@ -360,7 +360,7 @@ func (it *NodeSphinxSearchEngine) runAction() {
 				buk.StatsFullIndexed = tn
 				json.EncodeToFile(it.cfgs, it.cfgConfigPath, "  ")
 			} else {
-				hlog.Printf("error", "index/full ER %s", err.Error())
+				slog.Error(fmt.Sprintf("index/full ER %s", err.Error()))
 			}
 		}
 
@@ -368,17 +368,17 @@ func (it *NodeSphinxSearchEngine) runAction() {
 			if n, err := it.indexDelta(active); err == nil {
 				active.deltaIndexNum = n
 			} else {
-				hlog.Printf("error", "index/delta ER %s", err.Error())
+				slog.Error(fmt.Sprintf("index/delta ER %s", err.Error()))
 			}
 		}
 
 		if len(active.deltas) > it.merge_max {
-			hlog.Printf("info", "merge %d", len(active.deltas))
+			slog.Info(fmt.Sprintf("merge %d", len(active.deltas)))
 			if err := it.indexMerge(active.bukname); err == nil {
 				active.deltas = []api.Node{}
 				active.deltaIndexNum = 0
 			} else {
-				hlog.Printf("error", "index/merge ER %s", err.Error())
+				slog.Error(fmt.Sprintf("index/merge ER %s", err.Error()))
 			}
 		}
 	}
@@ -456,9 +456,9 @@ func (it *NodeSphinxSearchEngine) indexFull(active *sphinxSearchBucketActive) er
 
 	if n > 0 {
 		if err = it.index(active, "full"); err != nil {
-			hlog.Printf("error", "index/full ER %s", err.Error())
+			slog.Error(fmt.Sprintf("index/full ER %s", err.Error()))
 		} else {
-			hlog.Printf("info", "index/full %s, num %d", active.bukname, n)
+			slog.Info(fmt.Sprintf("index/full %s, num %d", active.bukname, n))
 		}
 	}
 
@@ -484,9 +484,9 @@ func (it *NodeSphinxSearchEngine) indexDelta(active *sphinxSearchBucketActive) (
 
 	if n > 0 {
 		if err = it.index(active, "delta"); err != nil {
-			hlog.Printf("error", "index/delta ER %s", err.Error())
+			slog.Error(fmt.Sprintf("index/delta ER %s", err.Error()))
 		} else {
-			hlog.Printf("info", "index/delta %s, num %d", active.bukname, n)
+			slog.Info(fmt.Sprintf("index/delta %s, num %d", active.bukname, n))
 		}
 	}
 
@@ -528,7 +528,7 @@ func (it *NodeSphinxSearchEngine) dataRefresh(
 		num  = 0
 	)
 
-	// hlog.Printf("info", "dataRefresh %s %s", bukname, idxtype)
+	// slog.Info(fmt.Sprintf("dataRefresh %s %s", bukname, idxtype))
 
 	fp, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
@@ -555,7 +555,7 @@ func (it *NodeSphinxSearchEngine) dataRefresh(
 
 	if fn != nil {
 		if num = fn(fpbuf); num > 0 {
-			hlog.Printf("info", "data/refresh %s/%s, num %d", bukname, idxtype, num)
+			slog.Info(fmt.Sprintf("data/refresh %s/%s, num %d", bukname, idxtype, num))
 		}
 	}
 
@@ -591,9 +591,9 @@ func (it *NodeSphinxSearchEngine) index(active *sphinxSearchBucketActive, idxtyp
 func (it *NodeSphinxSearchEngine) indexRepair(idxname string) error {
 	_, err := exec.Command(it.binIndexTool, "-c", it.cfgVendorPath, "--check", idxname).Output()
 	if err != nil {
-		hlog.Printf("error", "indexRepair %s, err %s", idxname, err.Error())
+		slog.Error(fmt.Sprintf("indexRepair %s, err %s", idxname, err.Error()))
 	} else {
-		hlog.Printf("info", "indexRepair %s", idxname)
+		slog.Info(fmt.Sprintf("indexRepair %s", idxname))
 	}
 	return err
 }

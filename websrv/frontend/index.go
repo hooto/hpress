@@ -17,6 +17,7 @@ package frontend
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -24,7 +25,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/hooto/iam/v2/pkg/iamserver"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/types"
@@ -424,7 +424,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad api.ActionDat
 					}
 					localPath = filepath.Clean(localPath)
 					if err := s2Server(ix.c, ix.urlAct, localPath); err != nil {
-						hlog.Printf("warn", "s2Server: %v", err)
+						slog.Warn(fmt.Sprintf("s2Server: %v", err))
 					}
 				}
 			}

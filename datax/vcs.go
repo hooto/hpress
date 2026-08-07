@@ -17,7 +17,9 @@ package datax
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,7 +29,6 @@ import (
 	"time"
 
 	"github.com/hooto/hini4g/hini"
-	"github.com/hooto/hlog4g/hlog"
 )
 
 var (
@@ -82,14 +83,14 @@ func vcsAction(vit *VcsRepoItem) (string, error) {
 	//
 	err := vcsGitPrepare(vit)
 	if err != nil {
-		hlog.Printf("info", "git pull %s", err.Error())
+		slog.Info(fmt.Sprintf("git pull %s", err.Error()))
 		return "", err
 	}
 
 	//
 	err = vcsGitFetch(vit)
 	if err != nil {
-		hlog.Printf("info", "git pull %s", err.Error())
+		slog.Info(fmt.Sprintf("git pull %s", err.Error()))
 		return "", err
 	}
 

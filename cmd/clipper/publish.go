@@ -128,6 +128,12 @@ func runPublish(mdPath string, isUpdate bool) error {
 	defTitle := ""
 	if state != nil {
 		defTitle = state.Title
+		if state.Tags == nil {
+			state.Tags = map[string]string{}
+		}
+		if state.Categories == nil {
+			state.Categories = map[string]string{}
+		}
 	}
 	if defTitle == "" {
 		defTitle = defaultTitle(mdContent, mdPath)

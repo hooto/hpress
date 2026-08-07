@@ -18,10 +18,10 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"regexp"
 
 	"github.com/hooto/hpress/api"
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/lynkdb/iomix/rdb"
 )
 
@@ -84,7 +84,7 @@ func db_upgrade_module_table_naming(data rdb.Connector) error {
 	// legacy tables either, so a query error is harmless.
 	names, err := data.QueryRaw("SELECT name FROM hp_modules")
 	if err != nil {
-		hlog.Printf("warn", "table naming upgrade: skip (cannot read hp_modules: %s)", err.Error())
+		slog.Warn(fmt.Sprintf("table naming upgrade: skip (cannot read hp_modules: %s)", err.Error()))
 		return nil
 	}
 
@@ -148,9 +148,19 @@ func renameModuleTables(data rdb.Connector, moduleNames []string) error {
 		// Rename-only: never touch an existing target. If one is already
 		// present the legacy table is left in place for manual resolution, so
 		// no data can be lost or modified regardless of how often this runs.
-		if mdr.TableExist(newName) {
-			hlog.Printf("warn", "table naming upgrade: target %s already exists, skip %s (rename-only)",
-				newName, tbl.Name)
+		//
+		// NOTE: do not use modeler.TableExist here. Its pgsqlgo driver runs
+		// "SELECT count(*) ..." and then returns len(rows) > 0, which is always
+		// true because count(*) always yields exactly one row -- so every name
+		// reports as existing and the whole rename pass would silently skip.
+		// See tableExists below for a correct check.
+		exists, existErr := tableExists(data, string(DataOptions.Driver), newName)
+		if existErr != nil {
+			return fmt.Errorf("table naming upgrade: exist check %s: %w", newName, existErr)
+		}
+		if exists {
+			slog.Warn(fmt.Sprintf("table naming upgrade: target %s already exists, skip %s (rename-only)",
+				newName, tbl.Name))
 			continue
 		}
 
@@ -158,10 +168,34 @@ func renameModuleTables(data rdb.Connector, moduleNames []string) error {
 			return fmt.Errorf("table naming upgrade: rename %s -> %s: %w", tbl.Name, newName, err)
 		}
 
-		hlog.Printf("warn", "table naming upgrade: renamed %s -> %s", tbl.Name, newName)
+		slog.Warn(fmt.Sprintf("table naming upgrade: renamed %s -> %s", tbl.Name, newName))
 	}
 
 	return nil
+}
+
+// tableExists reports whether a base table named tblName exists in the
+// connected database, for either supported driver.
+//
+// It exists because modeler.TableExist is broken on pgsqlgo: it issues
+// "SELECT count(*) FROM information_schema.tables WHERE table_name = ?" and then
+// tests len(rows) > 0. count(*) is an aggregate without GROUP BY, so it returns
+// exactly one row even when the count is 0 -- hence TableExist is true for any
+// name. Querying for an actual matching row (LIMIT 1) instead makes the result
+// correct: a row is returned only when the table really exists.
+func tableExists(data rdb.Connector, driver, tblName string) (bool, error) {
+	var q string
+	switch driver {
+	case "lynkdb/mysqlgo":
+		q = "SELECT 1 FROM INFORMATION_SCHEMA.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1"
+	default: // lynkdb/pgsqlgo
+		q = "SELECT 1 FROM INFORMATION_SCHEMA.tables WHERE table_schema = 'public' AND table_name = ? LIMIT 1"
+	}
+	rs, err := data.QueryRaw(q, tblName)
+	if err != nil {
+		return false, err
+	}
+	return len(rs) > 0, nil
 }
 
 // renameTable renames old to new using the driver-specific statement.

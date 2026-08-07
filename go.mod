@@ -24,7 +24,6 @@ require (
 	github.com/hooto/hflag4g v0.10.1
 	github.com/hooto/hini4g v0.1.2
 	github.com/hooto/hlang4g v0.1.1
-	github.com/hooto/hlog4g v0.9.5
 	github.com/hooto/htoml4g v0.9.5
 	github.com/hooto/iam/v2 v2.0.4
 	github.com/lessos/lessgo v1.0.1
@@ -80,6 +79,7 @@ require (
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
+	github.com/hooto/hlog4g v0.9.5 // indirect
 	github.com/hooto/hmetrics v0.0.2 // indirect
 	github.com/hooto/httpsrv v0.13.1 // indirect
 	github.com/hooto/httpsrv/v2 v2.0.0-beta.2 // indirect

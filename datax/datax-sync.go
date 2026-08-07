@@ -16,11 +16,11 @@ package datax
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/lessos/lessgo/types"
 	"github.com/lynkdb/iomix/rdb"
 	"github.com/lynkdb/mysqlgo"
@@ -100,8 +100,8 @@ func data_sync_pull() error {
 		}
 
 		if err != nil {
-			hlog.Printf("warn", "data connect ((%s) error : %s",
-				cv.Name, err.Error())
+			slog.Warn(fmt.Sprintf("data connect ((%s) error : %s",
+				cv.Name, err.Error()))
 			continue
 		}
 
@@ -145,7 +145,7 @@ func data_sync_pull() error {
 			if pv := cfgs.Get(up_name); pv.Uint32() > 0 {
 				up_offset = pv.Uint32()
 				q.Where().And("updated.ge", up_offset)
-				// hlog.Printf("warn", "%s updated.ge %d", vt.Name, pv.Uint32())
+				// slog.Warn(fmt.Sprintf("%s updated.ge %d", vt.Name, pv.Uint32()))
 			}
 
 			// fmt.Println("\nTABLE", vt.Name, tn, tng)
@@ -154,7 +154,7 @@ func data_sync_pull() error {
 
 				rs, err := src.Query(q)
 				if err != nil {
-					hlog.Printf("warn", "%s query error %s", vt.Name, err.Error())
+					slog.Warn(fmt.Sprintf("%s query error %s", vt.Name, err.Error()))
 					break
 				}
 
@@ -200,8 +200,8 @@ func data_sync_pull() error {
 						}
 
 						if err != nil {
-							hlog.Printf("warn", "data sync (%s) ErrInsert %s %s",
-								up_name, v.Field("id").String(), err.Error())
+							slog.Warn(fmt.Sprintf("data sync (%s) ErrInsert %s %s",
+								up_name, v.Field("id").String(), err.Error()))
 							break
 
 						} else {
@@ -210,8 +210,8 @@ func data_sync_pull() error {
 						}
 
 					} else if err != nil {
-						hlog.Printf("warn", "data sync (%s), ID: %s, QueryError %s",
-							vt.Name, v.Field("id").String(), err.Error())
+						slog.Warn(fmt.Sprintf("data sync (%s), ID: %s, QueryError %s",
+							vt.Name, v.Field("id").String(), err.Error()))
 						break
 					} else {
 
@@ -250,8 +250,8 @@ func data_sync_pull() error {
 							}
 
 							if err != nil {
-								hlog.Printf("warn", "data sync (%s) ErrUpdate %s %s",
-									up_name, v.Field("id").String(), err.Error())
+								slog.Warn(fmt.Sprintf("data sync (%s) ErrUpdate %s %s",
+									up_name, v.Field("id").String(), err.Error()))
 								// fmt.Println("  ER UPDATE", vt.Name, v.Field("id").String())
 								break
 							} else {
@@ -280,13 +280,13 @@ func data_sync_pull() error {
 
 			if err == nil {
 				if cnew > 0 || cupd > 0 {
-					hlog.Printf("info", "data sync (%s) INSERT %d, UPDATE %d, IGNORE %d",
-						up_name, cnew, cupd, cign)
+					slog.Info(fmt.Sprintf("data sync (%s) INSERT %d, UPDATE %d, IGNORE %d",
+						up_name, cnew, cupd, cign))
 					cfgs.Set(up_name, up_offset)
 				}
 			} else {
-				hlog.Printf("warn", "data sync ((%s) error : %s",
-					up_name, err.Error())
+				slog.Warn(fmt.Sprintf("data sync ((%s) error : %s",
+					up_name, err.Error()))
 			}
 		}
 	}

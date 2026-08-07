@@ -15,11 +15,11 @@
 package datax
 
 import (
+	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/hooto/hlog4g/hlog"
 
 	"github.com/hooto/hpress/store"
 )
@@ -106,11 +106,11 @@ func Worker() {
 			}
 
 			if err := data_search_sync(); err != nil {
-				hlog.Printf("error", "data_search_sync error : %s", err.Error())
+				slog.Error(fmt.Sprintf("data_search_sync error : %s", err.Error()))
 			}
 
 			if err := data_sync_pull(); err != nil {
-				hlog.Printf("error", "data_sync_pull error : %s", err.Error())
+				slog.Error(fmt.Sprintf("data_sync_pull error : %s", err.Error()))
 			}
 		}
 

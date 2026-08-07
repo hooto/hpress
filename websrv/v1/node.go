@@ -30,12 +30,13 @@ import (
 	"github.com/hooto/hpress/api"
 	"github.com/hooto/hpress/config"
 	"github.com/hooto/hpress/datax"
+	"github.com/hooto/hpress/internal/utils"
 	"github.com/hooto/hpress/store"
 	"github.com/hooto/hpress/websrv/web"
 )
 
 var (
-	node_id_length         = 12
+	node_id_length         = 8
 	node_pid_default       = "00"
 	node_list_limit  int64 = 15
 	node_set_lock    sync.Mutex
@@ -323,7 +324,7 @@ func NodeSet(c fiber.Ctx) error {
 
 	} else {
 
-		set["id"] = idhash.RandHexString(node_id_length)
+		set["id"] = utils.SeqRandHexString(4, node_id_length)
 		// set["title"] = rsp.Title
 		set["status"] = rsp.Status
 		set["created"] = uint32(time.Now().Unix())

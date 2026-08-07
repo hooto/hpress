@@ -24,6 +24,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"log/slog"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -34,7 +35,6 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/lessos/lessgo/crypto/idhash"
 	"github.com/lessos/lessgo/sync"
 
@@ -213,7 +213,7 @@ func s2Server(c fiber.Ctx, objPath, absPath string) error {
 		imBytes := rs.Item().Value
 		c.Set("Cache-Control", "max-age=86400")
 		c.Set("Content-type", mediaType)
-		hlog.Printf("debug", "image cache hit %s, bytes %d", key, len(imBytes))
+		slog.Debug(fmt.Sprintf("image cache hit %s, bytes %d", key, len(imBytes)))
 		return c.Send(imBytes)
 	}
 
@@ -345,8 +345,8 @@ func s2Server(c fiber.Ctx, objPath, absPath string) error {
 	}
 
 	if st, err := fp.Stat(); err == nil {
-		hlog.Printf("info", "image resize %s from %d to %d bytes",
-			key, st.Size(), dstBuf.Len())
+		slog.Info(fmt.Sprintf("image resize %s from %d to %d bytes",
+			key, st.Size(), dstBuf.Len()))
 	}
 
 	return nil

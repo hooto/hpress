@@ -17,11 +17,11 @@ package datax
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/hooto/hlog4g/hlog"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
 
@@ -169,7 +169,7 @@ func (it *NodeLynkSearchEngine) trySetupBucket(active *lynkSearchBucketActive) e
 		active.lynkSearch = ins
 	}
 
-	hlog.Printf("info", "search bucket (%s) setup ok", active.config.Name)
+	slog.Info(fmt.Sprintf("search bucket (%s) setup ok", active.config.Name))
 	return nil
 }
 
@@ -201,7 +201,7 @@ func (it *NodeLynkSearchEngine) runAction() {
 			active.config.StatsFullIndexed = tn
 			json.EncodeToFile(it.cfgs, it.cfgConfigPath, "  ")
 		} else {
-			hlog.Printf("error", "index/full ER %s", err.Error())
+			slog.Error(fmt.Sprintf("index/full ER %s", err.Error()))
 		}
 	}
 }
@@ -239,12 +239,12 @@ func (it *NodeLynkSearchEngine) indexFull(active *lynkSearchBucketActive) error 
 
 	if num > 0 {
 		if err := active.lynkSearch.Flush(); err != nil {
-			hlog.Printf("error", "index/full buk %s, doc-num %d,  error %s",
-				active.config.Name, num, err.Error())
+			slog.Error(fmt.Sprintf("index/full buk %s, doc-num %d,  error %s",
+				active.config.Name, num, err.Error()))
 			return err
 		} else {
-			hlog.Printf("info", "index/full buk %s, doc-num %d",
-				active.config.Name, num)
+			slog.Info(fmt.Sprintf("index/full buk %s, doc-num %d",
+				active.config.Name, num))
 		}
 	}
 
@@ -305,7 +305,7 @@ func (it *NodeLynkSearchEngine) Query(bukName string, q string, qs *QuerySet) ap
 	}
 	{
 		rsjs, _ := codec.Json.Encode(rs)
-		hlog.Printf("info", "query result : %s", string(rsjs))
+		slog.Info(fmt.Sprintf("query result : %s", string(rsjs)))
 	}
 
 	rows := rs.Rows
