@@ -8,9 +8,10 @@
   import { openModal } from "../../lib/modal";
   import Alert from "../../lib/Alert.svelte";
   import TermSet from "./TermSet.svelte";
+  import type { TermModel } from "../../lib/types";
 
-  export let modname = "";
-  let items: any[] = [];
+  let { modname = "" }: { modname?: string } = $props();
+  let items: TermModel[] = $state([]);
   const alertId = "hpm-spec-termlist-alert";
 
   async function load() {
@@ -38,22 +39,22 @@
 <Alert id={alertId} />
 
 <div class="d-flex justify-content-end" style="margin-bottom:8px">
-  <button class="btn btn-primary btn-sm" on:click={() => openSet()}
+  <button class="btn btn-primary btn-sm" onclick={() => openSet()}
     >New Term</button
   >
 </div>
 <table class="table table-hover">
   <thead><tr><th>Name</th><th>Title</th><th>Type</th><th></th></tr></thead>
   <tbody>
-    {#each items as it (it.meta.name)}
+    {#each items as it (it.meta?.name)}
       <tr>
-        <td>{it.meta.name}</td>
+        <td>{it.meta?.name}</td>
         <td>{it.title}</td>
         <td>{it.type}</td>
         <td align="right">
           <button
             class="btn btn-sm btn-outline-dark"
-            on:click={() => openSet(it.meta.name)}>Edit</button
+            onclick={() => openSet(it.meta!.name)}>Edit</button
           >
         </td>
       </tr>

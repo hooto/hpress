@@ -8,6 +8,7 @@
   import { api, ApiError } from "../../lib/api";
   import { closeModal, patchTopModal } from "../../lib/modal";
   import { innerShow } from "../../lib/alert";
+  import { flashThen } from "../../lib/feedback";
   import Alert from "../../lib/Alert.svelte";
   import {
     nodedef,
@@ -167,9 +168,8 @@
       }
       const rsp = await api.put("mod-set/spec-node-set", req);
       if (!rsp || rsp.kind !== "NodeModel") return;
-      innerShow(alertId, "success", "Successful updated");
       onSaved();
-      setTimeout(closeModal, 600);
+      flashThen(alertId, "success", "Successful updated", closeModal, 600);
     } catch (e) {
       if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
       else innerShow(alertId, "danger", String(e));
@@ -188,14 +188,15 @@
 >
   <div class="row mb-2 align-items-center">
     <div class="col col-2">
-      <label class="form-label">Metadata</label>
+      <span class="form-label">Metadata</span>
     </div>
     <div class="col">
       <div class="row">
         <div class=" col-6">
-          <label class="form-label">Node Model Name</label>
+          <label class="form-label" for="nodeset-name">Node Model Name</label>
           {#if editing}
             <input
+              id="nodeset-name"
               type="text"
               class="form-control"
               value={form.meta.name}
@@ -203,6 +204,7 @@
             />
           {:else}
             <input
+              id="nodeset-name"
               type="text"
               class="form-control"
               bind:value={form.meta.name}
@@ -211,8 +213,8 @@
           {/if}
         </div>
         <div class=" col-6">
-          <label class="form-label">Title</label>
-          <input type="text" class="form-control" bind:value={form.title} />
+          <label class="form-label" for="nodeset-title">Title</label>
+          <input id="nodeset-title" type="text" class="form-control" bind:value={form.title} />
         </div>
       </div>
     </div>
@@ -220,7 +222,7 @@
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Fields</label>
+      <span class="form-label">Fields</span>
     </div>
     <div class="col">
       <table class="table hpm-table-std">
@@ -292,6 +294,8 @@
                     <button
                       type="button"
                       class="btn btn-sm btn-link text-danger"
+                      title="Remove"
+                      aria-label="Remove attribute"
                       onclick={() => delAttr(f, f.attrs.indexOf(a))}
                       ><i class="bi bi-x-lg"></i></button
                     >
@@ -325,7 +329,7 @@
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Terms</label>
+      <span class="form-label">Terms</span>
     </div>
     <div class="col">
       <table class="table table-sm hpm-table-std">
@@ -385,13 +389,14 @@
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">External</label>
+      <span class="form-label">External</span>
     </div>
     <div class="col">
       <div class="hpm-ext-grid">
         <div>
-          <label class="form-label">Access Counter</label>
+          <label class="form-label" for="nodeset-access-counter">Access Counter</label>
           <select
+            id="nodeset-access-counter"
             class="form-select form-select-sm"
             bind:value={form.extensions.access_counter}
           >
@@ -400,8 +405,9 @@
           </select>
         </div>
         <div>
-          <label class="form-label">Text Search</label>
+          <label class="form-label" for="nodeset-text-search">Text Search</label>
           <select
+            id="nodeset-text-search"
             class="form-select form-select-sm"
             bind:value={form.extensions.text_search}
           >
@@ -410,8 +416,9 @@
           </select>
         </div>
         <div>
-          <label class="form-label">Comment Enable</label>
+          <label class="form-label" for="nodeset-comment-enable">Comment Enable</label>
           <select
+            id="nodeset-comment-enable"
             class="form-select form-select-sm"
             bind:value={form.extensions.comment_enable}
           >
@@ -420,8 +427,9 @@
           </select>
         </div>
         <div>
-          <label class="form-label">Comment Per-Entry</label>
+          <label class="form-label" for="nodeset-comment-perentry">Comment Per-Entry</label>
           <select
+            id="nodeset-comment-perentry"
             class="form-select form-select-sm"
             bind:value={form.extensions.comment_perentry}
           >
@@ -430,8 +438,9 @@
           </select>
         </div>
         <div>
-          <label class="form-label">Permalink</label>
+          <label class="form-label" for="nodeset-permalink">Permalink</label>
           <select
+            id="nodeset-permalink"
             class="form-select form-select-sm"
             bind:value={form.extensions.permalink}
           >
@@ -444,10 +453,11 @@
   </div>
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Node Refer</label>
+      <label class="form-label" for="nodeset-node-refer">Node Refer</label>
     </div>
     <div class="col">
       <input
+        id="nodeset-node-refer"
         type="text"
         class="form-control"
         bind:value={form.extensions.node_refer}

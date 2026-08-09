@@ -2,7 +2,7 @@
   // lc-editor — CodeMirror 5 code editor for the file IDE. Ports lc-editor.js
   // (mode-by-extension dispatch, monokai theme, line numbers, fold gutter,
   // auto-close brackets/tags). binds Ctrl/Cmd-S to the parent save handler.
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount, onDestroy, untrack } from 'svelte'
   import CodeMirror from 'codemirror'
   import 'codemirror/lib/codemirror.css'
   import 'codemirror/theme/monokai.css'
@@ -24,12 +24,18 @@
   import 'codemirror/addon/fold/foldgutter.js'
   import 'codemirror/addon/fold/foldgutter.css'
 
-  export let value = ''
-  export let path = ''
-  export let onSave: () => void = () => {}
+  // value is two-way bound by the parent (bind:value), so it must be $bindable.
+  let {
+    value = $bindable(''),
+    path = '',
+    onSave = () => {},
+  }: { value?: string; path?: string; onSave?: () => void } = $props()
 
   let textarea: HTMLTextAreaElement
-  let cm: any = null
+  // $state so the external-sync $effect re-runs when the editor instance is
+  // ready (null → CodeMirror), not only on value/path changes.
+  let cm = $state<any>(null)
+  let lastPath = untrack(() => path)
 
   function modeFor(name: string): string {
     const ext = (name.split('.').pop() || '').toLowerCase()
@@ -87,9 +93,10 @@
     }
   })
 
-  // external value update (switching file content) → reload into the editor
-  let lastPath = path
-  $: if (cm) {
+  // external value/path update (switching file content) → reload into the editor.
+  // Tracks value, path (props) and cm ($state); lastPath is bookkeeping only.
+  $effect(() => {
+    if (!cm) return
     if (path !== lastPath) {
       lastPath = path
       cm.setOption('mode', modeFor(path))
@@ -101,10 +108,10 @@
       cm.setValue(value || '')
       cm.setCursor(cursor)
     }
-  }
+  })
 </script>
 
-<textarea bind:this={textarea} style="display:none" />
+<textarea bind:this={textarea} style="display:none"></textarea>
 
 <style>
   :global(.CodeMirror) {

@@ -8,6 +8,7 @@
   import { api, ApiError } from "../../lib/api";
   import { closeModal, patchTopModal } from "../../lib/modal";
   import { innerShow } from "../../lib/alert";
+import { flashThen } from "../../lib/feedback";
   import Alert from "../../lib/Alert.svelte";
   import { readFileAsDataURL } from "../../lib/s2/upload";
 
@@ -52,9 +53,8 @@
         data,
       });
       if (!rsp || rsp.kind !== "Spec") return;
-      innerShow(alertId, "success", "Successfully commit");
       onDone();
-      setTimeout(closeModal, 1000);
+      flashThen(alertId, "success", "Successfully commit", closeModal, 1000);
     } catch (e) {
       if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
       else innerShow(alertId, "danger", String(e));
@@ -64,6 +64,6 @@
 
 <Alert id={alertId} />
 <div class="mb-2">
-  <label class="form-label">Select package file (.txz / .tgz)</label>
-  <input type="file" class="form-control" bind:this={fileInput} />
+  <label class="form-label" for="specupload-file">Select package file (.txz / .tgz)</label>
+  <input id="specupload-file" type="file" class="form-control" bind:this={fileInput} />
 </div>

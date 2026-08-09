@@ -15,19 +15,24 @@
   import { paths } from '../config'
   import ObjSelector from '../s2/ObjSelector.svelte'
 
-  export let value = ''
-  export let formats = ['md', 'html', 'shtml', 'text']
-  export let format = 'md'
+  // value/format are two-way bound by the parent (bind:value / bind:format) so
+  // they must be $bindable.
+  let {
+    value = $bindable(''),
+    formats = ['md', 'html', 'shtml', 'text'],
+    format = $bindable('md'),
+  }: { value?: string; formats?: string[]; format?: string } = $props()
 
   let textarea: HTMLTextAreaElement
-  let previewEl: HTMLDivElement
-  let editorEl: HTMLDivElement
-  let cm: any = null
-  let showPreview = false
-  let previewHtml = ''
+  let previewEl = $state<HTMLDivElement | undefined>(undefined)
+  // $state so the external-value-sync $effect re-runs when the editor instance
+  // is ready (null → CodeMirror), not only on value changes.
+  let cm = $state<any>(null)
+  let showPreview = $state(false)
+  let previewHtml = $state('')
   const s2_bucket_default = '/deft/'
 
-  $: isMd = format === 'md'
+  const isMd = $derived(format === 'md')
 
   function renderPreview() {
     if (!cm) return
@@ -74,12 +79,15 @@
     }
   })
 
-  // external value updates (e.g. language switch) → push into the editor
-  $: if (cm && value !== cm.getValue()) {
-    const cursor = cm.getCursor()
-    cm.setValue(value || '')
-    cm.setCursor(cursor)
-  }
+  // external value updates (e.g. language switch) → push into the editor.
+  // Tracks `value` (bindable prop); cm is $state so the first run waits for it.
+  $effect(() => {
+    if (cm && value !== cm.getValue()) {
+      const cursor = cm.getCursor()
+      cm.setValue(value || '')
+      cm.setCursor(cursor)
+    }
+  })
 
   function setFormat(f: string) {
     format = f
@@ -130,7 +138,7 @@
   function onPreviewScroll() {
     if (scrollSource === 'editor' || !previewEl) return
     scrollSource = 'preview'
-    const scroller = cm.getScrollerElement ? cm.getScrollerElement() : null
+    const scroller = cm && cm.getScrollerElement ? cm.getScrollerElement() : null
     sync(previewEl, scroller)
     setTimeout(() => (scrollSource = null), 0)
   }
@@ -163,11 +171,11 @@
 <div class="hpm-editor">
   <div class="hpm-editor-toolbar">
     <div class="btn-group btn-group-sm">
-      {#each formats as f}
+      {#each formats as f (f)}
         <button
           type="button"
           class={'btn btn-outline-dark editor-nav-' + f + (format === f ? ' active' : '')}
-          on:click={() => setFormat(f)}
+          onclick={() => setFormat(f)}
         >
           {f === 'md' ? 'Makedown' : f}
         </button>
@@ -176,28 +184,28 @@
     {#if isMd}
       <div class="btn-group btn-group-sm ms-2">
         {#if !showPreview}
-          <button type="button" class="btn btn-outline-dark preview_open" on:click={togglePreview}
+          <button type="button" class="btn btn-outline-dark preview_open" onclick={togglePreview}
             >Preview</button
           >
         {:else}
-          <button type="button" class="btn btn-outline-dark preview_close" on:click={togglePreview}
+          <button type="button" class="btn btn-outline-dark preview_close" onclick={togglePreview}
             >Close Preview</button
           >
         {/if}
-        <button type="button" class="btn btn-outline-dark" on:click={insertImage}>Image</button>
+        <button type="button" class="btn btn-outline-dark" onclick={insertImage}>Image</button>
       </div>
     {/if}
   </div>
 
-  <div class="hpm-editor-layout" bind:this={editorEl}>
+  <div class="hpm-editor-layout">
     <div class="hpm-editor-col" style={'width:' + (showPreview ? '50%' : '100%')}>
-      <textarea bind:this={textarea} style="display:none" />
+      <textarea bind:this={textarea} style="display:none"></textarea>
     </div>
     {#if showPreview}
       <div
         class="hpm-editor-preview lynkui-scroll"
         bind:this={previewEl}
-        on:scroll={onPreviewScroll}
+        onscroll={onPreviewScroll}
       >
         {@html previewHtml}
       </div>

@@ -7,8 +7,10 @@
   import { timeParseFormat, fmtResourceSize, fmtDuration } from '../../lib/util'
   import type { SysStatus } from '../../lib/types'
 
-  let data: SysStatus | null = null
-  let now = Date.now()
+  // data/now are reassigned after the async fetch and consumed by the deriveds
+  // below, so they carry reactivity.
+  let data = $state<SysStatus | null>(null)
+  let now = $state(Date.now())
 
   onMount(async () => {
     try {
@@ -21,13 +23,14 @@
     }
   })
 
-  $: mem = data?.memstats || ({} as any)
-  $: sinceGc = mem.last_gc ? fmtDuration(now - mem.last_gc / 1000000) : '0'
-  $: avgGc =
+  const mem = $derived(data?.memstats || ({} as any))
+  const sinceGc = $derived(mem.last_gc ? fmtDuration(now - mem.last_gc / 1000000) : '0')
+  const avgGc = $derived(
     mem.pause_total_ns && mem.num_gc
       ? fmtDuration(mem.pause_total_ns / mem.num_gc, 1000000)
-      : '0'
-  $: totalGcPause = mem.pause_total_ns ? fmtDuration(mem.pause_total_ns, 1000000) : '0'
+      : '0',
+  )
+  const totalGcPause = $derived(mem.pause_total_ns ? fmtDuration(mem.pause_total_ns, 1000000) : '0')
 </script>
 
 {#if data}

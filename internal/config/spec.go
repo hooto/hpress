@@ -326,20 +326,6 @@ func module_init() error {
 		json.EncodeToFile(mod, fmt.Sprintf("%s/modules/%s/spec.json", Prefix, mod.Meta.Name), "  ")
 	}
 
-	// Migrate legacy hash-keyed tables for modules that were not yet in
-	// hp_modules at store.Setup time (e.g. exp modules loaded from disk or
-	// exp_module_inits that are not persisted). Uses the now-complete in-memory
-	// module list. Idempotent; a no-op on an already-migrated database.
-	moduleNames := make([]string, 0, len(Modules))
-	for _, mod := range Modules {
-		if mod.Meta.Name != "" {
-			moduleNames = append(moduleNames, mod.Meta.Name)
-		}
-	}
-	if err := store.UpgradeModuleTableNaming(moduleNames); err != nil {
-		return err
-	}
-
 	return nil
 }
 

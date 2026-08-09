@@ -40,8 +40,8 @@
   // exits left, new page enters from the right); pop/Back reverses.
   const trackShiftPct = $derived(`${active * -100}%`)
 
-  let trackEl: HTMLElement | undefined
-  let dialogEl: HTMLElement | undefined
+  let trackEl = $state<HTMLElement | undefined>(undefined)
+  let dialogEl = $state<HTMLElement | undefined>(undefined)
   let savedFocus: HTMLElement | null = null
   // Plain let (NOT $state): read-then-written inside the focus $effect, so it
   // must not be a tracked dependency or the effect would loop.
@@ -230,7 +230,7 @@
   }
 </script>
 
-<svelte:window on:keydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} />
 
 {#if isOpen && top}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -243,13 +243,13 @@
     aria-modal="true"
     aria-labelledby={top.title ? 'hpm-modal-title' : undefined}
     use:modalLifecycle
-    on:click={onBackdropClick}
+    onclick={onBackdropClick}
   >
     <div class="modal-dialog hpm-dialog" bind:this={dialogEl} style={dialogStyle(top)}>
       <div class="modal-content hpm-content">
         <div class="modal-header hpm-header">
           {#if active > 0 && top.backEnable !== false}
-            <button type="button" class="btn btn-dark btn-sm me-2" on:click={() => prevModal(top.onPrev)}>
+            <button type="button" class="btn btn-dark btn-sm me-2" onclick={() => prevModal(top.onPrev)}>
               Back
             </button>
           {/if}
@@ -258,7 +258,7 @@
           {:else}
             <span class="flex-grow-1"></span>
           {/if}
-          <button type="button" class="btn-close" aria-label="Close" on:click={() => closeModal()}></button>
+          <button type="button" class="btn-close" aria-label="Close" onclick={() => closeModal()}></button>
         </div>
 
         <div class="modal-body hpm-body">
@@ -281,7 +281,7 @@
         {#if top.buttons && top.buttons.length}
           <div class="modal-footer">
             {#each top.buttons as b}
-              <button type="button" class={`btn ${b.class || 'btn-dark'}`} on:click={() => btnClick(b)}>
+              <button type="button" class={`btn ${b.class || 'btn-dark'}`} onclick={() => btnClick(b)}>
                 {b.title}
               </button>
             {/each}

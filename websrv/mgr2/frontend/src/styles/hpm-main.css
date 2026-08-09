@@ -185,6 +185,13 @@ div.hpm-table-std {
   vertical-align: middle !important;
 }
 
+/* Inline empty-state for list cards. Distinct from the top alert banners:
+   sits inside .hpm-table-std where the table would be, muted and centered. */
+.hpm-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
 /*
  * Reusable Bootstrap .table utilities (apply alongside class="table").
  * Composable — combine as needed. Direct-child selectors scope each rule to
@@ -622,4 +629,22 @@ ul.pagination {
 
 .hpm-breadcrumb > li:first-child {
   margin-left: 0 !important;
+}
+
+/* JS-only action "links" (breadcrumbs, file tree, tabs, list titles) are real
+   <button>s: keyboard-accessible, no invalid href. Styled as an inline link. */
+.hp-link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  display: inline;
+  cursor: pointer;
+  color: var(--bs-link-color, #0d6efd);
+  text-decoration: underline;
+}
+
+.hp-link-btn:hover {
+  color: var(--bs-link-hover-color, #0a58ca);
+  text-decoration: underline;
 }

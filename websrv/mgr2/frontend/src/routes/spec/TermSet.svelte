@@ -9,6 +9,7 @@
   import { api, ApiError } from "../../lib/api";
   import { closeModal, patchTopModal } from "../../lib/modal";
   import { innerShow } from "../../lib/alert";
+import { flashThen } from "../../lib/feedback";
   import Alert from "../../lib/Alert.svelte";
   import { termTypedef, termdef, namereg, objectClone } from "./defs";
 
@@ -59,9 +60,8 @@
         modname,
       });
       if (!rsp || rsp.kind !== "TermModel") return;
-      innerShow(alertId, "success", "Successful updated");
       onSaved();
-      setTimeout(closeModal, 600);
+      flashThen(alertId, "success", "Successful updated", closeModal, 600);
     } catch (e) {
       if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
       else innerShow(alertId, "danger", String(e));
@@ -80,11 +80,12 @@
 >
   <div class="row mb-2 align-items-center">
     <div class="col col-2">
-      <label class="form-label">Name</label>
+      <label class="form-label" for="termset-name">Name</label>
     </div>
     <div class="col">
       {#if editing}
         <input
+          id="termset-name"
           type="text"
           class="form-control"
           value={form.meta.name}
@@ -92,6 +93,7 @@
         />
       {:else}
         <input
+          id="termset-name"
           type="text"
           class="form-control"
           bind:value={form.meta.name}
@@ -103,19 +105,19 @@
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Title</label>
+      <label class="form-label" for="termset-title">Title</label>
     </div>
     <div class="col">
-      <input type="text" class="form-control" bind:value={form.title} />
+      <input id="termset-title" type="text" class="form-control" bind:value={form.title} />
     </div>
   </div>
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Type</label>
+      <label class="form-label" for="termset-type">Type</label>
     </div>
     <div class="col">
-      <select class="form-select" bind:value={form.type}>
+      <select id="termset-type" class="form-select" bind:value={form.type}>
         {#each termTypedef as t (t.type)}<option value={t.type}>{t.name}</option>{/each}
       </select>
     </div>

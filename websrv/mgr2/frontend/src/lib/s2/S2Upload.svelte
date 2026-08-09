@@ -3,15 +3,18 @@
   // folder traversal). Ports the hpm-s2-objnew-tpl + ObjNew/_objNewUpload +
   // drag handlers in s2.js. 10 MiB/file cap, base64 POST, status lines,
   // auto-close after success.
+  import { untrack } from 'svelte'
   import { uploadS2Object, collectDroppedFiles } from './upload'
   import { closeModal } from '../modal'
 
-  export let path = '/'
-  export let onDone: () => void = () => {}
+  let {
+    path = '/',
+    onDone = () => {},
+  }: { path?: string; onDone?: () => void } = $props()
 
-  let ppath = path
-  let statusLines: { ok: boolean; msg: string }[] = []
-  let dragging = false
+  let ppath = $state(untrack(() => path))
+  let statusLines: { ok: boolean; msg: string }[] = $state([])
+  let dragging = $state(false)
   let fileInput: HTMLInputElement
 
   async function handleFiles(files: File[]) {
@@ -45,22 +48,24 @@
 </script>
 
 <div class="mb-3">
-  <label class="form-label">The target upload directory</label>
-  <input type="text" class="form-control" placeholder="Folder Path" bind:value={ppath} />
+  <label class="form-label" for="s2upload-path">The target upload directory</label>
+  <input id="s2upload-path" type="text" class="form-control" placeholder="Folder Path" bind:value={ppath} />
 </div>
 <div class="mb-3">
-  <label class="form-label">Select a single file to upload</label>
-  <input type="file" class="form-control" bind:this={fileInput} on:change={onInputChange} />
+  <label class="form-label" for="s2upload-file">Select a single file to upload</label>
+  <input id="s2upload-file" type="file" class="form-control" bind:this={fileInput} onchange={onInputChange} />
 </div>
 <div class="mb-3">
-  <label class="form-label">Select multifile to upload</label>
+  <span class="form-label">Select multifile to upload</span>
   <div
     class="_hpm_s2_fsupload_area"
     class:dashed={dragging}
-    on:dragenter={() => (dragging = true)}
-    on:dragleave={() => (dragging = false)}
-    on:dragover={onDragOver}
-    on:drop={onDrop}
+    role="region"
+    aria-label="File drop zone"
+    ondragenter={() => (dragging = true)}
+    ondragleave={() => (dragging = false)}
+    ondragover={onDragOver}
+    ondrop={onDrop}
   >
     Drag and Drop your files or folders to here
   </div>
@@ -68,7 +73,7 @@
 
 {#if statusLines.length}
   <div class="alert alert-success" style="display:block">
-    {#each statusLines as s}
+    {#each statusLines as s (s.msg)}
       <div>{s.msg}</div>
     {/each}
   </div>

@@ -4,30 +4,53 @@
   // term/list.tpl and term/set.tpl templates. Manages its own list↔set view
   // switching and the persisted page (hpm_termls_page).
   import { onMount } from 'svelte'
+  import type { Snippet } from 'svelte'
   import { api, ApiError } from '../api'
   import { innerShow } from '../alert'
-  import Alert from '../Alert.svelte'
+  import { flashThen } from '../feedback'
   import Pagination from '../Pagination.svelte'
+  import EmptyState from '../EmptyState.svelte'
   import { unixTimeFormat, pager as pagerCalc } from '../util'
   import { termlsPage } from '../store'
   import type { Term, TermList, TermModel, Pager as PagerT } from '../types'
 
-  export let modname: string
-  export let modelid: string
-  // parent node-section alert id (legacy used #hpm-node-alert)
-  export let alertId = 'hpm-node-alert'
+  interface TermRow {
+    id: string
+    pid: number | string
+    title: string
+    weight: number
+    status: number
+    created: string
+    updated: string
+    _subs?: TermRow[]
+    _dp?: number
+  }
 
-  let view: 'list' | 'set' = 'list'
-  let model: { title?: string; type?: string } = {}
-  let items: any[] = []
+  let {
+    modname,
+    modelid,
+    alertId = 'hpm-node-alert',
+    tabs,
+  }: {
+    modname: string
+    modelid: string
+    alertId?: string
+    tabs?: Snippet
+  } = $props()
+
+  let view: 'list' | 'set' = $state('list')
+  let model: { title?: string; type?: string } = $state({})
+  let items: TermRow[] = $state([])
+  // meta is only read inside loadList (a closure), never rendered, so plain let.
   let meta: any = {}
-  let pg: PagerT | null = null
-  let qry = ''
+  let pg: PagerT | null = $state(null)
+  let qry = $state('')
+  let loaded = $state(false)
 
-  // set-view state
-  let form: any = {}
+  // set-view state (deep-mutated by setCommit: form.id = ...)
+  let form: any = $state({})
 
-  $: isTaxonomy = model.type === 'taxonomy'
+  const isTaxonomy = $derived(model.type === 'taxonomy')
 
   async function loadList() {
     try {
@@ -41,19 +64,23 @@
       if (!rsj || rsj.kind !== 'TermList' || !rsj.items || rsj.items.length < 1) {
         items = []
         meta = rsj?.meta || {}
-        innerShow(alertId, 'info', 'Item Not Found')
+        loaded = true
+        // empty list is shown inline (EmptyState), not as a top alert
+        innerShow(alertId, '', '')
         pg = null
         return
       }
       innerShow(alertId, '', '')
       model = rsj.model || {}
       meta = rsj.meta || {}
-      const list = rsj.items.map((it: any) => ({
-        ...it,
+      const list: TermRow[] = (rsj.items || []).map((it: any) => ({
+        id: it.id,
+        pid: it.pid || 0,
+        title: it.title,
+        weight: it.weight || 0,
+        status: it.status || 0,
         created: unixTimeFormat(it.created, 'Y-m-d'),
         updated: unixTimeFormat(it.updated, 'Y-m-d H:i:s'),
-        weight: it.weight || 0,
-        pid: it.pid || 0,
       }))
       // build taxonomy tree (tag stays flat)
       if (model.type === 'taxonomy') {
@@ -66,16 +93,18 @@
         pg = pagerCalc(meta)
       }
       items = list
+      loaded = true
     } catch (e) {
       if (!(e instanceof ApiError && e.code === 'Unauthorized')) {
         alert('SpecListRefresh error, Please try again later (EC:app-termlist)')
       }
+      loaded = true
     }
   }
 
   // hpTerm.ListSubRange — flatten children of pid with depth
-  function listSubRange(ls: any[], pid: string, dpnum: number): any[] {
-    const rs: any[] = []
+  function listSubRange(ls: TermRow[], pid: string, dpnum: number): TermRow[] {
+    const rs: TermRow[] = []
     dpnum++
     for (const it of ls) {
       if (it.pid == pid) {
@@ -89,7 +118,7 @@
   }
 
   function sprint(n: number): string {
-    return '    '.repeat(n)
+    return '    '.repeat(n)
   }
 
   function listPage(n: number) {
@@ -159,8 +188,7 @@
         return
       }
       form.id = data.id
-      innerShow(alertId, 'success', 'Successful operation')
-      setTimeout(() => {
+      flashThen(alertId, 'success', 'Successful operation', () => {
         view = 'list'
         loadList()
       }, 500)
@@ -178,23 +206,24 @@
   onMount(loadList)
 </script>
 
-<Alert id={alertId} />
-
 {#if view === 'list'}
   <div class="hpm-block-gap-column">
-    <div class="hpm-block-gap-row-sm" style="margin-bottom:8px">
-      <button class="btn btn-primary" on:click={() => openSet()}>
-        New {model.title || 'Term'}
-      </button>
-      <form on:submit|preventDefault={search} class="d-inline-block ms-2">
-        <input
-          type="text"
-          class="form-control hpm-query-input d-inline-block"
-          style="width:240px"
-          placeholder="Press Enter to Search"
-          bind:value={qry}
-        />
-      </form>
+    <div class="d-flex flex-row align-items-center justify-content-between hpm-block-gap-row-sm" style="margin-bottom:8px">
+      <div class="d-flex flex-row align-items-center hpm-block-gap-row-sm">
+        <button class="btn btn-primary" onclick={() => openSet()}>
+          New {model.title || 'Term'}
+        </button>
+        <form onsubmit={(e) => { e.preventDefault(); search() }} class="d-inline-block ms-2">
+          <input
+            type="text"
+            class="form-control hpm-query-input d-inline-block"
+            style="width:240px"
+            placeholder="Press Enter to Search"
+            bind:value={qry}
+          />
+        </form>
+      </div>
+      {#if tabs}{@render tabs()}{/if}
     </div>
 
     <div class="hpm-table-std">
@@ -220,7 +249,7 @@
                   <td>{v.created}</td>
                   <td>{v.updated}</td>
                   <td align="right">
-                    <button class="btn btn-sm btn-outline-dark" on:click={() => openSet(v.id)}
+                    <button class="btn btn-sm btn-outline-dark" onclick={() => openSet(v.id)}
                       >Edit</button
                     >
                   </td>
@@ -229,12 +258,12 @@
                   {#each v._subs as v2 (v2.id)}
                     <tr>
                       <td>{v2.id}</td>
-                      <td>{@html sprint(v2._dp)}{v2.title}</td>
-                      <td>{@html sprint(v2._dp)}{v2.weight}</td>
+                      <td>{@html sprint(v2._dp || 0)}{v2.title}</td>
+                      <td>{@html sprint(v2._dp || 0)}{v2.weight}</td>
                       <td>{v2.created}</td>
                       <td>{v2.updated}</td>
                       <td align="right">
-                        <button class="btn btn-sm btn-outline-dark" on:click={() => openSet(v2.id)}
+                        <button class="btn btn-sm btn-outline-dark" onclick={() => openSet(v2.id)}
                           >Edit</button
                         >
                       </td>
@@ -245,6 +274,8 @@
             {/each}
           </tbody>
         </table>
+      {:else if loaded}
+        <EmptyState />
       {/if}
     </div>
     {#if pg}<Pagination pg={pg} onpage={listPage} />{/if}
@@ -258,14 +289,14 @@
         <input type="hidden" value={form.status} />
 
         <div class="mb-3">
-          <label class="form-label">Title</label>
-          <input type="text" class="form-control" bind:value={form.title} />
+          <label class="form-label" for="termmgr-title">Title</label>
+          <input id="termmgr-title" type="text" class="form-control" bind:value={form.title} />
         </div>
 
         {#if isTaxonomy}
           <div class="mb-3">
-            <label class="form-label">Relations</label>
-            <select class="form-select" bind:value={form.pid}>
+            <label class="form-label" for="termmgr-relations">Relations</label>
+            <select id="termmgr-relations" class="form-select" bind:value={form.pid}>
               <option value={0}>ROOT</option>
               {#each form._taxonomy_ls.items || [] as v (v.id)}
                 {#if v.pid == 0 && v.id != form.id}
@@ -274,7 +305,7 @@
                 {#if v._subs}
                   {#each v._subs as v2 (v2.id)}
                     {#if v2.id != form.id}
-                      <option value={v2.id}>{@html sprint(v2._dp)}{v2.title}</option>
+                      <option value={v2.id}>{@html sprint(v2._dp || 0)}{v2.title}</option>
                     {/if}
                   {/each}
                 {/if}
@@ -282,16 +313,16 @@
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Weight</label>
-            <input type="text" class="form-control" bind:value={form.weight} />
+            <label class="form-label" for="termmgr-weight">Weight</label>
+            <input id="termmgr-weight" type="text" class="form-control" bind:value={form.weight} />
           </div>
         {/if}
       {/if}
     </div>
 
     <div class="hpm-block-gap-row-sm">
-      <button class="btn btn-primary" on:click={setCommit}>Save</button>
-      <button class="btn btn-outline-primary" on:click={cancel}>Cancel</button>
+      <button class="btn btn-primary" onclick={setCommit}>Save</button>
+      <button class="btn btn-outline-primary" onclick={cancel}>Cancel</button>
     </div>
   </div>
 {/if}

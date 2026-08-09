@@ -5,6 +5,7 @@
   import { onMount } from 'svelte'
   import { api, ApiError } from '../../lib/api'
   import { innerShow } from '../../lib/alert'
+  import { flashThen } from '../../lib/feedback'
   import Alert from '../../lib/Alert.svelte'
   import type { SysIamStatus, SysIamInstance } from '../../lib/types'
 
@@ -14,8 +15,8 @@
     { idxid: 'guest', name: 'Guest' },
   ]
 
-  let data: SysIamStatus | null = null
-  let syncing = false
+  let data = $state<SysIamStatus | null>(null)
+  let syncing = $state(false)
   const alertId = 'hp-mgr-sys-iam-alert'
 
   onMount(load)
@@ -57,8 +58,7 @@
     syncing = true
     try {
       await api.post('sys/iam-sync')
-      innerShow(alertId, 'success', 'Successful registered')
-      setTimeout(load, 1000)
+      flashThen(alertId, 'success', 'Successful registered', load, 1000)
     } catch (e) {
       if (e instanceof ApiError) {
         innerShow(alertId, 'danger', e.message || 'Network Connection Exception')
@@ -91,7 +91,7 @@
       </table>
 
 
-      <form id="hp-mgr-sys-iam" on:submit|preventDefault>
+      <form id="hp-mgr-sys-iam" onsubmit={(e) => e.preventDefault()}>
         <table width="100%" class="table hpm-table-cols hpm-table-middle">
           <thead>
             <tr>
@@ -183,7 +183,7 @@
 
       <div class="text-center" style="margin-top: 1rem">
       <Alert id={alertId}/>
-        <button type="submit" class="btn btn-primary" on:click={sync} disabled={syncing}>
+        <button type="submit" class="btn btn-primary" onclick={sync} disabled={syncing}>
           Sync to IAM Service
         </button>
       </div>

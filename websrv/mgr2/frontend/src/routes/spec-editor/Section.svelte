@@ -14,20 +14,31 @@
   import FsUpload from './FsUpload.svelte'
   import type { FsFile } from '../../lib/types'
 
-  export let route = 'spec-editor/index'
-  $: modname = route.startsWith('spec-editor/') ? route.slice('spec-editor/'.length) : ''
+  let { route = 'spec-editor/index' }: { route?: string } = $props()
+  const modname = $derived(
+    route.startsWith('spec-editor/') ? route.slice('spec-editor/'.length) : '',
+  )
 
-  let treePath = '/'
-  let treeItems: (FsFile & { _abspath: string })[] = []
-  let openFiles: { path: string; name: string; content: string; origSum: string }[] = []
-  let activePath = ''
-  let menuOpen = false
+  interface OpenFile {
+    path: string
+    name: string
+    content: string
+    origSum: string
+  }
+
+  let treePath = $state('/')
+  let treeItems: (FsFile & { _abspath: string })[] = $state([])
+  // openFiles is reassigned and its rows are deep-mutated (origSum, and content
+  // via the LcEditor bind), so it carries deep reactivity.
+  let openFiles: OpenFile[] = $state([])
+  let activePath = $state('')
+  let menuOpen = $state(false)
   let menuWrap: HTMLElement
   let singleInput: HTMLInputElement
-  let ctxMenu: { x: number; y: number; path: string; name: string } | null = null
+  let ctxMenu: { x: number; y: number; path: string; name: string } | null = $state(null)
 
-  $: active = openFiles.find((f) => f.path === activePath)
-  $: dirty = (f: { content: string; origSum: string }) => md5(f.content) !== f.origSum
+  const active = $derived(openFiles.find((f) => f.path === activePath))
+  const dirty = (f: { content: string; origSum: string }) => md5(f.content) !== f.origSum
 
   async function loadTree(p: string = treePath) {
     treePath = p
@@ -43,7 +54,7 @@
     return (dir.replace(/\/+$/, '') + '/' + name).replace(/\/+/g, '/')
   }
 
-  $: breadcrumbs = treePath.split('/').filter(Boolean)
+  const breadcrumbs = $derived(treePath.split('/').filter(Boolean))
 
   function navTo(p: string) {
     loadTree(p === '' ? '/' : '/' + p)
@@ -101,9 +112,9 @@
         encode: 'text',
         sumcheck,
       }, { modname })
+      // f is a row of the $state array, so this mutation is reactive on its own.
       if (rsp && rsp.kind === 'FsFile') {
         f.origSum = sumcheck
-        openFiles = openFiles
       }
     } catch (e) {
       if (e instanceof ApiError) alert(e.message)
@@ -225,27 +236,30 @@
     api.post('mod-set-fs/rename', { path, pathset: newPath }, { modname }).then(() => loadTree())
   }
 
-  $: if (modname) loadTree('/')
+  // Load the tree once the module name is known (and again if it ever changes).
+  $effect(() => {
+    if (modname) loadTree('/')
+  })
   onMount(() => loadTree('/'))
 </script>
 
-<svelte:window on:click={onWindowClick} />
+<svelte:window onclick={onWindowClick} />
 
 <div class="lcide-wrap">
   <div class="lcide-header">
-    <button class="lcide-back" type="button" on:click={backToModules}>
+    <button class="lcide-back" type="button" onclick={backToModules}>
       <i class="bi bi-arrow-left-short"></i> Modules
     </button>
     <span class="lcide-header-mod">{modname}</span>
   </div>
 
   <div class="lcide">
-    <input type="file" class="lcide-hidden" bind:this={singleInput} on:change={onSinglePicked} />
+    <input type="file" class="lcide-hidden" bind:this={singleInput} onchange={onSinglePicked} />
 
   {#if ctxMenu}
     <div class="lcide-ctxmenu" style={`top:${ctxMenu.y}px;left:${ctxMenu.x}px`}>
-      <button on:click={ctxRename}><i class="bi bi-pencil"></i> Rename</button>
-      <button class="text-danger" on:click={ctxDelete}><i class="bi bi-trash"></i> Delete</button>
+      <button onclick={ctxRename}><i class="bi bi-pencil"></i> Rename</button>
+      <button class="text-danger" onclick={ctxDelete}><i class="bi bi-trash"></i> Delete</button>
     </div>
   {/if}
 
@@ -254,56 +268,56 @@
       <span class="lcide-fsbar-title">Files</span>
       <div class="lcide-fsbar-actions">
         <div class="lcide-menu-wrap" bind:this={menuWrap}>
-          <button class="lcide-fsbtn" title="New" on:click={() => (menuOpen = !menuOpen)}>
+          <button class="lcide-fsbtn" title="New" onclick={() => (menuOpen = !menuOpen)}>
             <i class="bi bi-plus-lg"></i>
           </button>
           {#if menuOpen}
             <ul class="lcide-menu">
               <li>
-                <button on:click={newFile}><i class="bi bi-file-earmark"></i> New File</button>
+                <button onclick={newFile}><i class="bi bi-file-earmark"></i> New File</button>
               </li>
               <li>
-                <button on:click={newFolder}><i class="bi bi-folder-plus"></i> New Folder</button>
+                <button onclick={newFolder}><i class="bi bi-folder-plus"></i> New Folder</button>
               </li>
               <li class="lcide-menu-sep"></li>
               <li>
-                <button on:click={pickSingleFile}><i class="bi bi-upload"></i> Upload Single File</button>
+                <button onclick={pickSingleFile}><i class="bi bi-upload"></i> Upload Single File</button>
               </li>
               <li>
-                <button on:click={uploadBatch}
+                <button onclick={uploadBatch}
                   ><i class="bi bi-cloud-arrow-up"></i> Drag &amp; Drop Batch Upload</button
                 >
               </li>
             </ul>
           {/if}
         </div>
-        <button class="lcide-fsbtn" title="Refresh" on:click={rootRefresh}>
+        <button class="lcide-fsbtn" title="Refresh" onclick={rootRefresh}>
           <i class="bi bi-arrow-repeat"></i>
         </button>
       </div>
     </div>
     <div class="lcide-breadcrumb">
-      <button class="lcide-bc-root" title="Go to root" on:click={() => loadTree('/')}>
+      <button class="lcide-bc-root" title="Go to root" onclick={() => loadTree('/')}>
         <i class="bi bi-house-door"></i>
       </button>
-      {#each breadcrumbs as crumb, i}
+      {#each breadcrumbs as crumb, i (crumb + i)}
         <span class="lcide-bc-sep">/</span>
-        <a href="javascript:void(0)" on:click={() => navTo(breadcrumbs.slice(0, i + 1).join('/'))}>{crumb}</a>
+        <button type="button" class="hp-link-btn" onclick={() => navTo(breadcrumbs.slice(0, i + 1).join('/'))}>{crumb}</button>
       {/each}
     </div>
     <ul class="lcide-tree">
       {#each treeItems as it (it._abspath)}
         <li>
-          <a
-            class="lcide-tree-link"
-            href="javascript:void(0)"
+          <button
+            type="button"
+            class="lcide-tree-link hp-link-btn"
             title={it.name || ''}
-            on:click={() => (it.isdir ? loadTree(it._abspath) : openFile(it._abspath, it.name || ''))}
-            on:contextmenu|preventDefault={(e) => openCtx(e, it._abspath, it.name || '')}
+            onclick={() => (it.isdir ? loadTree(it._abspath) : openFile(it._abspath, it.name || ''))}
+            oncontextmenu={(e) => { e.preventDefault(); openCtx(e, it._abspath, it.name || '') }}
           >
             <i class={(it.isdir ? 'bi bi-folder' : 'bi bi-file-earmark') + ' lcide-tree-icon'}></i>
             <span class="lcide-tree-name">{it.name}</span>
-          </a>
+          </button>
         </li>
       {/each}
     </ul>
@@ -313,10 +327,10 @@
     <div class="lcide-tabs">
       {#each openFiles as f (f.path)}
         <div class={'lcide-tab' + (f.path === activePath ? ' active' : '')}>
-          <a href="javascript:void(0)" on:click={() => switchTab(f.path)}>
+          <button type="button" class="hp-link-btn" onclick={() => switchTab(f.path)}>
             {f.name}{#if dirty(f)}<span class="lcide-dirty">*</span>{/if}
-          </a>
-          <button class="lcide-tab-close" on:click={() => closeTab(f.path)}>×</button>
+          </button>
+          <button class="lcide-tab-close" onclick={() => closeTab(f.path)}>×</button>
         </div>
       {/each}
     </div>
@@ -325,7 +339,7 @@
       {#if active}
         <LcEditor bind:value={active.content} path={active.path} onSave={() => save(active.path)} />
         <div class="lcide-savebar">
-          <button class="btn btn-sm btn-primary" on:click={() => save(active.path)}>Save</button>
+          <button class="btn btn-sm btn-primary" onclick={() => save(active.path)}>Save</button>
           {#if dirty(active)}<span class="text-warning">unsaved</span>{/if}
         </div>
       {:else}
@@ -584,11 +598,11 @@
     font-size: 12px;
     margin-bottom: 4px;
   }
-  .lcide-breadcrumb a {
+  .lcide-breadcrumb .hp-link-btn {
     color: #1a1a1a;
     text-decoration: none;
   }
-  .lcide-breadcrumb a:hover {
+  .lcide-breadcrumb .hp-link-btn:hover {
     color: #0d6efd;
     text-decoration: underline;
   }

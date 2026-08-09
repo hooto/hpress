@@ -31,16 +31,6 @@ export const termlsPage = persister<number>('hpm_termls_page', 1)
 export const nodeReferActive = persister<string>('hpm_node_refer_active', '')
 export const s2ObjPathActive = persister<string>('hpm_s2_obj_path_active', '/deft')
 
-// selected node-model / term-model per module
-export function nodeModelStore(mod: string) {
-  return persister<string>('hpm_snm_' + mod, '')
-}
-export function termModelStore(mod: string) {
-  return persister<string>('hpm_stm_' + mod, '')
-}
-
-export { persister as persisted }
-
 // Global Ctrl/Cmd+S handler (hpMgr.hotkey_ctrl_s). Only the node editor binds
 // it (save-and-stay); null means no handler. Modules set it on mount, clear on
 // destroy.

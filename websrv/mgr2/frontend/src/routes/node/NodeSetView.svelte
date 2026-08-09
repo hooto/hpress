@@ -8,43 +8,68 @@
   import { innerShow } from '../../lib/alert'
   import { nodeReferActive, hotkeyCtrlS } from '../../lib/store'
   import HpEditor from '../../lib/editor/HpEditor.svelte'
+  import { statusDef, onoff, textFormats } from './defs'
   import type { Node, NodeModel, SpecLangItem } from '../../lib/types'
 
-  export let modname: string
-  export let modelid: string
-  export let nodeid: string | null = null
-  export let oncancel: () => void = () => {}
-  export let onsaved: () => void = () => {}
+  // An editable field is a model field definition decorated with per-entry
+  // value, display mirror (_display), active language (_lang), and text-format
+  // helpers (_format/_formats). Dynamic attr_* keys come from field.attrs.
+  interface EditField {
+    name: string
+    title?: string
+    type: string
+    value: string
+    _display: string
+    _lang: string | null
+    _format: string
+    _formats: { name: string }[]
+    value_langs?: { items: { key?: string; lang?: string; value: string }[] } | null
+    attr_lang_list?: SpecLangItem[] | null
+    attr_lang_active?: string | null
+    attr_format?: string
+    attr_formats?: string
+    edit_disable?: boolean
+    attrs?: { key: string; value: string }[]
+    [k: string]: any
+  }
 
-  const statusDef = [
-    { type: 1, name: 'Publish' },
-    { type: 2, name: 'Draft' },
-    { type: 3, name: 'Private' },
-  ]
-  const onoff = [
-    { type: 'true', name: 'ON' },
-    { type: 'false', name: 'OFF' },
-  ]
-  const textFormats = [
-    { name: 'text', value: 'Text' },
-    { name: 'html', value: 'Html' },
-    { name: 'shtml', value: 'Script Html' },
-    { name: 'md', value: 'Makedown' },
-  ]
+  interface EditTerm {
+    meta: { name: string }
+    title?: string
+    type?: string // taxonomy | tag
+    value: string
+  }
 
-  let loaded = false
+  let {
+    modname,
+    modelid,
+    nodeid = null,
+    oncancel = () => {},
+    onsaved = () => {},
+  }: {
+    modname: string
+    modelid: string
+    nodeid?: string | null
+    oncancel?: () => void
+    onsaved?: () => void
+  } = $props()
+
+  let loaded = $state(false)
+  // langs is only read inside load() (a closure), never rendered → plain let.
   let langs: SpecLangItem[] = []
-  let data: any = {} // the node being edited
-  let model: NodeModel
-  let fields: any[] = []
-  let terms: any[] = []
-  let termOptions: Record<string, any[]> = {} // termName -> flattened tree
-  let status = 1
-  let ext_comment_perentry: string = 'true'
-  let ext_permalink_name = ''
-  let ext_node_refer = ''
+  let data: any = $state({}) // the node being edited (mutable working copy)
+  let model = $state<NodeModel>({} as NodeModel)
+  // fields/terms/termOptions are deep-mutated by flushField / bind:value /
+  // flattenTree, so they carry deep reactivity.
+  let fields: EditField[] = $state([])
+  let terms: EditTerm[] = $state([])
+  let termOptions: Record<string, any[]> = $state({})
+  let status = $state(1)
+  let ext_comment_perentry = $state('true')
+  let ext_permalink_name = $state('')
+  let ext_node_refer = $state('')
 
-  $: ext = model?.extensions || ({} as any)
+  const ext = $derived(model?.extensions || ({} as any))
 
   function langList(csv?: string): SpecLangItem[] | null {
     if (!csv) return null
@@ -95,7 +120,7 @@
       ext_node_refer = node.ext_node_refer || ''
 
       // build editable fields
-      const out: any[] = []
+      const out: EditField[] = []
       for (const field of mfields) {
         if (field.edit_disable) continue
         field.attrs = field.attrs || []
@@ -124,16 +149,16 @@
         field.value_langs = field.attr_lang_active && !value_langs ? { items: [] } : value_langs
         field._display = value
         field._lang = field.attr_lang_active
-        out.push(field)
+        out.push(field as EditField)
       }
       fields = out
 
       // terms
-      const tms: any[] = []
+      const tms: EditTerm[] = []
       for (const t of mterms) {
         const tv = (node.terms || []).find((x: any) => x.name === t.meta?.name)
         t.value = tv?.value || (t.type === 'taxonomy' ? '0' : '')
-        tms.push(t)
+        tms.push(t as EditTerm)
         if (t.type === 'taxonomy') {
           const tl = await api.get<{ items?: any[] }>('term/list', {
             modname,
@@ -181,7 +206,7 @@
   }
 
   // flush a field's displayed value into value / value_langs
-  function flushField(field: any) {
+  function flushField(field: EditField) {
     if (!field.attr_lang_list) {
       field.value = field._display
       return
@@ -194,10 +219,10 @@
       const items = field.value_langs.items || []
       const found = items.find((x: any) => x.key === field._lang)
       if (found) found.value = field._display
-      else items.push({ key: field._lang, value: field._display })
+      else items.push({ key: field._lang!, value: field._display })
     }
   }
-  function switchLang(field: any, lang: string) {
+  function switchLang(field: EditField, lang: string) {
     if (!field.attr_lang_list || field._lang === lang) return
     flushField(field)
     field._lang = lang
@@ -208,13 +233,14 @@
       const found = (field.value_langs?.items || []).find((x: any) => x.key === lang)
       field._display = found?.value || ''
     }
-    field._display = field._display // trigger reactivity
   }
 
-  $: sprintIndent = (n: number) => '    '.repeat(n)
+  const sprintIndent = (n: number) => '    '.repeat(n)
 
-  // main/side layout heuristic (node.js:790-834)
-  $: layout = (() => {
+  // main/side layout heuristic (node.js:790-834). Content fields (string/text)
+  // always stay in the main column; the heuristic only decides whether the
+  // metadata (terms/comment/status) dock into a narrow side column.
+  const layout = $derived.by(() => {
     let mainLen = 0
     let sideLen = 0
     for (const f of fields) {
@@ -226,9 +252,8 @@
     if (ext.comment_perentry) sideLen += 1
     if (ext.permalink) mainLen += 1
     if (ext.node_refer) mainLen += 1
-    const useSide = sideLen > 0 && mainLen > sideLen
-    return { useSide, target: useSide ? 'side' : 'main' }
-  })()
+    return { useSide: sideLen > 0 && mainLen > sideLen }
+  })
 
   async function commit(opts: { save?: boolean } = {}) {
     // flush all fields
@@ -288,45 +313,47 @@
         {#each fields as f (f.name)}
           {#if f.name === 'title'}
             <div class="hpm-nodeset-tplx">
-              <label class="form-label"><span>{f.title}</span></label>
-              <input type="text" class="form-control" bind:value={f._display} />
+              <label class="form-label" for={`nodesetview-${f.name}`}><span>{f.title}</span></label>
+              <input id={`nodesetview-${f.name}`} type="text" class="form-control" bind:value={f._display} />
             </div>
           {/if}
         {/each}
 
         {#if ext.node_refer}
           <div class="hpm-nodeset-tplx">
-            <label class="form-label">Refer ID</label>
-            <input type="text" class="form-control" bind:value={ext_node_refer} />
+            <label class="form-label" for="nodesetview-refer">Refer ID</label>
+            <input id="nodesetview-refer" type="text" class="form-control" bind:value={ext_node_refer} />
           </div>
         {/if}
         {#if ext.permalink}
           <div class="hpm-nodeset-tplx">
-            <label class="form-label">Permalink Name</label>
-            <input type="text" class="form-control" bind:value={ext_permalink_name} />
+            <label class="form-label" for="nodesetview-permalink">Permalink Name</label>
+            <input id="nodesetview-permalink" type="text" class="form-control" bind:value={ext_permalink_name} />
           </div>
         {/if}
 
-        {#if layout.target === 'main'}
-          {@render genericFields('main')}
+        {@render contentFields()}
+
+        {#if !layout.useSide}
+          {@render metaFields()}
         {/if}
       </div>
 
       {#if layout.useSide}
         <div class="hpm-nodeset-layside" style="width:25%">
-          {@render genericFields('side')}
+          {@render metaFields()}
         </div>
       {/if}
     </div>
 
     <div class="hpm-block-gap-row-sm">
-      <button class="btn btn-primary" on:click={() => commit()}>Save</button>
-      <button class="btn btn-outline-primary" on:click={oncancel}>Cancel</button>
+      <button class="btn btn-primary" onclick={() => commit()}>Save</button>
+      <button class="btn btn-outline-primary" onclick={oncancel}>Cancel</button>
     </div>
   </div>
 {/if}
 
-{#snippet genericFields(col: string)}
+{#snippet contentFields()}
   {#each fields as f (f.name)}
     {#if f.name === 'title'}
       <!-- title rendered above -->
@@ -335,7 +362,7 @@
         <label class="form-label">
           <span>{f.title}</span>
           {#if f.attr_lang_list}
-            <select class="form-select form-select-sm d-inline-block w-auto" on:change={(e) => switchLang(f, e.currentTarget.value)}>
+            <select class="form-select form-select-sm d-inline-block w-auto" onchange={(e) => switchLang(f, e.currentTarget.value)}>
               {#each f.attr_lang_list as l}<option value={l.id} selected={f._lang === l.id}>{l.name}</option>{/each}
             </select>
           {/if}
@@ -347,35 +374,37 @@
         <label class="form-label">
           <span>{f.title}</span>
           {#if f.attr_lang_list}
-            <select class="form-select form-select-sm d-inline-block w-auto" on:change={(e) => switchLang(f, e.currentTarget.value)}>
+            <select class="form-select form-select-sm d-inline-block w-auto" onchange={(e) => switchLang(f, e.currentTarget.value)}>
               {#each f.attr_lang_list as l}<option value={l.id} selected={f._lang === l.id}>{l.name}</option>{/each}
             </select>
           {/if}
         </label>
         <HpEditor
           bind:value={f._display}
-          formats={f._formats.map((x: any) => x.name)}
+          formats={f._formats.map((x) => x.name)}
           bind:format={f._format}
         />
       </div>
     {:else if f.type.startsWith('int') || f.type.startsWith('uint')}
       <div class="hpm-nodeset-tplx">
-        <label class="form-label">{f.title}</label>
-        <input type="text" class="form-control" bind:value={f._display} />
+        <label class="form-label" for={`nodesetview-${f.name}`}>{f.title}</label>
+        <input id={`nodesetview-${f.name}`} type="text" class="form-control" bind:value={f._display} />
       </div>
     {/if}
   {/each}
+{/snippet}
 
+{#snippet metaFields()}
   {#each terms as t (t.meta.name)}
     <div class="hpm-nodeset-tplx">
-      <label class="form-label">{t.title}</label>
+      <label class="form-label" for={`nodesetview-term-${t.meta.name}`}>{t.title}</label>
       {#if t.type === 'tag'}
-        <input type="text" class="form-control" bind:value={t.value} />
+        <input id={`nodesetview-term-${t.meta.name}`} type="text" class="form-control" bind:value={t.value} />
       {:else}
-        <select class="form-select" bind:value={t.value}>
+        <select id={`nodesetview-term-${t.meta.name}`} class="form-select" bind:value={t.value}>
           <option value="0">ROOT</option>
           {#each termOptions[t.meta.name] || [] as o (o.id)}
-            <option value={o.id}>{sprintIndent(o._dp)}{o.title}</option>
+            <option value={String(o.id)}>{sprintIndent(o._dp)}{o.title}</option>
           {/each}
         </select>
       {/if}
@@ -384,16 +413,16 @@
 
   {#if ext.comment_enable && ext.comment_perentry}
     <div class="hpm-nodeset-tplx">
-      <label class="form-label">Comment On/Off</label>
-      <select class="form-select" bind:value={ext_comment_perentry}>
+      <label class="form-label" for="nodesetview-comment">Comment On/Off</label>
+      <select id="nodesetview-comment" class="form-select" bind:value={ext_comment_perentry}>
         {#each onoff as o}<option value={o.type} selected={ext_comment_perentry === o.type}>{o.name}</option>{/each}
       </select>
     </div>
   {/if}
 
   <div class="hpm-nodeset-tplx">
-    <label class="form-label">Status</label>
-    <select class="form-select" bind:value={status}>
+    <label class="form-label" for="nodesetview-status">Status</label>
+    <select id="nodesetview-status" class="form-select" bind:value={status}>
       {#each statusDef as s}<option value={s.type} selected={status === s.type}>{s.name}</option>{/each}
     </select>
   </div>

@@ -6,10 +6,11 @@
   // (list/entry), query table (node.X / term.X), limit, order, pager, cache_ttl.
   // On save, type is prefixed node.|term. per the table selection and the table
   // is sliced to the bare name. Save → spec-action-set; Delete → spec-action-del.
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { api, ApiError } from "../../lib/api";
   import { closeModal, patchTopModal, type ModalButton } from "../../lib/modal";
   import { innerShow } from "../../lib/alert";
+import { flashThen } from "../../lib/feedback";
   import Alert from "../../lib/Alert.svelte";
   import {
     dataxTypedef,
@@ -38,7 +39,7 @@
   // every bind:value update automatically (no more form.x = form.x re-trigger).
   let form: any = $state({
     ...objectClone(actiondef),
-    modname,
+    modname: untrack(() => modname),
     datax: [normDatax({})],
   });
   let editing = $state(false);
@@ -127,9 +128,8 @@
       }
       const rsp = await api.put("mod-set/spec-action-set", req);
       if (!rsp || rsp.kind !== "Action") return;
-      innerShow(alertId, "success", "Successful updated");
       onSaved();
-      setTimeout(closeModal, 600);
+      flashThen(alertId, "success", "Successful updated", closeModal, 600);
     } catch (e) {
       if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
       else innerShow(alertId, "danger", String(e));
@@ -145,9 +145,8 @@
         datax: [],
       });
       if (!rsp || rsp.kind !== "Action") return;
-      innerShow(alertId, "success", "Successful updated");
       onSaved();
-      setTimeout(closeModal, 600);
+      flashThen(alertId, "success", "Successful updated", closeModal, 600);
     } catch (e) {
       if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
       else innerShow(alertId, "danger", String(e));
@@ -166,13 +165,14 @@
 >
   <div class="row mb-3 align-items-center">
     <div class="col col-2">
-      <label class="form-label">Action Name</label>
+      <label class="form-label" for="actionset-name">Action Name</label>
     </div>
     <div class="col">
       {#if editing}
-        <input type="text" class="form-control" value={form.name} disabled />
+        <input id="actionset-name" type="text" class="form-control" value={form.name} disabled />
       {:else}
         <input
+          id="actionset-name"
           type="text"
           class="form-control"
           bind:value={form.name}
@@ -184,27 +184,27 @@
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Datax</label>
+      <span class="form-label">Datax</span>
     </div>
     <div class="col">
-      {#each form.datax as d (d)}
+      {#each form.datax as d, i (d)}
         <div class="border rounded p-2 mb-2 hpm-module-datax-wrap">
           <div class="hpm-module-datax-grid">
             <div class="">
-              <label class="form-label">Name</label>
-              <input class="form-control form-control-sm" bind:value={d.name} />
+              <label class="form-label" for={`actionset-datax-name-${i}`}>Name</label>
+              <input id={`actionset-datax-name-${i}`} class="form-control form-control-sm" bind:value={d.name} />
             </div>
             <div class="">
-              <label class="form-label">Type</label>
-              <select class="form-select form-select-sm" bind:value={d.type}>
+              <label class="form-label" for={`actionset-datax-type-${i}`}>Type</label>
+              <select id={`actionset-datax-type-${i}`} class="form-select form-select-sm" bind:value={d.type}>
                 {#each dataxTypedef as t (t.type)}<option value={t.type}
                     >{t.name}</option
                   >{/each}
               </select>
             </div>
             <div class="">
-              <label class="form-label">Query Table</label>
-              <select class="form-select form-select-sm" bind:value={d._table}>
+              <label class="form-label" for={`actionset-datax-table-${i}`}>Query Table</label>
+              <select id={`actionset-datax-table-${i}`} class="form-select form-select-sm" bind:value={d._table}>
                 {#each nodeModels as m (m.meta.name)}<option
                     value={"node." + m.meta.name}>node : {m.meta.name}</option
                   >{/each}
@@ -214,30 +214,33 @@
               </select>
             </div>
             <div class="">
-              <label class="form-label">Limit</label>
+              <label class="form-label" for={`actionset-datax-limit-${i}`}>Limit</label>
               <input
+                id={`actionset-datax-limit-${i}`}
                 class="form-control form-control-sm"
                 bind:value={d.query.limit}
               />
             </div>
             <div class="">
-              <label class="form-label">Order</label>
+              <label class="form-label" for={`actionset-datax-order-${i}`}>Order</label>
               <input
+                id={`actionset-datax-order-${i}`}
                 class="form-control form-control-sm"
                 bind:value={d.query.order}
               />
             </div>
             <div class="">
-              <label class="form-label">Pager</label>
-              <select class="form-select form-select-sm" bind:value={d.pager}>
+              <label class="form-label" for={`actionset-datax-pager-${i}`}>Pager</label>
+              <select id={`actionset-datax-pager-${i}`} class="form-select form-select-sm" bind:value={d.pager}>
                 {#each generalOnoff as o (o.type)}<option value={o.type}
                     >{o.name}</option
                   >{/each}
               </select>
             </div>
             <div class="">
-              <label class="form-label">Cache TTL</label>
+              <label class="form-label" for={`actionset-datax-cache-${i}`}>Cache TTL</label>
               <input
+                id={`actionset-datax-cache-${i}`}
                 class="form-control form-control-sm"
                 bind:value={d.cache_ttl}
               />

@@ -9,19 +9,16 @@
   import { trim, timeParseFormat, fmtResourceSize, md5 } from '../../lib/util'
   import S2Upload from '../../lib/s2/S2Upload.svelte'
   import type { FsFile } from '../../lib/types'
-    import { print } from 'svelte/compiler';
 
   // the s2 browser is always at s2/index; route is accepted for shell uniformity
-  export let route = 's2/index'
+  let { route = 's2/index' }: { route?: string } = $props()
 
   const bucket = '/deft'
 
   type Item = FsFile & { _id: string; _abspath: string; _isimg: boolean; self_link?: string }
   let path = ''
-  let items: Item[] = []
-  let dirnav: { path: string; name: string }[] = []
-
-  $: trim // referenced
+  let items: Item[] = $state([])
+  let dirnav: { path: string; name: string }[] = $state([])
 
   function normPath(p: string): string {
     p = (p || '').replace(/\/+/g, '/')
@@ -91,7 +88,8 @@
   async function del(abspath: string, id: string) {
     if (!window.confirm('This file will be deleted, Confirm?')) return
     try {
-      const data = await api.get<FsFile>('s2-obj/del', { path: abspath })
+      // DELETE is a side-effecting action: use POST (api.del), never GET.
+      const data = await api.del<FsFile>('s2-obj/del', { path: abspath })
       if (data && data.kind === 'FsFile') {
         items = items.filter((it) => it._id !== id)
       }
@@ -108,13 +106,13 @@
       <ol class="breadcrumb">
         {#each dirnav as d (d.path)}
           <li class="breadcrumb-item">
-            <a href="javascript:void(0)" on:click={() => load(d.path)}>{d.name}</a>
+            <button type="button" class="hp-link-btn" onclick={() => load(d.path)}>{d.name}</button>
           </li>
         {/each}
       </ol>
     </div>
     <div class="hpm-node-nav hpm-nav-right">
-      <button class="btn btn-primary" on:click={upload}>Upload New File</button>
+      <button class="btn btn-primary" onclick={upload}>Upload New File</button>
     </div>
   </div>
 
@@ -143,7 +141,7 @@
             </td>
             <td class="ts3-fontmono">
               {#if v.isdir}
-                <a href="javascript:void(0)" on:click={() => load(v._abspath)}>{v.name}</a>
+                <button type="button" class="hp-link-btn" onclick={() => load(v._abspath)}>{v.name}</button>
               {:else}
                 <a href={v.self_link} target="_blank">{v.name}</a>
               {/if}
@@ -154,7 +152,7 @@
             <td align="right">{timeParseFormat(v.modtime, 'Y-m-d H:i:s')}</td>
             <td align="right">
               {#if !v.isdir}
-                <button class="btn btn-outline-dark btn-sm" on:click={() => del(v._abspath, v._id)}
+                <button class="btn btn-outline-dark btn-sm" onclick={() => del(v._abspath, v._id)}
                   >Delete</button
                 >
               {/if}

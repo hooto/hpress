@@ -9,14 +9,16 @@
   import { trim, timeParseFormat, fmtResourceSize, md5 } from '../util'
   import type { FsFile } from '../types'
 
-  export let onselect: (path: string) => void = () => {}
-  export let imageOnly = true
+  let {
+    onselect = () => {},
+    imageOnly = true,
+  }: { onselect?: (path: string) => void; imageOnly?: boolean } = $props()
 
   const bucket = '/deft'
   type Item = FsFile & { _id: string; _abspath: string; _isimg: boolean; self_link?: string }
   let path = ''
-  let items: Item[] = []
-  let dirnav: { path: string; name: string }[] = []
+  let items: Item[] = $state([])
+  let dirnav: { path: string; name: string }[] = $state([])
 
   function normPath(p: string): string {
     p = (p || '').replace(/\/+/g, '/')
@@ -63,7 +65,7 @@
 <div id="hpm-s2-objls-navbar" class="hpm-breadcrumb">
   <ul class="hpm-breadcrumb-list">
     {#each dirnav as d (d.path)}
-      <li><a href="javascript:void(0)" on:click={() => load(d.path)}>{d.name}</a></li>
+      <li><button type="button" class="hp-link-btn" onclick={() => load(d.path)}>{d.name}</button></li>
     {/each}
   </ul>
 </div>
@@ -92,7 +94,7 @@
         </td>
         <td class="ts3-fontmono">
           {#if v.isdir}
-            <a href="javascript:void(0)" on:click={() => load(v._abspath)}>{v.name}</a>
+            <button type="button" class="hp-link-btn" onclick={() => load(v._abspath)}>{v.name}</button>
           {:else}
             <a href={v.self_link} target="_blank">{v.name}</a>
           {/if}
@@ -101,7 +103,9 @@
         <td align="right">{timeParseFormat(v.modtime, 'Y-m-d H:i:s')}</td>
         <td align="right">
           {#if !v.isdir}
-            <button class="btn btn-outline-dark btn-sm" on:click={() => select(v._abspath)}>Select</button>
+            <button class="btn btn-outline-dark btn-sm" onclick={() => select(v._abspath)}
+              >Select</button
+            >
           {/if}
         </td>
       </tr>

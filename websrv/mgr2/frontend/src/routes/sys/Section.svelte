@@ -5,10 +5,11 @@
   import IamStatus from './IamStatus.svelte'
   import Config from './Config.svelte'
 
-  export let route = 'sys/index'
+  let { route = 'sys/index' }: { route?: string } = $props()
 
-  $: sub =
-    route === 'sys/iam-status' ? 'iam' : route === 'sys/config' ? 'config' : 'status'
+  const sub = $derived(
+    route === 'sys/iam-status' ? 'iam' : route === 'sys/config' ? 'config' : 'status',
+  )
 </script>
 
 <div class="hpm-block-gap-column">

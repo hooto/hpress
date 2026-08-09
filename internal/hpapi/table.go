@@ -14,7 +14,9 @@
 
 package hpapi
 
-import "strings"
+import (
+	"strings"
+)
 
 // Per-module data-table prefixes. Node data lives in hpn_* tables, term
 // (tag/taxonomy) data in hpt_*. System tables use the hp_ prefix instead.

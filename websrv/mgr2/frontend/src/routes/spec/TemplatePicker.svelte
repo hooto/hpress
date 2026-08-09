@@ -1,15 +1,17 @@
 <script lang="ts">
   // route template picker modal body. Lists the module's view templates
-  // (mod-set/fs-tpl-list); Select sets the route template via onselect and
+  // (mod-set/fs-tpl-list); select sets the route template via onselect and
   // closes this modal (popping back to the RouteSet view).
   import { onMount } from "svelte";
   import { api } from "../../lib/api";
   import { closeModal } from "../../lib/modal";
 
-  export let modname = "";
-  export let onselect: (path: string) => void = () => {};
+  let {
+    modname = "",
+    onselect = () => {},
+  }: { modname?: string; onselect?: (path: string) => void } = $props();
 
-  let items: { path: string }[] = [];
+  let items: { path: string }[] = $state([]);
 
   onMount(async () => {
     try {
@@ -38,7 +40,7 @@
         <td align="right">
           <button
             class="btn btn-sm btn-outline-dark"
-            on:click={() => pick(it.path)}>Select</button
+            onclick={() => pick(it.path)}>Select</button
           >
         </td>
       </tr>

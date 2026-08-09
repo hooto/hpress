@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -161,8 +162,18 @@ func (it *NodeLynkSearchEngine) trySetupBucket(active *lynkSearchBucketActive) e
 	spec.SetField("content", lynkapi.FieldSpec_String)
 	spec.SetIndex("content", lynkapi.TableSpec_Index_FullTextSearch)
 
+	// lynksearch.NewInstance rejects a non-existent Dir (it does not create
+	// one), so ensure the per-bucket index dir exists first. Without this the
+	// first-ever setup of any bucket fails silently -- which is why name-based
+	// buckets (hpn_<module>_<model>) never indexed while legacy ones, whose
+	// dirs happened to survive from older runs, appeared to work.
+	dir := filepath.Join(it.dataPath, active.config.Name)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("bucket (%s) indexer setup fail : mkdir : %s", active.config.Name, err.Error())
+	}
+
 	if ins, err := lynksearch.NewInstance(lynksearch.InstanceConfig{
-		Dir: it.dataPath + "/" + active.config.Name,
+		Dir: dir,
 	}, spec); err != nil {
 		return fmt.Errorf("bucket (%s) indexer setup fail : %s", active.config.Name, err.Error())
 	} else {
@@ -194,6 +205,7 @@ func (it *NodeLynkSearchEngine) runAction() {
 		active.config.StatsFullIndexed = tn
 
 		if err := it.trySetupBucket(active); err != nil {
+			slog.Warn(err.Error())
 			continue
 		}
 

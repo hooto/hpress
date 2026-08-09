@@ -7,8 +7,9 @@
   import Alert from '../../lib/Alert.svelte'
   import type { SysConfigItem } from '../../lib/types'
 
-  let items: SysConfigItem[] = []
-  let loaded = false
+  // items are reassigned and deep-mutated through bind:value={it.value}.
+  let items: SysConfigItem[] = $state([])
+  let loaded = $state(false)
   const alertId = 'hpm-sys-configset-alert'
 
   onMount(async () => {
@@ -71,7 +72,7 @@
         </tbody>
       </table>
 
-      <button class="btn btn-primary" on:click={save}>Save</button>
+      <button class="btn btn-primary" onclick={save}>Save</button>
     {/if}
   </div>
 </div>

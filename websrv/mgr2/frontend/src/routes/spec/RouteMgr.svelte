@@ -10,10 +10,11 @@
   import { openModal } from "../../lib/modal";
   import Alert from "../../lib/Alert.svelte";
   import RouteSet from "./RouteSet.svelte";
+  import type { SpecAction, SpecRoute } from "../../lib/types";
 
-  export let modname = "";
-  let items: any[] = [];
-  let actions: any[] = [];
+  let { modname = "" }: { modname?: string } = $props();
+  let items: SpecRoute[] = $state([]);
+  let actions: SpecAction[] = $state([]);
   const alertId = "hpm-spec-routelist-alert";
 
   async function load() {
@@ -45,7 +46,7 @@
 <Alert id={alertId} />
 
 <div class="d-flex justify-content-end" style="margin-bottom:8px">
-  <button class="btn btn-primary btn-sm" on:click={() => openSet()}
+  <button class="btn btn-primary btn-sm" onclick={() => openSet()}
     >New Route</button
   >
 </div>
@@ -65,7 +66,7 @@
         <td align="right">
           <button
             class="btn btn-sm btn-outline-dark"
-            on:click={() => openSet(it.path)}>Edit</button
+            onclick={() => openSet(it.path)}>Edit</button
           >
         </td>
       </tr>

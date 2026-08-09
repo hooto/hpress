@@ -29,11 +29,11 @@
     }
   }
 
-  $: route = $hashRoute || 'sys/index'
-  $: section = route.split('/')[0]
+  const route = $derived($hashRoute || 'sys/index')
+  const section = $derived(route.split('/')[0])
 </script>
 
-<svelte:window on:keydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} />
 
 <Topbar />
 
@@ -80,13 +80,13 @@
               <a
                 class="btn btn-primary"
                 href={b.href || 'javascript:void(0)'}
-                on:click={() => {
+                onclick={() => {
                   if (!b.href) alertClose()
                 }}>{b.title}</a
               >
             {/each}
           {:else}
-            <button class="btn btn-primary" on:click={alertClose}>OK</button>
+            <button class="btn btn-primary" onclick={alertClose}>OK</button>
           {/if}
         </div>
       </div>

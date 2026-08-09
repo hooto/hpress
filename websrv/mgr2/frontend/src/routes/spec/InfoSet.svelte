@@ -7,6 +7,7 @@
   import { api, ApiError } from "../../lib/api";
   import { closeModal, patchTopModal } from "../../lib/modal";
   import { innerShow } from "../../lib/alert";
+import { flashThen } from "../../lib/feedback";
   import Alert from "../../lib/Alert.svelte";
   import { objectClone, specdef, statuses } from "./defs";
 
@@ -57,9 +58,8 @@
         theme_config: form.theme_config || "",
       });
       if (!rsp || rsp.kind !== "Spec") return;
-      innerShow(alertId, "success", "Successful updated");
       onSaved();
-      setTimeout(closeModal, 600);
+      flashThen(alertId, "success", "Successful updated", closeModal, 600);
     } catch (e) {
       if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
       else innerShow(alertId, "danger", String(e));
@@ -71,10 +71,11 @@
   <Alert id={alertId} />
   <div class="row mb-2 align-items-center">
     <div class="col col-2">
-      <label class="form-label">Module Name</label>
+      <label class="form-label" for="infoset-modname">Module Name</label>
     </div>
     <div class="col">
       <input
+        id="infoset-modname"
         type="text"
         class="form-control"
         bind:value={form.meta.name}
@@ -85,27 +86,27 @@
   </div>
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Service Name</label>
+      <label class="form-label" for="infoset-srvname">Service Name</label>
     </div>
     <div class="col">
-      <input type="text" class="form-control" bind:value={form.srvname} />
+      <input id="infoset-srvname" type="text" class="form-control" bind:value={form.srvname} />
     </div>
   </div>
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Title</label>
+      <label class="form-label" for="infoset-title">Title</label>
     </div>
     <div class="col">
-      <input type="text" class="form-control" bind:value={form.title} />
+      <input id="infoset-title" type="text" class="form-control" bind:value={form.title} />
     </div>
   </div>
   {#if form.meta.name !== "core/general"}
     <div class="row mb-2 align-items-center">
       <div class="col-2">
-        <label class="form-label">Status</label>
+        <label class="form-label" for="infoset-status">Status</label>
       </div>
       <div class="col">
-        <select class="form-select" bind:value={form.status}>
+        <select id="infoset-status" class="form-select" bind:value={form.status}>
           {#each statuses as s (s.value)}<option value={s.value}>{s.name}</option>{/each}
         </select>
       </div>
@@ -113,10 +114,10 @@
   {/if}
   <div class="row mb-2 align-items-start">
     <div class="col-2">
-      <label class="form-label">Theme Config (JSON)</label>
+      <label class="form-label" for="infoset-theme">Theme Config (JSON)</label>
     </div>
     <div class="col">
-      <textarea class="form-control" rows="6" bind:value={form.theme_config
+      <textarea id="infoset-theme" class="form-control" rows="6" bind:value={form.theme_config
       }></textarea>
     </div>
   </div>

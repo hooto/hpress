@@ -6,12 +6,11 @@
   import { onMount } from "svelte";
   import { api } from "../../lib/api";
   import { openModal } from "../../lib/modal";
-  import { innerShow } from "../../lib/alert";
   import Alert from "../../lib/Alert.svelte";
   import NodeSet from "./NodeSet.svelte";
 
-  export let modname = "";
-  let items: any[] = [];
+  let { modname = "" }: { modname?: string } = $props();
+  let items: any[] = $state([]);
   const alertId = "hpm-spec-nodelist-alert";
 
   async function load() {
@@ -45,7 +44,7 @@
 <Alert id={alertId} />
 
 <div class="d-flex justify-content-end" style="margin-bottom:8px">
-  <button class="btn btn-primary btn-sm" on:click={() => openSet()}
+  <button class="btn btn-primary btn-sm" onclick={() => openSet()}
     >New Node</button
   >
 </div>
@@ -64,7 +63,7 @@
         <td align="right">
           <button
             class="btn btn-sm btn-outline-dark"
-            on:click={() => openSet(it.meta.name)}>Edit</button
+            onclick={() => openSet(it.meta.name)}>Edit</button
           >
         </td>
       </tr>

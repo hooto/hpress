@@ -10,11 +10,12 @@
   import { openModal } from "../../lib/modal";
   import Alert from "../../lib/Alert.svelte";
   import ActionSet from "./ActionSet.svelte";
+  import type { SpecAction, NodeModel, TermModel } from "../../lib/types";
 
-  export let modname = "";
-  let items: any[] = [];
-  let nodeModels: any[] = [];
-  let termModels: any[] = [];
+  let { modname = "" }: { modname?: string } = $props();
+  let items: SpecAction[] = $state([]);
+  let nodeModels: NodeModel[] = $state([]);
+  let termModels: TermModel[] = $state([]);
   const alertId = "hpm-spec-actionlist-alert";
 
   async function load() {
@@ -47,7 +48,7 @@
 <Alert id={alertId} />
 
 <div class="d-flex justify-content-end" style="margin-bottom:8px">
-  <button class="btn btn-primary btn-sm" on:click={() => openSet()}
+  <button class="btn btn-primary btn-sm" onclick={() => openSet()}
     >New Action</button
   >
 </div>
@@ -61,7 +62,7 @@
         <td align="right">
           <button
             class="btn btn-sm btn-outline-dark"
-            on:click={() => openSet(it.name)}>Edit</button
+            onclick={() => openSet(it.name)}>Edit</button
           >
         </td>
       </tr>

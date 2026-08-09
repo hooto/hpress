@@ -10,7 +10,6 @@
   import { innerShow } from "../../lib/alert";
   import { refreshSpecList } from "../../lib/boot";
   import { navigate } from "../../lib/router";
-  import { unixTimeFormat } from "../../lib/util";
   import Alert from "../../lib/Alert.svelte";
   import InfoSet from "./InfoSet.svelte";
   import Upload from "./Upload.svelte";
@@ -18,11 +17,12 @@
   import NodeMgr from "./NodeMgr.svelte";
   import ActionMgr from "./ActionMgr.svelte";
   import RouteMgr from "./RouteMgr.svelte";
+  import type { Component } from "svelte";
   import type { Spec } from "../../lib/types";
 
-  export let route = "spec/index";
+  let { route = "spec/index" }: { route?: string } = $props();
 
-  let items: any[] = [];
+  let items: any[] = $state([]);
 
   async function load() {
     try {
@@ -83,13 +83,13 @@
   }
 
   function openMgr(which: "node" | "term" | "action" | "route", name: string) {
-    const map = {
+    const map: Record<string, Component> = {
       node: NodeMgr,
       term: TermMgr,
       action: ActionMgr,
       route: RouteMgr,
     };
-    const titles = {
+    const titles: Record<string, string> = {
       node: "Node List",
       term: "Term List",
       action: "Action List",
@@ -112,10 +112,10 @@
     class="d-flex flex-row align-items-center hpm-block-gap-row-sm"
     style="margin-bottom:8px"
   >
-    <button class="btn btn-primary" on:click={() => infoSet()}
+    <button class="btn btn-primary" onclick={() => infoSet()}
       >New Module</button
     >
-    <button class="btn btn-outline-primary ms-auto" on:click={upload}>
+    <button class="btn btn-outline-primary ms-auto" onclick={upload}>
       Install or Upgrade from Package
     </button>
   </div>
@@ -148,21 +148,21 @@
               <td>
                 <button
                   class="btn btn-sm btn-outline-dark"
-                  on:click={() => openMgr("node", v.meta.name)}
+                  onclick={() => openMgr("node", v.meta.name)}
                   >{v._nodeModelsNum}</button
                 >
               </td>
               <td>
                 <button
                   class="btn btn-sm btn-outline-dark"
-                  on:click={() => openMgr("action", v.meta.name)}
+                  onclick={() => openMgr("action", v.meta.name)}
                   >{v._actionsNum}</button
                 >
               </td>
               <td>
                 <button
                   class="btn btn-sm btn-outline-dark"
-                  on:click={() => openMgr("route", v.meta.name)}
+                  onclick={() => openMgr("route", v.meta.name)}
                   >{v._routesNum}</button
                 >
               </td>
@@ -176,11 +176,11 @@
               <td align="right">
                 <button
                   class="btn btn-sm btn-outline-dark"
-                  on:click={() => develop(v.meta.name)}>Develop</button
+                  onclick={() => develop(v.meta.name)}>Develop</button
                 >
                 <button
                   class="btn btn-sm btn-outline-dark"
-                  on:click={() => infoSet(v.meta.name)}>Setting</button
+                  onclick={() => infoSet(v.meta.name)}>Setting</button
                 >
               </td>
             </tr>

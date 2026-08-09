@@ -6,10 +6,11 @@
   // fields: path, dataAction, template (+ picker), params (key/value), default.
   // On Save → spec-route-set, then onSaved() + closeModal (slides back to list).
   // On Delete (edit only) → spec-route-del.
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { api, ApiError } from "../../lib/api";
   import { closeModal, openModal, patchTopModal, type ModalButton } from "../../lib/modal";
   import { innerShow } from "../../lib/alert";
+import { flashThen } from "../../lib/feedback";
   import Alert from "../../lib/Alert.svelte";
   import TemplatePicker from "./TemplatePicker.svelte";
   import { routedef, namereg, objectClone, generalOnoff, withStableScroll } from "./defs";
@@ -28,7 +29,7 @@
 
   // $state makes `form` deeply reactive — push/splice on _params and every
   // bind:value update automatically.
-  let form: any = $state(formFrom(objectClone(routedef), modname));
+  let form: any = $state(formFrom(objectClone(routedef), untrack(() => modname)));
   let editing = $state(false);
   const alertId = "hpm-spec-routeset-alert";
 
@@ -104,9 +105,8 @@
         default: form.default === true || form.default === "true",
       });
       if (!rsp || rsp.kind !== "SpecRoute") return;
-      innerShow(alertId, "success", "Successful updated");
       onSaved();
-      setTimeout(closeModal, 600);
+      flashThen(alertId, "success", "Successful updated", closeModal, 600);
     } catch (e) {
       if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
       else innerShow(alertId, "danger", String(e));
@@ -120,9 +120,8 @@
         modname,
       });
       if (!rsp || rsp.kind !== "SpecRoute") return;
-      innerShow(alertId, "success", "Successful updated");
       onSaved();
-      setTimeout(closeModal, 600);
+      flashThen(alertId, "success", "Successful updated", closeModal, 600);
     } catch (e) {
       if (e instanceof ApiError) innerShow(alertId, "danger", e.message);
       else innerShow(alertId, "danger", String(e));
@@ -141,23 +140,23 @@
 >
   <div class="row mb-2 align-items-center">
     <div class="col col-2">
-      <label class="form-label">Path</label>
+      <label class="form-label" for="routeset-path">Path</label>
     </div>
     <div class="col">
       {#if editing}
-        <input type="text" class="form-control" value={form.path} disabled />
+        <input id="routeset-path" type="text" class="form-control" value={form.path} disabled />
       {:else}
-        <input type="text" class="form-control" bind:value={form.path} />
+        <input id="routeset-path" type="text" class="form-control" bind:value={form.path} />
       {/if}
     </div>
   </div>
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Data Action</label>
+      <label class="form-label" for="routeset-action">Data Action</label>
     </div>
     <div class="col">
-      <select class="form-select" bind:value={form.dataAction}>
+      <select id="routeset-action" class="form-select" bind:value={form.dataAction}>
         <option value=""></option>
         {#each actions as a (a.name)}<option value={a.name}>{a.name}</option>{/each}
       </select>
@@ -166,11 +165,11 @@
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Template</label>
+      <label class="form-label" for="routeset-template">Template</label>
     </div>
     <div class="col">
       <div class="input-group">
-        <input type="text" class="form-control" bind:value={form.template} />
+        <input id="routeset-template" type="text" class="form-control" bind:value={form.template} />
         <button
           type="button"
           class="btn btn-outline-dark"
@@ -182,10 +181,10 @@
 
   <div class="row mb-2 align-items-center">
     <div class="col-2">
-      <label class="form-label">Default</label>
+      <label class="form-label" for="routeset-default">Default</label>
     </div>
     <div class="col">
-      <select class="form-select" bind:value={form.default}>
+      <select id="routeset-default" class="form-select" bind:value={form.default}>
         {#each generalOnoff as o (o.type)}<option value={o.type}>{o.name}</option>{/each}
       </select>
     </div>
@@ -193,7 +192,7 @@
 
   <div class="row mb-2 align-items-start">
     <div class="col-2">
-      <label class="form-label">Params</label>
+      <span class="form-label">Params</span>
     </div>
     <div class="col">
       {#each form._params as p, i (i)}
