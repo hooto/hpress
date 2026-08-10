@@ -57,7 +57,7 @@ func (q *QuerySet) TermList() hpapi.TermList {
 	}
 
 	if model.Type == hpapi.TermTaxonomy {
-		if tc, ok := term_cmap[q.ModName+q.Table]; ok {
+		if tc, ok := termCMap[q.ModName+q.Table]; ok {
 			return tc.ls
 		}
 	}
@@ -129,18 +129,18 @@ func (q *QuerySet) TermList() hpapi.TermList {
 
 	if model.Type == hpapi.TermTaxonomy {
 
-		tcm := &term_cates{
+		tcm := &termCates{
 			ls:  rsp,
 			dps: map[uint32][]uint32{},
 		}
 
-		for _, term_entry := range tcm.ls.Items {
-			tcm.dps[term_entry.ID] = _term_cate_subtree(&tcm.ls, []uint32{}, term_entry.ID)
+		for _, termEntry := range tcm.ls.Items {
+			tcm.dps[termEntry.ID] = termCateSubtree(&tcm.ls, []uint32{}, termEntry.ID)
 		}
 
-		term_cmap_mu.Lock()
-		term_cmap[q.ModName+q.Table] = tcm
-		term_cmap_mu.Unlock()
+		termCMapMu.Lock()
+		termCMap[q.ModName+q.Table] = tcm
+		termCMapMu.Unlock()
 	}
 
 	// qryhash := q.Hash()
@@ -152,9 +152,9 @@ func (q *QuerySet) TermList() hpapi.TermList {
 	return rsp
 }
 
-func _term_cate_subtree(termls *hpapi.TermList, prs []uint32, pid uint32) []uint32 {
+func termCateSubtree(termls *hpapi.TermList, prs []uint32, pid uint32) []uint32 {
 
-	if _term_in_array(prs, pid) {
+	if termInArray(prs, pid) {
 		return prs
 	}
 
@@ -163,14 +163,14 @@ func _term_cate_subtree(termls *hpapi.TermList, prs []uint32, pid uint32) []uint
 	for _, entry := range termls.Items {
 
 		if entry.PID == pid {
-			prs = _term_cate_subtree(termls, prs, entry.ID)
+			prs = termCateSubtree(termls, prs, entry.ID)
 		}
 	}
 
 	return prs
 }
 
-func _term_in_array(arr []uint32, a uint32) bool {
+func termInArray(arr []uint32, a uint32) bool {
 
 	for _, ar := range arr {
 		if ar == a {

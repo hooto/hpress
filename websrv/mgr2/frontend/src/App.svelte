@@ -10,11 +10,21 @@
   import { blockingAlert, alertClose, alertClass } from './lib/alert'
   import { hotkeyCtrlS } from './lib/store'
 
-  import SysSection from './routes/sys/Section.svelte'
-  import S2Section from './routes/s2/Section.svelte'
-  import SpecSection from './routes/spec/Section.svelte'
-  import SpecEditorSection from './routes/spec-editor/Section.svelte'
-  import NodeSection from './routes/node/Section.svelte'
+  import SysSection from './routes/sys/SysSection.svelte'
+  import type { Component } from 'svelte'
+
+  // Route section dispatchers, loaded on demand. Each dynamic import becomes
+  // its own dist/assets chunk named after the file (e.g. node-section-<hash>.js),
+  // fetched only on first navigation to that section. CodeMirror / marked /
+  // DOMPurify live in the spec-editor-section / node-section chunks, so the
+  // initial load never pulls them. sys is the default/landing route, so it
+  // stays eager.
+  const lazySections: Record<string, () => Promise<{ default: Component<any> }>> = {
+    s2: () => import('./routes/s2/S2Section.svelte'),
+    spec: () => import('./routes/spec/SpecSection.svelte'),
+    'spec-editor': () => import('./routes/spec-editor/SpecEditorSection.svelte'),
+    node: () => import('./routes/node/NodeSection.svelte'),
+  }
 
   onMount(() => {
     bootApp()
@@ -31,6 +41,10 @@
 
   const route = $derived($hashRoute || 'sys/index')
   const section = $derived(route.split('/')[0])
+  // The lazy section's import promise for the active route, or undefined for sys
+  // (eager) / unknown routes. Recomputes only on section change, so in-section
+  // sub-route navigation never re-imports.
+  const sectionPromise = $derived(lazySections[section]?.())
 </script>
 
 <svelte:window onkeydown={onKeydown} />
@@ -40,14 +54,17 @@
 <div id="com-content" class="hpm-block-gap-frame">
   {#if section === 'sys'}
     <SysSection {route} />
-  {:else if section === 's2'}
-    <S2Section {route} />
-  {:else if section === 'spec-editor'}
-    <SpecEditorSection {route} />
-  {:else if section === 'spec'}
-    <SpecSection {route} />
-  {:else if section === 'node'}
-    <NodeSection {route} />
+  {:else if sectionPromise}
+    {#await sectionPromise}
+      <div class="d-flex justify-content-center py-5 text-muted">
+        <div class="spinner-border spinner-border-sm" role="status" aria-label="Loading"></div>
+      </div>
+    {:then mod}
+      {@const Component = mod.default}
+      <Component {route} />
+    {:catch}
+      <div class="container-fluid py-4"><p class="text-muted">Failed to load section.</p></div>
+    {/await}
   {:else}
     <div class="container-fluid py-4"><p class="text-muted">Route: {route}</p></div>
   {/if}

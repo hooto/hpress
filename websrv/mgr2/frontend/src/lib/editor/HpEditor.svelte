@@ -24,12 +24,14 @@
   }: { value?: string; formats?: string[]; format?: string } = $props()
 
   let textarea: HTMLTextAreaElement
+  let layoutEl: HTMLDivElement
   let previewEl = $state<HTMLDivElement | undefined>(undefined)
   // $state so the external-value-sync $effect re-runs when the editor instance
   // is ready (null → CodeMirror), not only on value changes.
   let cm = $state<any>(null)
   let showPreview = $state(false)
   let previewHtml = $state('')
+  let resizeRo: ResizeObserver | undefined
   const s2_bucket_default = '/deft/'
 
   const isMd = $derived(format === 'md')
@@ -66,9 +68,20 @@
       value = cm.getValue()
       if (showPreview) renderPreview()
     })
+    // The editor lives in a flex column whose height is applied after mount
+    // (viewport-driven). CodeMirror caches its measurements, so reflow it when
+    // the container resizes, otherwise the scrollbar/last line misbehave.
+    resizeRo = new ResizeObserver(() => {
+      if (cm) cm.refresh()
+    })
+    resizeRo.observe(layoutEl)
   })
 
   onDestroy(() => {
+    if (resizeRo) {
+      resizeRo.disconnect()
+      resizeRo = undefined
+    }
     if (cm) {
       try {
         cm.toTextArea()
@@ -197,7 +210,7 @@
     {/if}
   </div>
 
-  <div class="hpm-editor-layout">
+  <div class="hpm-editor-layout" bind:this={layoutEl}>
     <div class="hpm-editor-col" style={'width:' + (showPreview ? '50%' : '100%')}>
       <textarea bind:this={textarea} style="display:none"></textarea>
     </div>
@@ -216,6 +229,12 @@
 <style>
   .hpm-editor {
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    /* fill the text-field column (basis 0 + grow); shrinkable so it never
+       overflows its allotted space. A no-op outside a flex parent. */
+    flex: 1 1 0;
+    min-height: 0;
   }
   .hpm-editor-toolbar {
     display: flex;
@@ -225,10 +244,15 @@
   .hpm-editor-layout {
     display: flex;
     border: 1px solid #ddd;
-    min-height: 360px;
+    /* fills the available height and scrolls internally. The modest floor keeps
+       a new/empty editor usable; it must stay below the typical available space
+       so the editor shrinks to fit instead of overflowing onto the Save row. */
+    flex: 1 1 0;
+    min-height: 200px;
   }
   .hpm-editor-col {
     display: flex;
+    min-height: 0;
   }
   .hpm-editor-col :global(.CodeMirror) {
     width: 100%;

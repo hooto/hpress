@@ -113,6 +113,13 @@ hp.CodeRender = function (options) {
         lang = "application/ld+json";
         break;
 
+      case "ini":
+      case "conf":
+      case "properties":
+        modes.push("~/cm/5/mode/properties/properties.js" + hp.urlver(true));
+        lang = "text/x-ini";
+        break;
+
       case "clojure":
       case "cmake":
       case "coffeescript":

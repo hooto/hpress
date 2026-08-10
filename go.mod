@@ -6,13 +6,6 @@ go 1.26.0
 
 // replace github.com/lynkdb/lynkapi v0.0.9 => /opt/workspace/src/github.com/lynkdb/lynkapi
 
-// replace github.com/hooto/iam/v2 v2.0.1 => /opt/workspace/src/github.com/hooto/iam
-
-// use the local iam checkout: it carries the access-key (HMAC) request-signing
-// support (pkg/iamserver/request_sign.go, signed_auth.go) consumed by the
-// clipper publish CLI and the websrv/web signature-auth fallback.
-replace github.com/hooto/iam/v2 => /opt/workspace/src/github.com/hooto/iam
-
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2
 	github.com/PuerkitoBio/goquery v1.12.0
@@ -25,7 +18,7 @@ require (
 	github.com/hooto/hini4g v0.1.2
 	github.com/hooto/hlang4g v0.1.1
 	github.com/hooto/htoml4g v0.9.5
-	github.com/hooto/iam/v2 v2.0.4
+	github.com/hooto/iam/v2 v2.0.6
 	github.com/lessos/lessgo v1.0.1
 	github.com/lynkdb/iomix v0.0.0-20210408130459-cc48edfc442f
 	github.com/lynkdb/kvgo/v2 v2.0.16

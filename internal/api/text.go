@@ -12,14 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package module
+package api
 
 import (
 	"github.com/gofiber/fiber/v3"
+
+	"github.com/hooto/hpress/internal/blackfriday"
 )
 
-// Register mounts the per-module static-asset route on a fiber router. The
-// caller mounts the router at the module prefix ("/hp/-").
-func Register(router fiber.Router) {
-	router.All("/static/*", StaticIndex)
+func TextMarkdownRender(c fiber.Ctx) error {
+
+	c.Set("Access-Control-Allow-Origin", "*")
+	c.Set("Content-type", "text/x-markdown")
+
+	output := blackfriday.MarkdownBasic(c.Body())
+
+	_, _ = c.Write(output)
+
+	return nil
 }

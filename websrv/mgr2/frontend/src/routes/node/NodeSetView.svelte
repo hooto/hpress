@@ -69,6 +69,42 @@
   let ext_permalink_name = $state('')
   let ext_node_refer = $state('')
 
+  // Viewport-driven editor height. The form root is sized inline so it fills
+  // from its top down to the browser bottom; the CodeMirror field then grows
+  // (with a min-height floor) and the Save/Cancel row pins to the viewport
+  // bottom. The top offset is dynamic (top bar + module-tabs header), so it is
+  // measured rather than hardcoded.
+  let rootEl = $state<HTMLDivElement | undefined>(undefined)
+  let rootStyle = $state('')
+
+  function recomputeHeight() {
+    const el = rootEl
+    if (!el) return
+    const cc = document.getElementById('com-content')
+    const padBottom = cc ? parseFloat(getComputedStyle(cc).paddingBottom) || 0 : 0
+    const top = el.getBoundingClientRect().top
+    const fillH = Math.max(window.innerHeight - top - padBottom, 320)
+    rootStyle = 'height:' + fillH + 'px'
+  }
+
+  $effect(() => {
+    if (!loaded || !rootEl) return
+    // double rAF so the first measure runs after the editor/layout settle
+    requestAnimationFrame(() => {
+      recomputeHeight()
+      requestAnimationFrame(recomputeHeight)
+    })
+    window.addEventListener('resize', recomputeHeight)
+    // re-measure when the top bar height changes (brand/logo load, wrapping)
+    const ro = new ResizeObserver(recomputeHeight)
+    const topbar = document.getElementById('hpm-topbar')
+    if (topbar) ro.observe(topbar)
+    return () => {
+      window.removeEventListener('resize', recomputeHeight)
+      ro.disconnect()
+    }
+  })
+
   const ext = $derived(model?.extensions || ({} as any))
 
   function langList(csv?: string): SpecLangItem[] | null {
@@ -306,8 +342,8 @@
 </script>
 
 {#if loaded}
-  <div class="hpm-block-gap-column">
-    <div class="hpm-block-gap-row">
+  <div class="hpm-block-gap-column hpm-nodeset-root" bind:this={rootEl} style={rootStyle}>
+    <div class="hpm-block-gap-row hpm-nodeset-mainrow">
       <div class="hpm-nodeset-laymain" style={'width:' + (layout.useSide ? '75%' : '100%')}>
         <!-- title field -->
         {#each fields as f (f.name)}
@@ -370,7 +406,7 @@
         <input type="text" class="form-control" bind:value={f._display} />
       </div>
     {:else if f.type === 'text'}
-      <div class="hpm-nodeset-tplx">
+      <div class="hpm-nodeset-tplx hpm-nodeset-textfield">
         <label class="form-label">
           <span>{f.title}</span>
           {#if f.attr_lang_list}
@@ -431,5 +467,32 @@
 <style>
   .hpm-nodeset-tplx {
     margin-bottom: 12px;
+  }
+
+  /* Viewport-fill layout. The root height is set inline (browser-bottom math);
+     the main row absorbs it and the text-field column grows, so the CodeMirror
+     editor fills the space while Save/Cancel stay pinned to the viewport bottom.
+     overflow:hidden on the row/column clips any residual overflow so the editor
+     can never paint over the Save/Cancel row. */
+  .hpm-nodeset-root {
+    min-height: 320px;
+  }
+  .hpm-nodeset-mainrow {
+    flex: 1 1 0;
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .hpm-nodeset-laymain {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .hpm-nodeset-textfield {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 </style>

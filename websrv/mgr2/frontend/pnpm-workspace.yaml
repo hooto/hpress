@@ -1,0 +1,6 @@
+# pnpm 10+ blocks dependency build scripts (postinstall) by default and writes
+# an `allowBuilds` placeholder for each one it blocks. esbuild's script links
+# its native binary; left blocked, pnpm's verify-deps-before-run check aborts
+# `pnpm build` with ERR_PNPM_IGNORED_BUILDS. Set esbuild to true to allow it.
+allowBuilds:
+  esbuild: true

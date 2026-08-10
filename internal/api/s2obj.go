@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package api
 
 import (
 	"encoding/base64"
@@ -31,30 +31,30 @@ import (
 
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/hpapi"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 var (
-	s2_path_reg    = regexp.MustCompile("^[0-9a-zA-Z_\\-\\.\\/]{1,100}$")
-	s2_bucket_deft = "/deft"
+	s2PathReg    = regexp.MustCompile("^[0-9a-zA-Z_\\-\\.\\/]{1,100}$")
+	s2BucketDeft = "/deft"
 )
 
-func path_filter(path string) (string, error) {
+func pathFilter(path string) (string, error) {
 
 	path = filepath.Clean(strings.Replace(strings.TrimSpace(path), " ", "-", -1))
-	if !s2_path_reg.MatchString(path) {
+	if !s2PathReg.MatchString(path) {
 		return path, fmt.Errorf("Invalid File Name")
 	}
 
-	if !strings.HasPrefix(path, s2_bucket_deft) ||
-		(len(path) > len(s2_bucket_deft) && path[len(s2_bucket_deft)] != '/') {
+	if !strings.HasPrefix(path, s2BucketDeft) ||
+		(len(path) > len(s2BucketDeft) && path[len(s2BucketDeft)] != '/') {
 		return "", errors.New("Invalid Bucket Name")
 	}
 
 	return path, nil
 }
 
-func abs_path(path string) string {
+func absPath(path string) string {
 	return filepath.Clean(config.Prefix + "/var/storage/" + path)
 }
 
@@ -78,20 +78,20 @@ func S2ObjRename(c fiber.Ctx) error {
 		return nil
 	}
 
-	path, err := path_filter(req.Path)
+	path, err := pathFilter(req.Path)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
 		return nil
 	}
 
-	pathset, err := path_filter(req.PathSet)
+	pathset, err := pathFilter(req.PathSet)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
 		return nil
 	}
 
-	path = abs_path(path)
-	pathset = abs_path(pathset)
+	path = absPath(path)
+	pathset = absPath(pathset)
 
 	dir := filepath.Dir(pathset)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -123,12 +123,12 @@ func S2ObjDel(c fiber.Ctx) error {
 	}
 
 	//
-	path, err := path_filter(web.Param(c, "path"))
+	path, err := pathFilter(web.Param(c, "path"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
 		return nil
 	}
-	path = abs_path(path)
+	path = absPath(path)
 
 	if err := os.Remove(path); err != nil {
 		rsp.Error = &types.ErrorMeta{"500", err.Error()}
@@ -165,7 +165,7 @@ func S2ObjPut(c fiber.Ctx) error {
 		return nil
 	}
 
-	path, err := path_filter(req.Path)
+	path, err := pathFilter(req.Path)
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
 		return nil
@@ -193,7 +193,7 @@ func S2ObjPut(c fiber.Ctx) error {
 		return nil
 	}
 
-	path = abs_path(path)
+	path = absPath(path)
 
 	if req.Encode == "jm" {
 
@@ -245,16 +245,16 @@ func S2ObjList(c fiber.Ctx) error {
 		return nil
 	}
 
-	path, err := path_filter(web.Param(c, "path"))
+	path, err := pathFilter(web.Param(c, "path"))
 	if err != nil {
 		rsp.Error = &types.ErrorMeta{"400", err.Error()}
 		return nil
 	}
 
 	rsp.Path = path
-	rsp.Items = fsDirList(abs_path(path), "", false)
+	rsp.Items = fsDirList(absPath(path), "", false)
 
-	relpath := strings.Replace(path, s2_bucket_deft, "", -1)
+	relpath := strings.Replace(path, s2BucketDeft, "", -1)
 
 	for i := range rsp.Items {
 		rsp.Items[i].SelfLink = config.SysConfigList.FetchString("storage_service_endpoint") +

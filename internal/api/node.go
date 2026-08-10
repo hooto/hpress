@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package api
 
 import (
 	"fmt"
@@ -32,14 +32,14 @@ import (
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/store"
 	"github.com/hooto/hpress/internal/utils"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 var (
-	node_id_length         = 8
-	node_pid_default       = "00"
-	node_list_limit  int64 = 15
-	node_set_lock    sync.Mutex
+	nodeIDLength         = 8
+	nodePIDDefault       = "00"
+	nodeListLimit  int64 = 15
+	nodeSetLock    sync.Mutex
 )
 
 func NodeList(c fiber.Ctx) error {
@@ -60,9 +60,9 @@ func NodeList(c fiber.Ctx) error {
 		return nil
 	}
 
-	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
-	dq.Limit(node_list_limit)
-	dq.Filter("status.gt", 0)
+	query := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
+	query.Limit(nodeListLimit)
+	query.Filter("status.gt", 0)
 
 	page := web.ParamInt(c, "page")
 	if page < 1 {
@@ -70,22 +70,22 @@ func NodeList(c fiber.Ctx) error {
 	}
 
 	if page > 1 {
-		dq.Offset(int64((page - 1) * node_list_limit))
+		query.Offset(int64((page - 1) * nodeListLimit))
 	}
 
-	dqc := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
-	dqc.Filter("status.gt", 0)
+	countQuery := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
+	countQuery.Filter("status.gt", 0)
 
-	node_refer := web.Param(c, "ext_node_refer")
+	nodeRefer := web.Param(c, "ext_node_refer")
 	if model.Extensions.NodeRefer != "" &&
 		hpapi.NodeExtNodeReferReg.MatchString(web.Param(c, "ext_node_refer")) {
-		dq.Filter("ext_node_refer", node_refer)
-		dqc.Filter("ext_node_refer", node_refer)
+		query.Filter("ext_node_refer", nodeRefer)
+		countQuery.Filter("ext_node_refer", nodeRefer)
 	}
 
 	if web.Param(c, "qry_text") != "" {
-		dq.Filter("field_title.like", "%"+web.Param(c, "qry_text")+"%")
-		dqc.Filter("field_title.like", "%"+web.Param(c, "qry_text")+"%")
+		query.Filter("field_title.like", "%"+web.Param(c, "qry_text")+"%")
+		countQuery.Filter("field_title.like", "%"+web.Param(c, "qry_text")+"%")
 	}
 
 	var (
@@ -93,17 +93,17 @@ func NodeList(c fiber.Ctx) error {
 		terms  = strings.Split(web.Param(c, "terms"), ",")
 	)
 
-	count, err := dqc.NodeCount()
+	count, err := countQuery.NodeCount()
 	if err != nil {
 		ls.Error = &types.ErrorMeta{hpapi.ErrCodeInternalError, err.Error()}
 		return nil
 	}
 
-	ls = dq.NodeList(fields, terms)
+	ls = query.NodeList(fields, terms)
 
 	ls.Meta.TotalResults = uint64(count)
-	ls.Meta.StartIndex = uint64((page - 1) * node_list_limit)
-	ls.Meta.ItemsPerList = uint64(node_list_limit)
+	ls.Meta.StartIndex = uint64((page - 1) * nodeListLimit)
+	ls.Meta.ItemsPerList = uint64(nodeListLimit)
 
 	return nil
 }
@@ -120,13 +120,13 @@ func NodeEntry(c fiber.Ctx) error {
 		return nil
 	}
 
-	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
-	dq.Limit(100)
-	dq.Filter("status.gt", 0)
+	query := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
+	query.Limit(100)
+	query.Filter("status.gt", 0)
 
-	dq.Filter("id", web.Param(c, "id"))
+	query.Filter("id", web.Param(c, "id"))
 
-	rsp = dq.NodeEntry()
+	rsp = query.NodeEntry()
 
 	return nil
 }
@@ -159,13 +159,13 @@ func NodeSet(c fiber.Ctx) error {
 		return nil
 	}
 
-	node_set_lock.Lock()
-	defer node_set_lock.Unlock()
+	nodeSetLock.Lock()
+	defer nodeSetLock.Unlock()
 
 	var (
-		set        = map[string]interface{}{}
-		table      = hpapi.NodeTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
-		node_refer = ""
+		set       = map[string]interface{}{}
+		table     = hpapi.NodeTableName(web.Param(c, "modname"), web.Param(c, "modelid"))
+		nodeRefer = ""
 	)
 
 	//
@@ -182,7 +182,7 @@ func NodeSet(c fiber.Ctx) error {
 			rsp.Error = types.NewErrorMeta("400", "Invalid Node Refer ID")
 			return nil
 		}
-		node_refer = rsp.ExtNodeRefer
+		nodeRefer = rsp.ExtNodeRefer
 	}
 
 	if ft := rsp.Field("title"); ft == nil {
@@ -261,9 +261,9 @@ func NodeSet(c fiber.Ctx) error {
 					}
 
 					if len(attrs) > 0 {
-						attrs_js, _ := json.Encode(attrs, "  ")
-						if string(attrs_js) != rs[0].Field("field_"+modField.Name+"_attrs").String() {
-							set["field_"+modField.Name+"_attrs"] = string(attrs_js)
+						attrsJSON, _ := json.Encode(attrs, "  ")
+						if string(attrsJSON) != rs[0].Field("field_"+modField.Name+"_attrs").String() {
+							set["field_"+modField.Name+"_attrs"] = string(attrsJSON)
 						}
 					}
 				}
@@ -277,16 +277,16 @@ func NodeSet(c fiber.Ctx) error {
 							rs[0].Field("field_" + modField.Name + "_langs").JsonDecode(&langs)
 						}
 
-						attr_langs := hpapi.LangsStringFilterArray(attr.String())
-						for li := 1; li < len(attr_langs); li++ {
-							if lang_entry := valField.Langs.Items.Get(attr_langs[li]); lang_entry != nil {
-								langs.Items.Set(attr_langs[li], lang_entry.String())
+						attrLangs := hpapi.LangsStringFilterArray(attr.String())
+						for li := 1; li < len(attrLangs); li++ {
+							if langEntry := valField.Langs.Items.Get(attrLangs[li]); langEntry != nil {
+								langs.Items.Set(attrLangs[li], langEntry.String())
 							}
 						}
 
 						if len(langs.Items) > 0 {
-							langs_js, _ := json.Encode(langs, "")
-							set["field_"+modField.Name+"_langs"] = string(langs_js)
+							langsJSON, _ := json.Encode(langs, "")
+							set["field_"+modField.Name+"_langs"] = string(langsJSON)
 						}
 					}
 				}
@@ -324,7 +324,7 @@ func NodeSet(c fiber.Ctx) error {
 
 	} else {
 
-		set["id"] = utils.SeqRandHexString(4, node_id_length)
+		set["id"] = utils.SeqRandHexString(4, nodeIDLength)
 		// set["title"] = rsp.Title
 		set["status"] = rsp.Status
 		set["created"] = uint32(time.Now().Unix())
@@ -336,7 +336,7 @@ func NodeSet(c fiber.Ctx) error {
 			set["userid"] = ""
 		}
 
-		set["pid"] = node_pid_default
+		set["pid"] = nodePIDDefault
 		if model.Extensions.AccessCounter {
 			set["ext_access_counter"] = "0"
 		}
@@ -369,8 +369,8 @@ func NodeSet(c fiber.Ctx) error {
 					}
 
 					if len(attrs) > 0 {
-						attrs_js, _ := json.Encode(attrs, "  ")
-						set["field_"+modField.Name+"_attrs"] = string(attrs_js)
+						attrsJSON, _ := json.Encode(attrs, "  ")
+						set["field_"+modField.Name+"_attrs"] = string(attrsJSON)
 					}
 				}
 
@@ -380,16 +380,16 @@ func NodeSet(c fiber.Ctx) error {
 
 						var langs hpapi.NodeFieldLangs
 
-						attr_langs := hpapi.LangsStringFilterArray(attr.String())
-						for li := 1; li < len(attr_langs); li++ {
-							if lang_entry := valField.Langs.Items.Get(attr_langs[li]); lang_entry != nil {
-								langs.Items.Set(attr_langs[li], lang_entry.String())
+						attrLangs := hpapi.LangsStringFilterArray(attr.String())
+						for li := 1; li < len(attrLangs); li++ {
+							if langEntry := valField.Langs.Items.Get(attrLangs[li]); langEntry != nil {
+								langs.Items.Set(attrLangs[li], langEntry.String())
 							}
 						}
 
 						if len(langs.Items) > 0 {
-							langs_js, _ := json.Encode(langs, "")
-							set["field_"+modField.Name+"_langs"] = string(langs_js)
+							langsJSON, _ := json.Encode(langs, "")
+							set["field_"+modField.Name+"_langs"] = string(langsJSON)
 						}
 					}
 				}
@@ -484,7 +484,7 @@ func NodeSet(c fiber.Ctx) error {
 						permaname = fmt.Sprintf("%s-%d", rsp.ExtPermalinkName, i)
 					}
 
-					permaidx := idhash.HashToHexString([]byte(node_refer+permaname), 12)
+					permaidx := idhash.HashToHexString([]byte(nodeRefer+permaname), 12)
 
 					q := store.Data.NewQueryer().From(table).Limit(1)
 					q.Where().And("ext_permalink_idx", permaidx)
@@ -526,9 +526,9 @@ func NodeSet(c fiber.Ctx) error {
 	if model.Extensions.NodeRefer != "" {
 
 		if prev, ok := set["ext_node_refer"]; !ok || prev != rsp.ExtNodeRefer {
-			ref_q := store.Data.NewQueryer().From(hpapi.NodeTableName(web.Param(c, "modname"), model.Extensions.NodeRefer)).Limit(1)
-			ref_q.Where().And("id", rsp.ExtNodeRefer)
-			if rs, err := store.Data.Query(ref_q); err != nil {
+			refQ := store.Data.NewQueryer().From(hpapi.NodeTableName(web.Param(c, "modname"), model.Extensions.NodeRefer)).Limit(1)
+			refQ.Where().And("id", rsp.ExtNodeRefer)
+			if rs, err := store.Data.Query(refQ); err != nil {
 				rsp.Error = types.NewErrorMeta("500", "Server Error")
 				return nil
 			} else if len(rs) < 1 {
@@ -555,11 +555,11 @@ func NodeSet(c fiber.Ctx) error {
 		}
 
 		// clean frontend cache
-		qry := datax.NewQuery(web.Param(c, "modname"), model.Meta.Name)
-		qry.Filter("status", 1)
-		qry.Filter("id", rsp.ID)
+		query := datax.NewQuery(web.Param(c, "modname"), model.Meta.Name)
+		query.Filter("status", 1)
+		query.Filter("id", rsp.ID)
 
-		store.DataLocal.NewDeleter([]byte(qry.Hash())).Exec()
+		store.DataLocal.NewDeleter([]byte(query.Hash())).Exec()
 
 		if err != nil {
 			rsp.Error = &types.ErrorMeta{

@@ -29,7 +29,7 @@ import (
 
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/store"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 var (
@@ -124,7 +124,7 @@ func SpecTermModel(modname, modelName string) (*hpapi.TermModel, error) {
 	return &hpapi.TermModel{}, errors.New("Spec Not Found")
 }
 
-func module_init() error {
+func moduleInit() error {
 
 	timenow := uint32(time.Now().Unix())
 
@@ -165,7 +165,7 @@ func module_init() error {
 						mod.NodeModels[j] = v2
 						sync = true
 
-						if err := _instance_schema_sync(&mod); err != nil {
+						if err := instanceSchemaSync(&mod); err != nil {
 							slog.Error(err.Error())
 							return err
 						}
@@ -317,7 +317,7 @@ func module_init() error {
 
 	//
 	for _, mod := range Modules {
-		if err := _instance_schema_sync(mod); err != nil {
+		if err := instanceSchemaSync(mod); err != nil {
 			return err
 		}
 		SpecSrvRefresh(mod.SrvName)
@@ -366,7 +366,7 @@ func SpecSrvRefresh(srvname string) {
 		[]string{fmt.Sprintf("%s/modules/%s/views", Prefix, spec.Meta.Name)})
 }
 
-func _instance_schema_sync(spec *hpapi.Spec) error {
+func instanceSchemaSync(spec *hpapi.Spec) error {
 
 	if store.Data == nil {
 		return errors.New("No RDB Connector Found")

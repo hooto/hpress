@@ -25,20 +25,20 @@ import (
 )
 
 var (
-	worker_counter_locker sync.Mutex
-	worker_pending        = false
+	workerCounterLocker sync.Mutex
+	workerPending       = false
 )
 
 func Worker() {
 
-	worker_counter_locker.Lock()
-	defer worker_counter_locker.Unlock()
+	workerCounterLocker.Lock()
+	defer workerCounterLocker.Unlock()
 
-	if worker_pending {
+	if workerPending {
 		return
 	}
 
-	worker_pending = true
+	workerPending = true
 
 	go func() {
 
@@ -105,12 +105,12 @@ func Worker() {
 				}
 			}
 
-			if err := data_search_sync(); err != nil {
-				slog.Error(fmt.Sprintf("data_search_sync error : %s", err.Error()))
+			if err := dataSearchSync(); err != nil {
+				slog.Error(fmt.Sprintf("dataSearchSync error : %s", err.Error()))
 			}
 
-			if err := data_sync_pull(); err != nil {
-				slog.Error(fmt.Sprintf("data_sync_pull error : %s", err.Error()))
+			if err := dataSyncPull(); err != nil {
+				slog.Error(fmt.Sprintf("dataSyncPull error : %s", err.Error()))
 			}
 		}
 

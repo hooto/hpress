@@ -3,6 +3,7 @@
 name = "hooto-press"
 description = "Hooto Press Content Management System"
 image = "sysinner/innerstack-alpine:3.23"
+version = "1.0.0"
 
 [resources]
 cpu_min = "200m"
@@ -44,7 +45,7 @@ fi
 mkdir -p /opt/hooto/press/etc
 rsync -av ${ipk.hooto_press.path}/* /opt/hooto/press/
 
-/opt/hooto/press/bin/hooto-press -log_dir=/opt/hooto/press/var/log -minloglevel=1 >> /home/action/var/log/hooto-press.log 2>&1 &
+/opt/hooto/press/bin/hooto-press >> /home/action/var/log/hooto-press.log 2>&1 &
 """
 cron = "*/60 * * * * *"
 

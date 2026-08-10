@@ -28,7 +28,7 @@ import (
 	"github.com/hooto/hpress/internal/datax"
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/store"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 const (
@@ -44,15 +44,15 @@ func CommentEmbed(c fiber.Ctx) error {
 		return nil
 	}
 
-	qry := datax.NewQuery(nsModName, "entry")
-	qry.Limit(500)
-	qry.Filter("status", 1)
-	qry.Order("created asc")
-	qry.Filter("field_refer_id", web.Param(c, "refer_id"))
-	qry.Filter("field_refer", web.Param(c, "refer_modname")+"."+web.Param(c, "refer_datax_table"))
+	query := datax.NewQuery(nsModName, "entry")
+	query.Limit(500)
+	query.Filter("status", 1)
+	query.Order("created asc")
+	query.Filter("field_refer_id", web.Param(c, "refer_id"))
+	query.Filter("field_refer", web.Param(c, "refer_modname")+"."+web.Param(c, "refer_datax_table"))
 
 	data := map[string]interface{}{
-		"list":                       qry.NodeList([]string{}, []string{}),
+		"list":                       query.NodeList([]string{}, []string{}),
 		"new_form_refer_id":          web.Param(c, "refer_id"),
 		"new_form_refer_modname":     web.Param(c, "refer_modname"),
 		"new_form_refer_datax_table": web.Param(c, "refer_datax_table"),
@@ -82,15 +82,15 @@ func CommentSet(c fiber.Ctx) error {
 	set.Content = strings.TrimSpace(set.Content)
 	set.Author = strings.TrimSpace(set.Author)
 
-	ref_mod_ok := false
+	refModOK := false
 	for _, spec := range config.Modules {
 
 		if spec.Meta.Name == set.ReferModName {
-			ref_mod_ok = true
+			refModOK = true
 			break
 		}
 	}
-	if !ref_mod_ok {
+	if !refModOK {
 		set.Error = &types.ErrorMeta{
 			Code:    "400",
 			Message: "Spec Not Found",
@@ -106,17 +106,17 @@ func CommentSet(c fiber.Ctx) error {
 		return nil
 	}
 
-	re_title := "Re: "
-	prevq := datax.NewQuery(set.ReferModName, set.ReferDataxTable)
-	prevq.Filter("id", set.ReferID)
-	if rs := prevq.NodeEntry(); rs.Error != nil || rs.Kind != "Node" {
+	reTitle := "Re: "
+	prevQuery := datax.NewQuery(set.ReferModName, set.ReferDataxTable)
+	prevQuery.Filter("id", set.ReferID)
+	if rs := prevQuery.NodeEntry(); rs.Error != nil || rs.Kind != "Node" {
 		set.Error = &types.ErrorMeta{
 			Code:    "400",
 			Message: "Refer Content Not Found",
 		}
 		return nil
 	} else {
-		re_title += rs.Title
+		reTitle += rs.Title
 	}
 
 	if set.Content == "" {
@@ -146,8 +146,8 @@ func CommentSet(c fiber.Ctx) error {
 	item := map[string]interface{}{
 		"id":                  set.Meta.ID,
 		"pid":                 "00",
-		"title":               re_title,
-		"field_title":         re_title,
+		"title":               reTitle,
+		"field_title":         reTitle,
 		"status":              1,
 		"userid":              utils.StringEncode16("guest", 8),
 		"field_refer_id":      set.ReferID,

@@ -24,18 +24,18 @@ import (
 )
 
 var (
-	term_cmap    = map[string]*term_cates{}
-	term_cmap_mu sync.RWMutex
+	termCMap   = map[string]*termCates{}
+	termCMapMu sync.RWMutex
 )
 
-type term_cates struct {
+type termCates struct {
 	ls  hpapi.TermList
 	dps map[uint32][]uint32
 }
 
-func _termTaxonomyCacheRefresh(modname, table string) {
+func termTaxonomyCacheRefresh(modname, table string) {
 
-	if _, ok := term_cmap[modname+table]; ok {
+	if _, ok := termCMap[modname+table]; ok {
 		return
 	}
 
@@ -44,9 +44,9 @@ func _termTaxonomyCacheRefresh(modname, table string) {
 		return
 	}
 
-	tx_table := hpapi.TermTableName(modname, table)
+	txTable := hpapi.TermTableName(modname, table)
 
-	qs := store.Data.NewQueryer().From(tx_table).Limit(200).Order("weight desc")
+	qs := store.Data.NewQueryer().From(txTable).Limit(200).Order("weight desc")
 	qs.Where().And("status", 1)
 
 	rs, err := store.Data.Query(qs)
@@ -54,8 +54,8 @@ func _termTaxonomyCacheRefresh(modname, table string) {
 		return
 	}
 
-	term_cmap_mu.Lock()
-	defer term_cmap_mu.Unlock()
+	termCMapMu.Lock()
+	defer termCMapMu.Unlock()
 
 	ls := hpapi.TermList{}
 
@@ -78,30 +78,30 @@ func _termTaxonomyCacheRefresh(modname, table string) {
 	ls.Meta.StartIndex = 0
 	ls.Meta.ItemsPerList = 200
 
-	tcm := &term_cates{
+	tcm := &termCates{
 		ls:  ls,
 		dps: map[uint32][]uint32{},
 	}
 
-	for _, term_entry := range tcm.ls.Items {
-		tcm.dps[term_entry.ID] = _term_cate_subtree(&tcm.ls, []uint32{}, term_entry.ID)
+	for _, termEntry := range tcm.ls.Items {
+		tcm.dps[termEntry.ID] = termCateSubtree(&tcm.ls, []uint32{}, termEntry.ID)
 	}
 
-	term_cmap[modname+table] = tcm
+	termCMap[modname+table] = tcm
 }
 
-func TermTaxonomyCacheIndexes(modname, table, termid_s string) []uint32 {
+func TermTaxonomyCacheIndexes(modname, table, termIDStr string) []uint32 {
 
-	tid, _ := strconv.ParseUint(termid_s, 10, 32)
+	tid, _ := strconv.ParseUint(termIDStr, 10, 32)
 
-	if _, ok := term_cmap[modname+table]; !ok {
-		_termTaxonomyCacheRefresh(modname, table)
+	if _, ok := termCMap[modname+table]; !ok {
+		termTaxonomyCacheRefresh(modname, table)
 	}
 
-	term_cmap_mu.RLock()
-	defer term_cmap_mu.RUnlock()
+	termCMapMu.RLock()
+	defer termCMapMu.RUnlock()
 
-	if t, ok := term_cmap[modname+table]; ok {
+	if t, ok := termCMap[modname+table]; ok {
 		if tis, ok := t.dps[uint32(tid)]; ok {
 			return tis
 		}
@@ -112,10 +112,10 @@ func TermTaxonomyCacheIndexes(modname, table, termid_s string) []uint32 {
 
 func TermTaxonomyCacheEntry(modname, table string, termid uint32) *hpapi.Term {
 
-	term_cmap_mu.RLock()
-	defer term_cmap_mu.RUnlock()
+	termCMapMu.RLock()
+	defer termCMapMu.RUnlock()
 
-	if t, ok := term_cmap[modname+table]; ok {
+	if t, ok := termCMap[modname+table]; ok {
 
 		for _, entry := range t.ls.Items {
 
@@ -130,10 +130,10 @@ func TermTaxonomyCacheEntry(modname, table string, termid uint32) *hpapi.Term {
 
 func TermTaxonomyCacheClean(modname, table string) {
 
-	term_cmap_mu.Lock()
-	defer term_cmap_mu.Unlock()
+	termCMapMu.Lock()
+	defer termCMapMu.Unlock()
 
-	if _, ok := term_cmap[modname+table]; ok {
-		delete(term_cmap, modname+table)
+	if _, ok := termCMap[modname+table]; ok {
+		delete(termCMap, modname+table)
 	}
 }

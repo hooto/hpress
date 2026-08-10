@@ -1,0 +1,52 @@
+@charset "UTF-8";
+
+/*
+ * Frontend theme layer.
+ *
+ * A theme binds a surface palette to a class on #hp-body (e.g. "hp-theme-paper").
+ * Each theme declares:
+ *   - its raw color tokens (e.g. --paper-*)
+ *   - the semantic surface aliases that component rules consume (--hp-surface-*)
+ *
+ * Component rules are scoped to #hp-body[class*="hp-theme-"], so they apply only
+ * to pages carrying a theme class; pages without one are completely untouched.
+ *
+ * Add a theme: declare raw + semantic tokens in a new #hp-body.hp-theme-<name> block.
+ * Assign a theme: add the class to the module's <body> tag.
+ */
+
+/* Semantic defaults so application rules stay inert until a theme opts in. */
+#hp-body[class*="hp-theme-"] {
+  --hp-surface: #fff;
+  --hp-surface-muted: #f5f5f5;
+  --hp-surface-soft: #eee;
+  --hp-surface-raised: #fff;
+}
+
+/* theme: paper — warm off-white surfaces */
+#hp-body.hp-theme-paper {
+  --paper: #fdfcf9;
+  --paper-muted: #f6f3ec;
+  --paper-soft: #efeadf;
+  --paper-raised: #ffffff;
+
+  --hp-surface: var(--paper);
+  --hp-surface-muted: var(--paper-muted);
+  --hp-surface-soft: var(--paper-soft);
+  --hp-surface-raised: var(--paper-raised);
+}
+
+/* Component application — values resolve from the active theme. */
+
+#hp-body[class*="hp-theme-"] {
+  background-color: var(--hp-surface);
+}
+
+#hp-body[class*="hp-theme-"] .hp-node-view {
+  background-color: var(--hp-surface-raised);
+  border-color: var(--hp-surface-soft);
+}
+
+#hp-body[class*="hp-theme-"] .hp-node-view .hp-info {
+  background-color: var(--hp-surface-muted);
+}

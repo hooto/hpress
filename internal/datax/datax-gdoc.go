@@ -156,14 +156,14 @@ func gdocRefresh() {
 	var (
 		offset = int64(0)
 		limit  = int64(10)
-		qry    = NewQuery("core/gdoc", "doc")
+		query  = NewQuery("core/gdoc", "doc")
 	)
-	qry.Limit(limit)
+	query.Limit(limit)
 
 	for {
-		qry.Offset(offset)
+		query.Offset(offset)
 
-		ls := qry.NodeList(nil, nil)
+		ls := query.NodeList(nil, nil)
 		for _, v := range ls.Items {
 
 			if !gdocRepoUrlReg.MatchString(v.Field("repo_url").Value) {

@@ -18,7 +18,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/hooto/hpress/internal/config"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 // Register mounts the comment module routes on a fiber router. The caller mounts

@@ -38,7 +38,7 @@ import (
 var (
 	modNamePattern        = regexp.MustCompile("^[0-9a-z/]{3,30}$")
 	modelNamePattern      = regexp.MustCompile("^[a-z]{1,1}[0-9a-z_]{1,20}$")
-	nodeFeildNamePattern  = regexp.MustCompile("^[a-z]{1,1}[0-9a-z_]{1,20}$")
+	nodeFieldNamePattern  = regexp.MustCompile("^[a-z]{1,1}[0-9a-z_]{1,20}$")
 	routePathPattern      = regexp.MustCompile("^[0-9a-zA-Z_/\\-:]{1,50}$")
 	routeParamNamePattern = regexp.MustCompile("^[a-z]{1,1}[0-9a-zA-Z_]{0,29}$")
 )
@@ -112,7 +112,7 @@ func SpecInfoNew(entry hpapi.Spec) error {
 		return err
 	}
 
-	return spec_config_file_sync(entry)
+	return specConfigFileSync(entry)
 }
 
 func SpecInfoSet(entry hpapi.Spec) error {
@@ -148,7 +148,7 @@ func SpecInfoSet(entry hpapi.Spec) error {
 		prev.Meta.Updated = types.MetaTimeNow()
 		prev.ThemeConfig = entry.ThemeConfig
 
-		if err := spec_config_file_sync(prev); err != nil {
+		if err := specConfigFileSync(prev); err != nil {
 			return err
 		}
 	}
@@ -192,7 +192,7 @@ func SpecTermSet(modname string, entry hpapi.TermModel) error {
 		prev.Meta.Version = hpapi.NewSpecVersion(prev.Meta.Version).Add(0, 0, 1).String()
 		prev.Meta.Updated = types.MetaTimeNow()
 
-		if err := spec_config_file_sync(prev); err != nil {
+		if err := specConfigFileSync(prev); err != nil {
 			return err
 		}
 	}
@@ -200,7 +200,7 @@ func SpecTermSet(modname string, entry hpapi.TermModel) error {
 	return err
 }
 
-func _termListEqual(ls1, ls2 []hpapi.TermModel) bool {
+func termListEqual(ls1, ls2 []hpapi.TermModel) bool {
 
 	if len(ls1) != len(ls2) {
 		return false
@@ -240,7 +240,7 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 
 	for i, field := range entry.Fields {
 
-		if mat := nodeFeildNamePattern.MatchString(field.Name); !mat {
+		if mat := nodeFieldNamePattern.MatchString(field.Name); !mat {
 			return fmt.Errorf("Invalid Field Name (%s)", field.Name)
 		}
 
@@ -267,11 +267,11 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 			}
 		}
 
-		attr_dels := []string{}
+		attrDels := []string{}
 
 		for j, attr := range field.Attrs {
 
-			if mat := nodeFeildNamePattern.MatchString(attr.Key); !mat {
+			if mat := nodeFieldNamePattern.MatchString(attr.Key); !mat {
 				return fmt.Errorf("Invalid Field Attribute Key (%s)", attr.Key)
 			}
 
@@ -284,11 +284,11 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 			}
 
 			if entry.Fields[i].Attrs[j].Value == "" {
-				attr_dels = append(attr_dels, attr.Key)
+				attrDels = append(attrDels, attr.Key)
 			}
 		}
 
-		for _, v := range attr_dels {
+		for _, v := range attrDels {
 			entry.Fields[i].Attrs.Del(v)
 		}
 	}
@@ -335,7 +335,7 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 				if entry.Extensions.NodeRefer == nodeModel.Meta.Name {
 					return errors.New("Invalid Node Refer Value")
 				}
-				if refer_nm := prev.NodeModelGet(entry.Extensions.NodeRefer); refer_nm == nil {
+				if referNodeModel := prev.NodeModelGet(entry.Extensions.NodeRefer); referNodeModel == nil {
 					return errors.New("Node Refer Not Found")
 				}
 
@@ -357,7 +357,7 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 
 				for _, prevField := range nodeModel.Fields {
 
-					field_sync := true
+					fieldSync := true
 
 					for _, curField := range entry.Fields {
 
@@ -369,14 +369,14 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 								curField.Length == prevField.Length &&
 								curField.Attrs.Equal(prevField.Attrs) {
 
-								field_sync = false
+								fieldSync = false
 							}
 
 							break
 						}
 					}
 
-					if field_sync && len(entry.Fields) > 0 {
+					if fieldSync && len(entry.Fields) > 0 {
 
 						sync = true
 						prev.NodeModels[i].Fields = entry.Fields
@@ -386,26 +386,26 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 				}
 			}
 
-			if !_termListEqual(nodeModel.Terms, entry.Terms) {
+			if !termListEqual(nodeModel.Terms, entry.Terms) {
 
 				prev.NodeModels[i].Terms = entry.Terms
 				sync = true
 
 				for _, sterm := range entry.Terms {
 
-					ptermok := false
+					prevTermFound := false
 
 					for i, pterm := range prev.TermModels {
 
 						if pterm.Meta.Name == sterm.Meta.Name {
 
-							ptermok = true
+							prevTermFound = true
 							prev.TermModels[i] = sterm
 							break
 						}
 					}
 
-					if !ptermok {
+					if !prevTermFound {
 						prev.TermModels = append(prev.TermModels, sterm)
 					}
 				}
@@ -422,20 +422,20 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 
 	for i, v1 := range prev.NodeModels {
 
-		node_sub_refer := ""
+		nodeSubRefer := ""
 
 		if v1.Extensions.NodeRefer == "" {
 			for _, v2 := range prev.NodeModels {
 				if v2.Meta.Name != v1.Meta.Name &&
 					v2.Extensions.NodeRefer == v1.Meta.Name {
-					node_sub_refer = v2.Meta.Name
+					nodeSubRefer = v2.Meta.Name
 					break
 				}
 			}
 		}
 
-		if node_sub_refer != v1.Extensions.NodeSubRefer {
-			prev.NodeModels[i].Extensions.NodeSubRefer = node_sub_refer
+		if nodeSubRefer != v1.Extensions.NodeSubRefer {
+			prev.NodeModels[i].Extensions.NodeSubRefer = nodeSubRefer
 			sync = true
 		}
 	}
@@ -445,7 +445,7 @@ func SpecNodeSet(modname string, entry *hpapi.NodeModel) error {
 		prev.Meta.Version = hpapi.NewSpecVersion(prev.Meta.Version).Add(0, 0, 1).String()
 		prev.Meta.Updated = types.MetaTimeNow()
 
-		if err := spec_config_file_sync(prev); err != nil {
+		if err := specConfigFileSync(prev); err != nil {
 			return err
 		}
 	}
@@ -497,31 +497,31 @@ func SpecActionSet(modname string, entry hpapi.Action) error {
 				entry.Datax[i].Query.Limit = 10000
 			}
 
-			table_found := false
+			tableFound := false
 			for _, nodeModel := range prev.NodeModels {
 
 				if nodeModel.Meta.Name == dentry.Query.Table {
-					table_found = true
+					tableFound = true
 					break
 				}
 			}
 
-			if !table_found {
+			if !tableFound {
 				return fmt.Errorf("Query Table Not Found (%s)", dentry.Query.Table)
 			}
 
 		case "term":
 
-			table_found := false
+			tableFound := false
 			for _, termModel := range prev.TermModels {
 
 				if termModel.Meta.Name == dentry.Query.Table {
-					table_found = true
+					tableFound = true
 					break
 				}
 			}
 
-			if !table_found {
+			if !tableFound {
 				return fmt.Errorf("Query Table Not Found (%s)", dentry.Query.Table)
 			}
 
@@ -546,7 +546,7 @@ func SpecActionSet(modname string, entry hpapi.Action) error {
 
 				for _, prevDatax := range action.Datax {
 
-					datax_sync := true
+					dataxSync := true
 
 					for _, curField := range entry.Datax {
 
@@ -559,14 +559,14 @@ func SpecActionSet(modname string, entry hpapi.Action) error {
 								curField.Query.Limit == prevDatax.Query.Limit &&
 								curField.Query.Order == prevDatax.Query.Order {
 
-								datax_sync = false
+								dataxSync = false
 							}
 
 							break
 						}
 					}
 
-					if datax_sync && len(entry.Datax) > 0 {
+					if dataxSync && len(entry.Datax) > 0 {
 
 						sync = true
 						prev.Actions[i].Datax = entry.Datax
@@ -591,7 +591,7 @@ func SpecActionSet(modname string, entry hpapi.Action) error {
 		prev.Meta.Version = hpapi.NewSpecVersion(prev.Meta.Version).Add(0, 0, 1).String()
 		prev.Meta.Updated = types.MetaTimeNow()
 
-		if err := spec_config_file_sync(prev); err != nil {
+		if err := specConfigFileSync(prev); err != nil {
 			return err
 		}
 	}
@@ -624,7 +624,7 @@ func SpecActionDel(modname string, entry hpapi.Action) error {
 		prev.Meta.Version = hpapi.NewSpecVersion(prev.Meta.Version).Add(0, 0, 1).String()
 		prev.Meta.Updated = types.MetaTimeNow()
 
-		if err := spec_config_file_sync(prev); err != nil {
+		if err := specConfigFileSync(prev); err != nil {
 			return err
 		}
 	}
@@ -632,7 +632,7 @@ func SpecActionDel(modname string, entry hpapi.Action) error {
 	return nil
 }
 
-func _routeParamsEqual(a1, a2 map[string]string) bool {
+func routeParamsEqual(a1, a2 map[string]string) bool {
 
 	if len(a1) != len(a2) {
 		return false
@@ -697,7 +697,7 @@ func SpecRouteSet(modname string, entry hpapi.Route) error {
 			if entry.DataAction == prevRoute.DataAction &&
 				entry.Template == prevRoute.Template &&
 				entry.Default == prevRoute.Default &&
-				_routeParamsEqual(entry.Params, prevRoute.Params) {
+				routeParamsEqual(entry.Params, prevRoute.Params) {
 
 				sync = false
 			} else {
@@ -741,7 +741,7 @@ func SpecRouteSet(modname string, entry hpapi.Route) error {
 		prev.Meta.Version = hpapi.NewSpecVersion(prev.Meta.Version).Add(0, 0, 1).String()
 		prev.Meta.Updated = types.MetaTimeNow()
 
-		if err := spec_config_file_sync(prev); err != nil {
+		if err := specConfigFileSync(prev); err != nil {
 			return err
 		}
 	}
@@ -777,7 +777,7 @@ func SpecRouteDel(modname string, entry hpapi.Route) error {
 		prev.Meta.Version = hpapi.NewSpecVersion(prev.Meta.Version).Add(0, 0, 1).String()
 		prev.Meta.Updated = types.MetaTimeNow()
 
-		if err := spec_config_file_sync(prev); err != nil {
+		if err := specConfigFileSync(prev); err != nil {
 			return err
 		}
 	}
@@ -785,7 +785,7 @@ func SpecRouteDel(modname string, entry hpapi.Route) error {
 	return nil
 }
 
-func spec_config_file_sync(entry hpapi.Spec) error {
+func specConfigFileSync(entry hpapi.Spec) error {
 
 	entry.Meta.Created = 0
 	entry.Meta.Updated = 0

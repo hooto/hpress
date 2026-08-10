@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package frontend
+package site
 
 import (
 	"bytes"
@@ -34,7 +34,7 @@ import (
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/store"
 	"github.com/hooto/hpress/internal/utils"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 // indexContext holds the per-request state previously captured by the legacy
@@ -257,25 +257,25 @@ func IndexPage(c fiber.Ctx) error {
 	return nil
 }
 
-func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionData) int {
+func (ix *indexContext) dataRender(srvname, actionName string, ad hpapi.ActionData) int {
 
 	mod, ok := config.Modules[srvname]
 	if !ok {
 		return dataRenderNotFound
 	}
 
-	qry := datax.NewQuery(mod.Meta.Name, ad.Query.Table)
+	query := datax.NewQuery(mod.Meta.Name, ad.Query.Table)
 	if ad.Query.Limit > 0 {
-		qry.Limit(ad.Query.Limit)
+		query.Limit(ad.Query.Limit)
 	}
 
 	if ad.Query.Order != "" {
-		qry.Order(ad.Query.Order)
+		query.Order(ad.Query.Order)
 	}
 
-	qry.Filter("status", 1)
+	query.Filter("status", 1)
 
-	qry.Pager = ad.Pager
+	query.Pager = ad.Pager
 
 	switch ad.Type {
 
@@ -300,16 +300,16 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 							for _, idx := range idxs {
 								args = append(args, idx)
 							}
-							qry.Filter("term_"+term.Meta.Name+".in", args...)
+							query.Filter("term_"+term.Meta.Name+".in", args...)
 						} else {
-							qry.Filter("term_"+term.Meta.Name, termVal)
+							query.Filter("term_"+term.Meta.Name, termVal)
 						}
 
 						ix.data["term_"+term.Meta.Name] = termVal
 
 					case hpapi.TermTag:
 						// TOPO
-						qry.Filter("term_"+term.Meta.Name+".like", "%"+termVal+"%")
+						query.Filter("term_"+term.Meta.Name+".like", "%"+termVal+"%")
 						ix.data["term_"+term.Meta.Name] = termVal
 					}
 				}
@@ -320,16 +320,16 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 
 		page := ix.paramInt("page")
 		if page > 1 {
-			qry.Offset(ad.Query.Limit * (page - 1))
+			query.Offset(ad.Query.Limit * (page - 1))
 		}
 
 		if ix.param("qry_text") != "" {
-			qry.Filter("field_title.like", "%"+ix.param("qry_text")+"%")
+			query.Filter("field_title.like", "%"+ix.param("qry_text")+"%")
 			ix.data["qry_text"] = ix.param("qry_text")
 		}
 
 		var ls hpapi.NodeList
-		qryhash := qry.Hash()
+		qryhash := query.Hash()
 
 		if ad.CacheTTL > 0 && !ix.us.Allow("", "editor.write") {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
@@ -340,12 +340,12 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 		if len(ls.Items) == 0 {
 
 			if ix.param("qry_text") != "" {
-				ls = qry.NodeListSearch(ix.param("qry_text"))
+				ls = query.NodeListSearch(ix.param("qry_text"))
 				if ls.Error != nil {
-					ls = qry.NodeList([]string{}, []string{})
+					ls = query.NodeList([]string{}, []string{})
 				}
 			} else {
-				ls = qry.NodeList([]string{}, []string{})
+				ls = query.NodeList([]string{}, []string{})
 			}
 			// fmt.Println("index node.list")
 			if ad.CacheTTL > 0 && len(ls.Items) > 0 {
@@ -360,7 +360,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 
 		ix.data[ad.Name] = ls
 
-		if qry.Pager {
+		if query.Pager {
 			pager := utils.NewPager(uint64(page),
 				uint64(ls.Meta.TotalResults),
 				uint64(ls.Meta.ItemsPerList),
@@ -385,7 +385,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 
 		nodeRefer := ""
 		if nodeModel.Extensions.NodeRefer != "" {
-			if mv, ok := ix.data[action_name+"_nsr_"+nodeModel.Extensions.NodeRefer]; ok {
+			if mv, ok := ix.data[actionName+"_nsr_"+nodeModel.Extensions.NodeRefer]; ok {
 				nodeRefer = mv.(string)
 			}
 		}
@@ -409,7 +409,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 		}
 
 		if nodeExt == "html" {
-			qry.Filter("id", nodeId)
+			query.Filter("id", nodeId)
 		} else if staticImages.Has(nodeExt) {
 			if mod.Meta.Name == "core/gdoc" && ad.Query.Table == "page" {
 
@@ -434,13 +434,13 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 			if nodeModel.Extensions.NodeRefer != "" && nodeRefer == "" {
 				return dataRenderNotFound
 			}
-			qry.Filter("ext_permalink_idx", idhash.HashToHexString([]byte(nodeRefer+nodeId), 12))
+			query.Filter("ext_permalink_idx", idhash.HashToHexString([]byte(nodeRefer+nodeId), 12))
 		} else {
 			return dataRenderNotFound
 		}
 
 		var entry hpapi.Node
-		qryhash := qry.Hash()
+		qryhash := query.Hash()
 		if ad.CacheTTL > 0 && !ix.us.Allow("", "editor.write") {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 				rs.JsonDecode(&entry)
@@ -448,7 +448,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 		}
 
 		if entry.ID == "" {
-			entry = qry.NodeEntry()
+			entry = query.NodeEntry()
 			if ad.CacheTTL > 0 && entry.Title != "" {
 				ix.hooks = append(
 					ix.hooks,
@@ -473,8 +473,8 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 		}
 
 		if nodeModel.Extensions.NodeSubRefer != "" {
-			// fmt.Println("setting", action_name, ad.Query.Table, nodeModel.Extensions.NodeSubRefer, "_id", entry.ID)
-			ix.data[action_name+"_nsr_"+ad.Query.Table] = entry.ID
+			// fmt.Println("setting", actionName, ad.Query.Table, nodeModel.Extensions.NodeSubRefer, "_id", entry.ID)
+			ix.data[actionName+"_nsr_"+ad.Query.Table] = entry.ID
 		}
 
 		if entry.Title != "" {
@@ -486,7 +486,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 	case "term.list":
 
 		var ls hpapi.TermList
-		qryhash := qry.Hash()
+		qryhash := query.Hash()
 		if ad.CacheTTL > 0 {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 				rs.JsonDecode(&ls)
@@ -494,7 +494,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 		}
 
 		if len(ls.Items) == 0 {
-			ls = qry.TermList()
+			ls = query.TermList()
 			if ad.CacheTTL > 0 && len(ls.Items) > 0 {
 				store.DataLocal.NewWriter([]byte(qryhash), nil).SetJsonValue(ls).SetTTL(ad.CacheTTL).Exec()
 			}
@@ -502,7 +502,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 
 		ix.data[ad.Name] = ls
 
-		if qry.Pager {
+		if query.Pager {
 			ix.data[ad.Name+"_pager"] = utils.NewPager(0,
 				uint64(ls.Meta.TotalResults),
 				uint64(ls.Meta.ItemsPerList),
@@ -512,7 +512,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 	case "term.entry":
 
 		var entry hpapi.Term
-		qryhash := qry.Hash()
+		qryhash := query.Hash()
 
 		if ad.CacheTTL > 0 {
 			if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
@@ -521,7 +521,7 @@ func (ix *indexContext) dataRender(srvname, action_name string, ad hpapi.ActionD
 		}
 
 		if entry.Title == "" {
-			entry = qry.TermEntry()
+			entry = query.TermEntry()
 			if ad.CacheTTL > 0 && entry.Title != "" {
 				store.DataLocal.NewWriter([]byte(qryhash), nil).SetJsonValue(entry).SetTTL(ad.CacheTTL).Exec()
 			}

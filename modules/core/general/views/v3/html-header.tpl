@@ -15,6 +15,11 @@
     href="{{HttpSrvBasePath `hp/~/hp/css/main.v2.css`}}?v={{.sys_version_sign}}"
     type="text/css"
   />
+  <link
+    rel="stylesheet"
+    href="{{HttpSrvBasePath `hp/~/hp/css/theme.v2.css`}}?v={{.sys_version_sign}}"
+    type="text/css"
+  />
   {{if SysConfig `frontend_header_site_icon_url`}}
   <link
     rel="shortcut icon"

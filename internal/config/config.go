@@ -297,7 +297,7 @@ func Setup() error {
 		}
 	}
 
-	if err := module_init(); err != nil {
+	if err := moduleInit(); err != nil {
 		return err
 	}
 
@@ -485,15 +485,15 @@ func storeSetup() error {
 	}
 
 	{
-		io_name := types.NewNameIdentifier("hpress_database")
-		opts := Config.IoConnectors.Options(io_name)
+		ioName := types.NewNameIdentifier("hpress_database")
+		opts := Config.IoConnectors.Options(ioName)
 
 		if opts == nil {
 			if Config.RunMode != "local-dev" {
-				return errors.New("iomix/rdb/connector " + io_name.String() + " Not Found")
+				return errors.New("iomix/rdb/connector " + ioName.String() + " Not Found")
 			}
 			opts = &connect.ConnOptions{
-				Name:      io_name,
+				Name:      ioName,
 				Connector: "iomix/rdb/connector",
 				Driver:    types.NewNameIdentifier("lynkdb/pgsqlgo"),
 			}

@@ -18,8 +18,8 @@ import (
 	"github.com/gofiber/fiber/v3"
 
 	"github.com/hooto/hpress/internal/config"
+	"github.com/hooto/hpress/internal/web"
 	"github.com/hooto/hpress/websrv/mgr/controllers"
-	"github.com/hooto/hpress/websrv/web"
 )
 
 // Register mounts the management backend routes on a fiber router. The caller

@@ -24,7 +24,7 @@ import (
 	"github.com/sysinner/innerstack/v2/pkg/inauth"
 
 	"github.com/hooto/hpress/internal/config"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 // index serves the embedded Svelte SPA at /hp/mgr2.

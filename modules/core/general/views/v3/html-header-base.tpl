@@ -15,6 +15,11 @@
     type="text/css"
   />
   <link
+    rel="stylesheet"
+    href="{{HttpSrvBasePath `hp/~/hp/css/theme.v2.css`}}?v={{.sys_version_sign}}"
+    type="text/css"
+  />
+  <link
     rel="shortcut icon"
     type="image/x-icon"
     href="{{HttpSrvBasePath `hp/~/hp/img/ap.ico`}}?v={{.sys_version_sign}}"

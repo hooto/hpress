@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package api
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
@@ -23,43 +25,43 @@ import (
 
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/hpapi"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/modset"
+	"github.com/hooto/hpress/internal/web"
 )
 
-func TermModelEntry(c fiber.Ctx) error {
+func ModSetFsTplList(c fiber.Ctx) error {
 
-	rsp := hpapi.TermModel{
-		TypeMeta: types.TypeMeta{
-			APIVersion: hpapi.Version,
-		},
-	}
+	ls := hpapi.ViewList{}
 
-	defer func() { _ = web.JSON(c, &rsp) }()
+	defer func() { _ = web.JSON(c, &ls) }()
 
 	us := web.AuthSession(c)
-	if us == nil || !us.Allow("", "editor.read") {
-		rsp.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
+	if us == nil || !us.Allow("", "sys.admin") {
+		ls.Error = &types.ErrorMeta{iamapi.ErrCodeAccessDenied, "Access Denied"}
 		return nil
 	}
 
-	modname, modelid := web.Param(c, "modname"), web.Param(c, "modelid")
-	if web.Param(c, "id") != "" {
-		if s := strings.Split(web.Param(c, "id"), ","); len(s) == 2 {
-			modname, modelid = s[0], s[1]
-		}
-	}
-
-	model, err := config.SpecTermModel(modname, modelid)
+	spec, err := modset.SpecFetch(web.Param(c, "modname"))
 	if err != nil {
-		rsp.Error = &types.ErrorMeta{
-			Code:    hpapi.ErrCodeBadArgument,
-			Message: "Model Not Found",
-		}
+		ls.Error = &types.ErrorMeta{hpapi.ErrCodeBadArgument, "ModName Not Found"}
 		return nil
 	}
 
-	rsp = *model
-	rsp.Kind = "TermModel"
+	basepath := config.Prefix + "/modules/" + spec.Meta.Name + "/views/"
+	_ = filepath.Walk(basepath, func(path string, info os.FileInfo, err error) error {
+
+		path = strings.TrimPrefix(path, basepath)
+
+		if len(path) > 4 && path[len(path)-4:] == ".tpl" {
+			ls.Items = append(ls.Items, hpapi.View{
+				Path: path,
+			})
+		}
+
+		return nil
+	})
+
+	ls.Kind = "SpecTemplateList"
 
 	return nil
 }

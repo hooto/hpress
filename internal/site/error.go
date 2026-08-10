@@ -12,41 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package site
 
 import (
 	"github.com/gofiber/fiber/v3"
-	"github.com/lessos/lessgo/types"
-
-	"github.com/hooto/hpress/internal/config"
-	"github.com/hooto/hpress/internal/hpapi"
-	"github.com/hooto/hpress/websrv/web"
 )
 
-func NodeModelEntry(c fiber.Ctx) error {
-
-	rsp := hpapi.NodeModel{}
-
-	defer func() { _ = web.JSON(c, &rsp) }()
-
-	us := web.AuthSession(c)
-	if us == nil || !us.Allow("", "editor.read") {
-		return nil
-	}
-
-	modname, modelid := web.Param(c, "modname"), web.Param(c, "modelid")
-
-	nmodel, err := config.SpecNodeModel(modname, modelid)
-	if err != nil {
-		rsp.Error = &types.ErrorMeta{
-			Code:    hpapi.ErrCodeBadArgument,
-			Message: "Model Not Found",
-		}
-		return nil
-	}
-
-	rsp = *nmodel
-	rsp.Kind = "NodeModel"
-
+// ErrorBrowser is a no-op browser-error endpoint, replacing the empty
+// httpsrv Error.BrowserAction.
+func ErrorBrowser(c fiber.Ctx) error {
 	return nil
 }

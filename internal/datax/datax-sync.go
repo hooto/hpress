@@ -31,7 +31,7 @@ import (
 	"github.com/hooto/hpress/internal/store"
 )
 
-func utf8_rune_filter(str string) string {
+func utf8RuneFilter(str string) string {
 	strs, outs := []rune(str), []rune{}
 	for _, v := range strs {
 		if utf8.ValidRune(v) && v != 0 {
@@ -41,7 +41,7 @@ func utf8_rune_filter(str string) string {
 	return string(outs)
 }
 
-func data_sync_pull() error {
+func dataSyncPull() error {
 
 	if len(config.Config.ExtUpDatabases) == 0 {
 		return nil
@@ -131,20 +131,20 @@ func data_sync_pull() error {
 			}
 
 			var (
-				cnew    = 0
-				cupd    = 0
-				cign    = 0
-				q       = src.NewQueryer().From(vt.Name).Order("updated ASC").Limit(limit)
-				offset  = int64(0)
-				up_name = fmt.Sprintf("sync-time/%s:%s/%s",
+				cnew   = 0
+				cupd   = 0
+				cign   = 0
+				q      = src.NewQueryer().From(vt.Name).Order("updated ASC").Limit(limit)
+				offset = int64(0)
+				upName = fmt.Sprintf("sync-time/%s:%s/%s",
 					cv.Value("host"), cv.Value("port"), vt.Name)
-				up_offset = uint32(0)
+				upOffset = uint32(0)
 			)
 			err = nil
 
-			if pv := cfgs.Get(up_name); pv.Uint32() > 0 {
-				up_offset = pv.Uint32()
-				q.Where().And("updated.ge", up_offset)
+			if pv := cfgs.Get(upName); pv.Uint32() > 0 {
+				upOffset = pv.Uint32()
+				q.Where().And("updated.ge", upOffset)
 				// slog.Warn(fmt.Sprintf("%s updated.ge %d", vt.Name, pv.Uint32()))
 			}
 
@@ -161,15 +161,15 @@ func data_sync_pull() error {
 				for _, v := range rs {
 
 					tup := v.Field("updated").Uint32()
-					if tup < tng && tup > up_offset {
-						up_offset = tup
+					if tup < tng && tup > upOffset {
+						upOffset = tup
 					}
 
 					sets := map[string]interface{}{}
-					ext_counter := 0
+					extCounter := 0
 					for k, f := range v.Fields {
 						if k == "ext_access_counter" {
-							ext_counter = f.Int()
+							extCounter = f.Int()
 							continue
 						}
 						sets[k] = f.String()
@@ -182,8 +182,8 @@ func data_sync_pull() error {
 
 					if rsi.NotFound() {
 
-						if ext_counter > 0 {
-							sets["ext_access_counter"] = ext_counter
+						if extCounter > 0 {
+							sets["ext_access_counter"] = extCounter
 						}
 
 						_, err = store.Data.Insert(vt.Name, sets)
@@ -192,7 +192,7 @@ func data_sync_pull() error {
 								for sk, sv := range sets {
 									switch sv.(type) {
 									case string:
-										sets[sk] = utf8_rune_filter(sv.(string))
+										sets[sk] = utf8RuneFilter(sv.(string))
 									}
 								}
 								_, err = store.Data.Insert(vt.Name, sets)
@@ -201,7 +201,7 @@ func data_sync_pull() error {
 
 						if err != nil {
 							slog.Warn(fmt.Sprintf("data sync (%s) ErrInsert %s %s",
-								up_name, v.Field("id").String(), err.Error()))
+								upName, v.Field("id").String(), err.Error()))
 							break
 
 						} else {
@@ -216,24 +216,24 @@ func data_sync_pull() error {
 					} else {
 
 						var (
-							tlc          = rsi.Field("updated").Uint32()
-							sync_counter = false
+							tlc         = rsi.Field("updated").Uint32()
+							syncCounter = false
 						)
 
-						if ext_counter > 0 {
-							if ext_counter > rsi.Field("ext_access_counter").Int() {
+						if extCounter > 0 {
+							if extCounter > rsi.Field("ext_access_counter").Int() {
 								if tup > tlc {
-									sets["ext_access_counter"] = ext_counter
+									sets["ext_access_counter"] = extCounter
 								} else {
 									sets = map[string]interface{}{
-										"ext_access_counter": ext_counter,
+										"ext_access_counter": extCounter,
 									}
 								}
-								sync_counter = true
+								syncCounter = true
 							}
 						}
 
-						if tup > tlc || sync_counter {
+						if tup > tlc || syncCounter {
 
 							_, err = store.Data.Update(vt.Name, sets, fr)
 
@@ -242,7 +242,7 @@ func data_sync_pull() error {
 									for sk, sv := range sets {
 										switch sv.(type) {
 										case string:
-											sets[sk] = utf8_rune_filter(sv.(string))
+											sets[sk] = utf8RuneFilter(sv.(string))
 										}
 									}
 									_, err = store.Data.Update(vt.Name, sets, fr)
@@ -251,7 +251,7 @@ func data_sync_pull() error {
 
 							if err != nil {
 								slog.Warn(fmt.Sprintf("data sync (%s) ErrUpdate %s %s",
-									up_name, v.Field("id").String(), err.Error()))
+									upName, v.Field("id").String(), err.Error()))
 								// fmt.Println("  ER UPDATE", vt.Name, v.Field("id").String())
 								break
 							} else {
@@ -281,12 +281,12 @@ func data_sync_pull() error {
 			if err == nil {
 				if cnew > 0 || cupd > 0 {
 					slog.Info(fmt.Sprintf("data sync (%s) INSERT %d, UPDATE %d, IGNORE %d",
-						up_name, cnew, cupd, cign))
-					cfgs.Set(up_name, up_offset)
+						upName, cnew, cupd, cign))
+					cfgs.Set(upName, upOffset)
 				}
 			} else {
 				slog.Warn(fmt.Sprintf("data sync ((%s) error : %s",
-					up_name, err.Error()))
+					upName, err.Error()))
 			}
 		}
 	}

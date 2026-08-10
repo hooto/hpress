@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   {{pagelet . "core/general" "v3/html-header.tpl"}}
-  <body id="hp-body">
+  <body id="hp-body" class="hp-theme-paper">
     {{pagelet . "core/general" "v3/nav-header.tpl" "topnav"}}
 
     <div class="container">

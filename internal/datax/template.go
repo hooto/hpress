@@ -25,7 +25,7 @@ import (
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/store"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 func FilterUri(data map[string]interface{}, args ...interface{}) template.URL {
@@ -111,24 +111,24 @@ func Pagelet(data map[string]interface{}, args ...string) template.HTML {
 
 			for _, datax := range action.Datax {
 
-				qry := NewQuery(modname, datax.Query.Table)
+				query := NewQuery(modname, datax.Query.Table)
 
 				if datax.Query.Limit > 0 {
-					qry.Limit(datax.Query.Limit)
+					query.Limit(datax.Query.Limit)
 				}
 
 				if datax.Query.Order != "" {
-					qry.Order(datax.Query.Order)
+					query.Order(datax.Query.Order)
 				}
 
-				qry.Filter("status", 1)
+				query.Filter("status", 1)
 
 				switch datax.Type {
 
 				case "node.list":
 
 					var ls hpapi.NodeList
-					qryhash := qry.Hash()
+					qryhash := query.Hash()
 					if datax.CacheTTL > 0 && user != "" {
 						if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 							rs.JsonDecode(&ls)
@@ -136,7 +136,7 @@ func Pagelet(data map[string]interface{}, args ...string) template.HTML {
 					}
 
 					if len(ls.Items) == 0 {
-						ls = qry.NodeList([]string{}, []string{})
+						ls = query.NodeList([]string{}, []string{})
 						if datax.CacheTTL > 0 && len(ls.Items) > 0 {
 							store.DataLocal.NewWriter([]byte(qryhash), nil).SetJsonValue(ls).SetTTL(datax.CacheTTL).Exec()
 						}
@@ -147,7 +147,7 @@ func Pagelet(data map[string]interface{}, args ...string) template.HTML {
 				case "node.entry":
 
 					var entry hpapi.Node
-					qryhash := qry.Hash()
+					qryhash := query.Hash()
 					if datax.CacheTTL > 0 && user != "" {
 						if rs := store.DataLocal.NewReader([]byte(qryhash)).Exec(); rs.OK() {
 							rs.JsonDecode(&entry)
@@ -155,7 +155,7 @@ func Pagelet(data map[string]interface{}, args ...string) template.HTML {
 					}
 
 					if entry.Title == "" {
-						entry = qry.NodeEntry()
+						entry = query.NodeEntry()
 						if datax.CacheTTL > 0 && entry.Title != "" {
 							store.DataLocal.NewWriter([]byte(qryhash), nil).SetJsonValue(entry).SetTTL(datax.CacheTTL).Exec()
 						}

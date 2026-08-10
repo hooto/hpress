@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package api
 
 import (
 	"crypto/md5"
@@ -31,13 +31,13 @@ import (
 	"github.com/hooto/hpress/internal/datax"
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/store"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 var (
-	spaceReg                       = regexp.MustCompile(" +")
-	term_list_limit          int64 = 15
-	term_list_limit_taxonomy int64 = 200
+	spaceReg                    = regexp.MustCompile(" +")
+	termListLimit         int64 = 15
+	termListLimitTaxonomy int64 = 200
 )
 
 func TermList(c fiber.Ctx) error {
@@ -61,11 +61,11 @@ func TermList(c fiber.Ctx) error {
 		return nil
 	}
 
-	page, limit := web.ParamInt(c, "page"), term_list_limit
+	page, limit := web.ParamInt(c, "page"), termListLimit
 
-	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
+	query := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
 	if model.Type == hpapi.TermTaxonomy {
-		limit = term_list_limit_taxonomy
+		limit = termListLimitTaxonomy
 		page = 1
 	}
 
@@ -73,21 +73,21 @@ func TermList(c fiber.Ctx) error {
 		page = 1
 	}
 
-	dq.Limit(limit)
+	query.Limit(limit)
 	if page > 1 {
-		dq.Offset(int64((page - 1) * limit))
+		query.Offset(int64((page - 1) * limit))
 	}
 
 	//
-	ls = dq.TermList()
+	ls = query.TermList()
 
-	dqc := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
+	countQuery := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
 
 	if web.Param(c, "qry_text") != "" {
-		dqc.Filter("title.like", "%"+web.Param(c, "qry_text")+"%")
+		countQuery.Filter("title.like", "%"+web.Param(c, "qry_text")+"%")
 	}
 
-	count, err := dqc.TermCount()
+	count, err := countQuery.TermCount()
 	if err != nil {
 		ls.Error = &types.ErrorMeta{hpapi.ErrCodeInternalError, err.Error()}
 		return nil
@@ -117,12 +117,12 @@ func TermEntry(c fiber.Ctx) error {
 		return nil
 	}
 
-	dq := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
-	dq.Limit(100)
+	query := datax.NewQuery(web.Param(c, "modname"), web.Param(c, "modelid"))
+	query.Limit(100)
 
-	dq.Filter("id", web.Param(c, "id"))
+	query.Filter("id", web.Param(c, "id"))
 
-	rsp = dq.TermEntry()
+	rsp = query.TermEntry()
 
 	return nil
 }

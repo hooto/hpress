@@ -23,7 +23,7 @@ import (
 
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/status"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 // Index is the management backend entry handler. It enforces IAM auth + the

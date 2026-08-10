@@ -50,11 +50,7 @@ type searchModuleCache struct {
 	termTaxonomy map[string]hpapi.Term
 }
 
-func data_search_node_label(name string) string {
-	return fmt.Sprintf("hpnode_%s", name)
-}
-
-func data_search_sync() error {
+func dataSearchSync() error {
 
 	dataSearchOn := false
 
@@ -257,9 +253,9 @@ func data_search_sync() error {
 						if l := field.Attrs.Get("langs"); len(l) > 3 {
 
 							if len(v.Field("field_"+field.Name+"_langs").String()) > 5 {
-								var node_langs hpapi.NodeFieldLangs
-								if err := v.Field("field_" + field.Name + "_langs").JsonDecode(&node_langs); err == nil {
-									nodeField.Langs = &node_langs
+								var nodeLangs hpapi.NodeFieldLangs
+								if err := v.Field("field_" + field.Name + "_langs").JsonDecode(&nodeLangs); err == nil {
+									nodeField.Langs = &nodeLangs
 								}
 							}
 						}
@@ -342,7 +338,7 @@ func data_search_sync() error {
 	return nil
 }
 
-func (q *QuerySet) NodeListSearch(qry string) hpapi.NodeList {
+func (q *QuerySet) NodeListSearch(query string) hpapi.NodeList {
 
 	var rsp hpapi.NodeList
 
@@ -353,7 +349,7 @@ func (q *QuerySet) NodeListSearch(qry string) hpapi.NodeList {
 
 	table := hpapi.NodeTableName(q.ModName, q.Table)
 
-	return nodeSearcher.Query(table, qry, q)
+	return nodeSearcher.Query(table, query, q)
 }
 
 func hex16ToUint64(str string) uint64 {

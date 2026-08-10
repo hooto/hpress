@@ -46,8 +46,8 @@ var (
 		"datetime", "2006-01-02 15:04:05",
 		"atom", time.RFC3339,
 	}
-	timeFormator = strings.NewReplacer(timeFormatMap...)
-	s2Replacer   *strings.Replacer
+	timeFormatter = strings.NewReplacer(timeFormatMap...)
+	s2Replacer    *strings.Replacer
 )
 
 var (
@@ -129,7 +129,7 @@ func markdownCommon(v []byte, opts *hpapi.NodeFieldTextRenderOptions) []byte {
 	return blackfriday.MarkdownOptions(v, mdRender, mdRenderOpts)
 }
 
-func s2_replace(s string) string {
+func s2Replace(s string) string {
 	if s2Replacer == nil {
 		sets := []string{
 			"{{hp_storage_service_endpoint}}", config.SysConfigList.FetchString("storage_service_endpoint"),
@@ -154,17 +154,17 @@ func UnixtimeFormat(timeValue interface{}, formatTo string) string {
 		tp = time.Now()
 	}
 
-	return tp.Format(timeFormator.Replace(formatTo))
+	return tp.Format(timeFormatter.Replace(formatTo))
 }
 
 func TimeFormat(timeString, formatFrom, formatTo string) string {
 
-	tp, err := time.ParseInLocation(timeFormator.Replace(formatFrom), timeString, time.Local)
+	tp, err := time.ParseInLocation(timeFormatter.Replace(formatFrom), timeString, time.Local)
 	if err != nil {
 		return timeString
 	}
 
-	return tp.Format(timeFormator.Replace(formatTo))
+	return tp.Format(timeFormatter.Replace(formatTo))
 }
 
 func FieldTimeFormat(fields []*hpapi.NodeField, colname, format string) string {
@@ -176,7 +176,7 @@ func FieldTimeFormat(fields []*hpapi.NodeField, colname, format string) string {
 		return val
 	}
 
-	format = timeFormator.Replace(format)
+	format = timeFormatter.Replace(format)
 
 	return tp.Format(format)
 }
@@ -221,7 +221,7 @@ func fieldValue(fields []*hpapi.NodeField, colname string) (string, map[string]s
 	return val, attrs
 }
 
-func fieldValueCache(fields []*hpapi.NodeField, colname string, cache_key string) (string, map[string]string, bool) {
+func fieldValueCache(fields []*hpapi.NodeField, colname string, cacheKey string) (string, map[string]string, bool) {
 
 	var (
 		val    = ""
@@ -239,7 +239,7 @@ func fieldValueCache(fields []*hpapi.NodeField, colname string, cache_key string
 			attrs[v.Key] = v.Value
 		}
 
-		if v := field.Caches.Get(cache_key); v != nil && len(v) > 0 {
+		if v := field.Caches.Get(cacheKey); v != nil && len(v) > 0 {
 			val, cached = v.String(), true
 		} else {
 			val = field.Value
@@ -251,11 +251,11 @@ func fieldValueCache(fields []*hpapi.NodeField, colname string, cache_key string
 	return val, attrs, cached
 }
 
-func fieldValueCacheSet(fields []*hpapi.NodeField, colname, value, cache_key string) {
+func fieldValueCacheSet(fields []*hpapi.NodeField, colname, value, cacheKey string) {
 	for _, field := range fields {
 
 		if field.Name == colname {
-			field.Caches.Set(cache_key, value)
+			field.Caches.Set(cacheKey, value)
 			break
 		}
 	}
@@ -329,7 +329,7 @@ func FieldHtml(fields []*hpapi.NodeField, colname string) template.HTML {
 	val = strings.TrimSpace(strings.Replace(val, "\r\n", "\n", -1))
 	val = regMultiLine.ReplaceAllString(val, "\n\n")
 
-	val = s2_replace(val)
+	val = s2Replace(val)
 
 	switch fm {
 
@@ -408,10 +408,10 @@ func FieldSubHtml(fields []*hpapi.NodeField, colname string, length int) templat
 	}
 
 	var (
-		cache_key = fmt.Sprintf("fhsp_%d", length)
+		cacheKey = fmt.Sprintf("fhsp_%d", length)
 	)
 
-	if v := field.Caches.Get(cache_key); v != nil {
+	if v := field.Caches.Get(cacheKey); v != nil {
 		return template.HTML(v.String())
 	}
 
@@ -441,7 +441,7 @@ func FieldSubHtml(fields []*hpapi.NodeField, colname string, length int) templat
 		val = "<p>" + strings.Join(lines, "</p><p>") + "</p>"
 	}
 
-	field.Caches.Set(cache_key, val)
+	field.Caches.Set(cacheKey, val)
 
 	return template.HTML(val)
 }
@@ -464,13 +464,13 @@ func FieldHtmlSubPrint(nodeEntry hpapi.Node, colname string, length int, lang st
 	}
 
 	var (
-		cache_key = fmt.Sprintf("fhsp_%d", length)
-		val       string
+		cacheKey = fmt.Sprintf("fhsp_%d", length)
+		val      string
 	)
 
 	if field.Langs != nil {
 
-		if lang := field.Caches.Get(cache_key + lang); lang != nil {
+		if lang := field.Caches.Get(cacheKey + lang); lang != nil {
 			return template.HTML(lang.String())
 		}
 
@@ -480,7 +480,7 @@ func FieldHtmlSubPrint(nodeEntry hpapi.Node, colname string, length int, lang st
 	}
 
 	if val == "" {
-		if v := field.Caches.Get(cache_key); v != nil {
+		if v := field.Caches.Get(cacheKey); v != nil {
 			return template.HTML(v.String())
 		}
 		val = field.Value
@@ -511,7 +511,7 @@ func FieldHtmlSubPrint(nodeEntry hpapi.Node, colname string, length int, lang st
 		val = "<p>" + strings.Join(lines, "</p><p>") + "</p>"
 	}
 
-	field.Caches.Set(cache_key+lang, val)
+	field.Caches.Set(cacheKey+lang, val)
 
 	return template.HTML(val)
 }
@@ -544,13 +544,13 @@ func FieldHtmlPrint(nodeEntry hpapi.Node, colname, lang string) template.HTML {
 	}
 
 	var (
-		cache_key = "fhp"
-		val       string
+		cacheKey = "fhp"
+		val      string
 	)
 
 	if field.Langs != nil {
 
-		if lang := field.Caches.Get(cache_key + lang); lang != nil {
+		if lang := field.Caches.Get(cacheKey + lang); lang != nil {
 			return template.HTML(lang.String())
 		}
 
@@ -560,7 +560,7 @@ func FieldHtmlPrint(nodeEntry hpapi.Node, colname, lang string) template.HTML {
 	}
 
 	if val == "" {
-		if v := field.Caches.Get(cache_key); v != nil {
+		if v := field.Caches.Get(cacheKey); v != nil {
 			return template.HTML(v.String())
 		}
 	}
@@ -585,13 +585,13 @@ func FieldHtmlPrint(nodeEntry hpapi.Node, colname, lang string) template.HTML {
 		fm = attr.String()
 	}
 
-	val = field_value_html_convert(fm, field.Value, opts)
-	field.Caches.Set(cache_key, val)
+	val = fieldValueHTMLConvert(fm, field.Value, opts)
+	field.Caches.Set(cacheKey, val)
 
 	if field.Langs != nil {
 		for _, v := range field.Langs.Items {
-			v.Value = field_value_html_convert(fm, v.Value, opts)
-			field.Caches.Set(cache_key+v.Key, v.Value)
+			v.Value = fieldValueHTMLConvert(fm, v.Value, opts)
+			field.Caches.Set(cacheKey+v.Key, v.Value)
 			if v.Key == lang {
 				val = v.Value
 			}
@@ -601,12 +601,12 @@ func FieldHtmlPrint(nodeEntry hpapi.Node, colname, lang string) template.HTML {
 	return template.HTML(val)
 }
 
-func field_value_html_convert(fm, val string, opts *hpapi.NodeFieldTextRenderOptions) string {
+func fieldValueHTMLConvert(fm, val string, opts *hpapi.NodeFieldTextRenderOptions) string {
 
 	val = strings.TrimSpace(strings.Replace(val, "\r\n", "\n", -1))
 	val = regMultiLine.ReplaceAllString(val, "\n\n")
 
-	val = s2_replace(val)
+	val = s2Replace(val)
 
 	switch fm {
 

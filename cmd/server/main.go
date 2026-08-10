@@ -31,16 +31,15 @@ import (
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/datax"
 	"github.com/hooto/hpress/internal/status"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 
-	cdef "github.com/hooto/hpress/websrv/frontend"
+	capi "github.com/hooto/hpress/internal/api"
+	csite "github.com/hooto/hpress/internal/site"
 	cmgr "github.com/hooto/hpress/websrv/mgr"
 	cmgr2 "github.com/hooto/hpress/websrv/mgr2"
-	cmod "github.com/hooto/hpress/websrv/module"
-	capi "github.com/hooto/hpress/websrv/v1"
 
-	ext_captcha "github.com/hooto/hcaptcha/captcha4g/webfiber"
-	ext_comment "github.com/hooto/hpress/modules/core/comment/websrv"
+	extCaptcha "github.com/hooto/hcaptcha/captcha4g/webfiber"
+	extComment "github.com/hooto/hpress/modules/core/comment/websrv"
 )
 
 var (
@@ -114,17 +113,14 @@ func main() {
 	root := app.Group(web.UrlBasePath)
 
 	// external modules (note: "/hp/+" uses a literal "+", escaped for fiber)
-	ext_comment.Register(root.Group("/hp/\\+/comment"))
-	ext_captcha.Register(root.Group("/hp/\\+/hcaptcha"))
-
-	// module static assets
-	cmod.Register(root.Group("/hp/-"))
+	extComment.Register(root.Group("/hp/\\+/comment"))
+	extCaptcha.Register(root.Group("/hp/\\+/hcaptcha"))
 
 	// REST API + admin + /hp app routes
 	capi.Register(root.Group("/hp/v1"))
 	cmgr.Register(root.Group("/hp/mgr"))
 	cmgr2.Register(root.Group("/hp/mgr2"))
-	cdef.RegisterHtp(root.Group("/hp"))
+	csite.RegisterHtp(root.Group("/hp"))
 
 	// lynkui admin UI (mounts /hp/lynkui on the app via its fiber entry).
 	// MUST be registered before the public frontend "/*" catch-all below: fiber
@@ -142,7 +138,7 @@ func main() {
 
 	// public frontend catch-all — registered LAST so the explicit /hp/* routes
 	// (and lynkui's /hp/lynkui/* above) take priority over the "/*" match.
-	cdef.Register(root.Group("/"))
+	csite.Register(root.Group("/"))
 
 	if err := app.Listen(fmt.Sprintf(":%d", config.Config.HttpPort)); err != nil {
 		fmt.Println("app.Listen error", err)

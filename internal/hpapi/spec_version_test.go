@@ -18,7 +18,7 @@ import (
 	"testing"
 )
 
-type spec_version_valid_entry struct {
+type specVersionValidEntry struct {
 	v  string
 	ok bool
 }
@@ -37,7 +37,7 @@ func TestSpecVersion(t *testing.T) {
 		t.Fatal("Failed on String")
 	}
 
-	vs := []spec_version_valid_entry{
+	vs := []specVersionValidEntry{
 		{"1.0.0", true},
 		{"1", true},
 		{"100", true},

@@ -300,7 +300,7 @@ it mints a short-lived access-token JWT signed with the key's secret (HS256,
 `Authorization: Bearer <token>`. The access-key **secret never leaves the CLI**.
 
 hpress resolves the request via `iamserver.AppVerifier.Resolve` (in
-`websrv/web/middleware.go`), which routes a token without a `Sub` claim to IAM's
+`internal/web/middleware.go`), which routes a token without a `Sub` claim to IAM's
 `/v2/open/app-auth/introspect`. IAM verifies the token against its key store (the
 only holder of the secret), checks the key's `app=<app_id>` scope binds it to
 this app, and returns the owner's identity with the key's scopes as permissions.

@@ -74,8 +74,8 @@ func (q *QuerySet) NodeList(fields, terms []string) hpapi.NodeList {
 	var (
 		termBufs     = map[string][]string{}
 		termTaxonomy = map[string]hpapi.Term{}
-		ar_fields    = types.ArrayString(fields)
-		ar_terms     = types.ArrayString(terms)
+		arFields     = types.ArrayString(fields)
+		arTerms      = types.ArrayString(terms)
 	)
 
 	if len(rs) > 0 {
@@ -118,7 +118,7 @@ func (q *QuerySet) NodeList(fields, terms []string) hpapi.NodeList {
 
 			for _, field := range model.Fields {
 
-				if field.Name != "title" && len(ar_fields) > 0 && !ar_fields.Has(field.Name) {
+				if field.Name != "title" && len(arFields) > 0 && !arFields.Has(field.Name) {
 					continue
 				}
 
@@ -139,9 +139,9 @@ func (q *QuerySet) NodeList(fields, terms []string) hpapi.NodeList {
 				if l := field.Attrs.Get("langs"); len(l) > 3 {
 
 					if len(v.Field("field_"+field.Name+"_langs").String()) > 5 {
-						var node_langs hpapi.NodeFieldLangs
-						if err := v.Field("field_" + field.Name + "_langs").JsonDecode(&node_langs); err == nil {
-							nodeField.Langs = &node_langs
+						var nodeLangs hpapi.NodeFieldLangs
+						if err := v.Field("field_" + field.Name + "_langs").JsonDecode(&nodeLangs); err == nil {
+							nodeField.Langs = &nodeLangs
 						}
 					}
 				}
@@ -155,7 +155,7 @@ func (q *QuerySet) NodeList(fields, terms []string) hpapi.NodeList {
 
 			for _, term := range model.Terms {
 
-				if len(ar_terms) > 0 && !ar_terms.Has(term.Meta.Name) {
+				if len(arTerms) > 0 && !arTerms.Has(term.Meta.Name) {
 					continue
 				}
 
@@ -324,9 +324,9 @@ func (q *QuerySet) NodeEntry() hpapi.Node {
 		if l := field.Attrs.Get("langs"); len(l) > 3 {
 
 			if len(rs.Field("field_"+field.Name+"_langs").String()) > 5 {
-				var node_langs hpapi.NodeFieldLangs
-				if err := rs.Field("field_" + field.Name + "_langs").JsonDecode(&node_langs); err == nil {
-					nodeField.Langs = &node_langs
+				var nodeLangs hpapi.NodeFieldLangs
+				if err := rs.Field("field_" + field.Name + "_langs").JsonDecode(&nodeLangs); err == nil {
+					nodeField.Langs = &nodeLangs
 				}
 			}
 		}

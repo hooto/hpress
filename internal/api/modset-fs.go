@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package api
 
 import (
 	"encoding/base64"
@@ -36,7 +36,7 @@ import (
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/modset"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 func ModSetFsRename(c fiber.Ctx) error {
@@ -285,14 +285,14 @@ func fsFilePutWrite(path string, body []byte) error {
 	return nil
 }
 
-func fsMakeDir(path, uuid, ugid string, mode os.FileMode) error {
+func fsMakeDir(path, uid, gid string, mode os.FileMode) error {
 
 	if _, err := os.Stat(path); err == nil {
 		return nil
 	}
 
-	iUid, _ := strconv.Atoi(uuid)
-	iGid, _ := strconv.Atoi(ugid)
+	iUid, _ := strconv.Atoi(uid)
+	iGid, _ := strconv.Atoi(gid)
 
 	paths := strings.Split(strings.Trim(path, "/"), "/")
 

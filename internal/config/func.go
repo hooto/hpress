@@ -17,7 +17,7 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 func init() {

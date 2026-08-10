@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package api
 
 import (
 	"path/filepath"
@@ -29,7 +29,7 @@ import (
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/status"
 	"github.com/hooto/hpress/internal/store"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 var (
@@ -202,15 +202,15 @@ func SysIamStatus(c fiber.Ctx) error {
 		return nil
 	}
 
-	inst_url := "://" + c.Host()
+	instURL := "://" + c.Host()
 	if c.Secure() {
-		inst_url = "https" + inst_url
+		instURL = "https" + instURL
 	} else {
-		inst_url = "http" + inst_url
+		instURL = "http" + instURL
 	}
 
 	if len(web.UrlBasePath) > 0 {
-		inst_url += "/" + web.UrlBasePath
+		instURL += "/" + web.UrlBasePath
 	}
 
 	cfg := iamserver.AppVerifier.Config()
@@ -221,7 +221,7 @@ func SysIamStatus(c fiber.Ctx) error {
 			Name:        config.AppName,
 			Version:     config.Version,
 			Permissions: config.Perms,
-			Url:         inst_url,
+			Url:         instURL,
 		},
 	}
 
@@ -237,7 +237,7 @@ func SysIamStatus(c fiber.Ctx) error {
 			Name:        config.AppName,
 			Version:     config.Version,
 			Permissions: config.Perms,
-			Url:         inst_url,
+			Url:         instURL,
 		}
 	}
 

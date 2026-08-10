@@ -16,7 +16,7 @@ package datax
 
 import (
 	"github.com/hooto/hlang4g/hlang"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 func init() {

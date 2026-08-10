@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package api
 
 import (
 	"archive/tar"
@@ -34,11 +34,11 @@ import (
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/modset"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 var (
-	spec_upload_size_max int64 = 8 * 1024 * 1024
+	specUploadSizeMax int64 = 8 * 1024 * 1024
 )
 
 func ModSetSpecUploadCommit(c fiber.Ctx) error {
@@ -53,9 +53,9 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 		return nil
 	}
 
-	if set.Size > spec_upload_size_max {
+	if set.Size > specUploadSizeMax {
 		set.Error = types.NewErrorMeta("400",
-			fmt.Sprintf("the max size of Package can not more than %d", spec_upload_size_max))
+			fmt.Sprintf("the max size of Package can not more than %d", specUploadSizeMax))
 		return nil
 	}
 
@@ -117,9 +117,9 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 	}
 
 	var (
-		pkg_name = set.Name[:len(set.Name)-4]
-		tmpdir   = config.Prefix + "/var/tmp/" + pkg_name
-		files    = map[string]int64{}
+		pkgName = set.Name[:len(set.Name)-4]
+		tmpdir  = config.Prefix + "/var/tmp/" + pkgName
+		files   = map[string]int64{}
 	)
 
 	for {
@@ -192,10 +192,10 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 		}
 	}
 
-	spec_dir := config.Prefix + "/modules/" + spec.Meta.Name
+	specDir := config.Prefix + "/modules/" + spec.Meta.Name
 
 	for path, fmode := range files {
-		if err := spec_file_sync(tmpdir+"/"+path, spec_dir+"/"+path, os.FileMode(fmode)); err != nil {
+		if err := specFileSync(tmpdir+"/"+path, specDir+"/"+path, os.FileMode(fmode)); err != nil {
 			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
@@ -208,28 +208,28 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 	return nil
 }
 
-func spec_file_sync(src, dst string, mod os.FileMode) error {
+func specFileSync(src, dst string, mod os.FileMode) error {
 
-	fp_src, err := os.Open(src)
+	fpSrc, err := os.Open(src)
 	if err != nil {
 		return err
 	}
-	defer fp_src.Close()
+	defer fpSrc.Close()
 
 	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
 		return err
 	}
 
-	fp_dst, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE, mod)
+	fpDst, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE, mod)
 	if err != nil {
 		return err
 	}
-	defer fp_dst.Close()
+	defer fpDst.Close()
 
-	fp_dst.Seek(0, 0)
-	fp_dst.Truncate(0)
+	fpDst.Seek(0, 0)
+	fpDst.Truncate(0)
 
-	if _, err := io.Copy(fp_dst, fp_src); err != nil {
+	if _, err := io.Copy(fpDst, fpSrc); err != nil {
 		return err
 	}
 

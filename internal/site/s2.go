@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package frontend
+package site
 
 import (
 	"bytes"
@@ -44,7 +44,7 @@ import (
 
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/store"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 const (

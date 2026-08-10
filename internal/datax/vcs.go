@@ -49,7 +49,7 @@ type VcsRepoItem struct {
 const (
 	VcsActionInit    uint32 = 1 << 16
 	VcsActionPullOK  uint32 = 1 << 19
-	VcsActionPullER  uint32 = 1 << 20
+	VcsActionPullErr uint32 = 1 << 20
 	vcsOnUpdateRange uint32 = 600
 )
 
@@ -149,7 +149,7 @@ func vcsGitPrepare(vit *VcsRepoItem) error {
 		}
 	}
 
-	local_url, ok := opts.ValueOK("remote/origin/url")
+	localURL, ok := opts.ValueOK("remote/origin/url")
 	if !ok {
 		args := []string{
 			"--git-dir=" + tdir + "/.git",
@@ -166,13 +166,13 @@ func vcsGitPrepare(vit *VcsRepoItem) error {
 		if err != nil {
 			return err
 		}
-		local_url, ok = opts.ValueOK("remote/origin/url")
+		localURL, ok = opts.ValueOK("remote/origin/url")
 		if !ok {
 			return errors.New("git remote set-url fail")
 		}
 	}
 
-	if local_url.String() != url {
+	if localURL.String() != url {
 		args := []string{
 			"--git-dir=" + tdir + "/.git",
 			"remote",

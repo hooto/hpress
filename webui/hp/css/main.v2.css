@@ -390,17 +390,25 @@ body {
 }
 
 .hp-content {
-  color: #111;
-  font-family:
-    "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+  color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
   font-size: 16px;
-  line-height: 180% !important;
+  line-height: 1.8 !important;
+  word-break: break-word;
   word-wrap: break-word;
   letter-spacing: 0;
+  text-align: left;
+}
+
+.hp-content p {
+  margin: 0 0 20px;
 }
 
 .hp-content > * {
-  margin-bottom: 1rem !important;
+  margin-bottom: 1.25rem !important;
 }
 
 .hp-content > *:first-child {
@@ -434,56 +442,66 @@ body {
 .hp-content h5,
 .hp-content h6 {
   position: relative;
-  margin-top: 2rem;
-  margin-bottom: 0;
-  padding-bottom: 0.5rem;
-  line-height: 110%;
-  font-weight: bold;
+  margin: 1.5rem 0 1rem;
+  padding: 0;
+  line-height: 1.4;
+  font-weight: 600;
 }
 
 .hp-content h1 {
-  font-size: 2em;
-  line-height: 2.1em;
+  font-size: 1.75em;
+  padding-bottom: 0.3em;
   border-bottom: 1px solid #eee;
 }
 
 .hp-content h2 {
-  font-size: 1.8em;
-  line-height: 1.9em;
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
   border-bottom: 1px solid #eee;
 }
 
 .hp-content h3 {
-  font-size: 1.6em;
-  line-height: 1.7em;
-  border-bottom: 1px dashed #eee;
+  font-size: 1.3em;
 }
 
 .hp-content h4 {
-  font-size: 1.4em;
-  line-height: 1.5em;
+  font-size: 1.15em;
 }
 
 .hp-content h5 {
-  font-size: 1.2em;
-  line-height: 1.3em;
+  font-size: 1em;
 }
 
 .hp-content h6 {
-  font-size: 1em;
-  line-height: 1.1em;
+  font-size: 0.9em;
+  color: #777;
 }
 
 .hp-content ul,
 .hp-content ol {
-  padding: 0 0 0 1.1em;
-  margin-top: 0;
-  margin-bottom: 0;
-  margin-left: 0;
+  padding: 0 0 0 1.5em;
+  margin: 0;
+}
+
+.hp-content ul {
+  list-style-type: disc;
+}
+
+.hp-content ol {
+  list-style-type: decimal;
+}
+
+.hp-content ul ul,
+.hp-content ol ul {
+  list-style-type: circle;
+}
+
+.hp-content li {
+  line-height: 1.875em;
 }
 
 .hp-content li > p {
-  margin-top: 1em;
+  margin: 0;
 }
 
 .hp-content dd {
@@ -509,10 +527,11 @@ body {
 
 .hp-content blockquote {
   margin: 0;
-  padding: 0.25em 0.5em;
+  padding: 16px 20px;
   color: #495057;
-  border-left: 0.25em solid #ddd;
-  background-color: rgba(0, 0, 0, 0.04);
+  border-left: 5px solid #e6e6e6;
+  background-color: #f6f6f6;
+  word-break: break-word;
 }
 
 .hp-content blockquote > :first-child {
@@ -523,12 +542,21 @@ body {
   margin-bottom: 0;
 }
 
+.hp-content blockquote code,
+.hp-content blockquote pre {
+  background-color: #eee;
+}
+
 .hp-content table {
+  display: block;
   border-collapse: collapse;
   border-spacing: 0;
   width: 100%;
   overflow: auto;
+  font-size: 14px;
+  line-height: inherit;
   word-break: normal;
+  -webkit-overflow-scrolling: touch;
 }
 
 .hp-content td,
@@ -543,9 +571,19 @@ body {
 }
 
 .hp-content table th {
-  font-weight: bold;
+  font-weight: 600;
   border-bottom: 2px solid #ddd;
-  color: #888;
+  background-color: #f8f8f8;
+  color: #555;
+}
+
+.hp-content table tr {
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.hp-content table tbody tr:nth-child(even) {
+  background-color: #f8f8f8;
 }
 
 .hp-content table th:first-child,
@@ -558,15 +596,14 @@ body {
   padding-right: 2px !important;
 }
 
-.hp-content table tr {
-  background-color: #fff;
-  border-bottom: 1px solid #ccc;
-}
-
 .hp-content img {
   max-width: 100%;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
+}
+
+.hp-content video {
+  max-width: 100%;
 }
 
 .hp-content p > img {
@@ -576,31 +613,39 @@ body {
 
 .hp-content pre,
 .hp-content code {
-  position: relative;
-  overflow: auto;
-  font-family: Courier, monospace;
+  font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background-color: #f6f6f6;
   margin: 0;
   padding: 0;
-  word-wrap: normal;
   border: 0;
-  font-size: 0.9em !important;
-  line-height: 1.5em !important;
-  background-color: #f1f3f4;
-  white-space: pre-wrap;
+  word-wrap: normal;
   word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .hp-content code {
-  padding: 0.2em 0.4em;
+  margin: 0 3px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: #333;
 }
 
-.hp-content > pre {
-  border-radius: 3px;
-}
-
-.hp-content > pre > code {
-  padding: 10px;
+.hp-content pre {
   display: block;
+  overflow: auto;
+  margin: 0 0 20px;
+  padding: 0;
+  border-radius: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hp-content pre > code {
+  display: block;
+  margin: 0;
+  padding: 10px;
+  border-radius: 0;
   height: auto !important;
 }
 

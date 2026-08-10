@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1
+package api
 
 import (
 	"strings"
@@ -24,7 +24,7 @@ import (
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/modset"
 	"github.com/hooto/hpress/internal/store"
-	"github.com/hooto/hpress/websrv/web"
+	"github.com/hooto/hpress/internal/web"
 )
 
 func ModSetSpecList(c fiber.Ctx) error {
@@ -154,13 +154,13 @@ func ModSetSpecInfoSet(c fiber.Ctx) error {
 		}
 	}
 
-	seted, err := modset.SpecFetch(set.Meta.Name)
+	specUpdated, err := modset.SpecFetch(set.Meta.Name)
 	if err != nil {
 		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	modset.SpecSchemaSync(seted)
+	modset.SpecSchemaSync(specUpdated)
 
 	set.Kind = "Spec"
 
@@ -216,13 +216,13 @@ func ModSetSpecTermSet(c fiber.Ctx) error {
 		return nil
 	}
 
-	seted, err := modset.SpecFetch(set.ModName)
+	specUpdated, err := modset.SpecFetch(set.ModName)
 	if err != nil {
 		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	modset.SpecSchemaSync(seted)
+	modset.SpecSchemaSync(specUpdated)
 
 	set.Kind = "TermModel"
 
@@ -271,13 +271,13 @@ func ModSetSpecNodeSet(c fiber.Ctx) error {
 		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
-	seted, err := modset.SpecFetch(set.ModName)
+	specUpdated, err := modset.SpecFetch(set.ModName)
 	if err != nil {
 		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	modset.SpecSchemaSync(seted)
+	modset.SpecSchemaSync(specUpdated)
 
 	set.Kind = "NodeModel"
 
@@ -327,13 +327,13 @@ func ModSetSpecActionSet(c fiber.Ctx) error {
 		return nil
 	}
 
-	seted, err := modset.SpecFetch(set.ModName)
+	specUpdated, err := modset.SpecFetch(set.ModName)
 	if err != nil {
 		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	modset.SpecSchemaSync(seted)
+	modset.SpecSchemaSync(specUpdated)
 
 	set.Kind = "Action"
 
@@ -383,13 +383,13 @@ func ModSetSpecActionDel(c fiber.Ctx) error {
 		return nil
 	}
 
-	seted, err := modset.SpecFetch(set.ModName)
+	specUpdated, err := modset.SpecFetch(set.ModName)
 	if err != nil {
 		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	modset.SpecSchemaSync(seted)
+	modset.SpecSchemaSync(specUpdated)
 
 	set.Kind = "Action"
 
@@ -439,13 +439,13 @@ func ModSetSpecRouteSet(c fiber.Ctx) error {
 		return nil
 	}
 
-	seted, err := modset.SpecFetch(set.ModName)
+	specUpdated, err := modset.SpecFetch(set.ModName)
 	if err != nil {
 		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	modset.SpecSchemaSync(seted)
+	modset.SpecSchemaSync(specUpdated)
 
 	set.Kind = "SpecRoute"
 
@@ -488,13 +488,13 @@ func ModSetSpecRouteDel(c fiber.Ctx) error {
 		return nil
 	}
 
-	seted, err := modset.SpecFetch(set.ModName)
+	specUpdated, err := modset.SpecFetch(set.ModName)
 	if err != nil {
 		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	modset.SpecSchemaSync(seted)
+	modset.SpecSchemaSync(specUpdated)
 
 	set.Kind = "SpecRoute"
 
