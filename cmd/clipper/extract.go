@@ -339,9 +339,10 @@ func classicConvert(htm string, rawBs []byte) string {
 func rewriteImages(md, outDir string) string {
 
 	dateStr := nowDate8()
-	// outputByName caches fileName -> the <hash>.jpg already written this run.
-	// The output name is a hash of the basename, so two refs sharing a basename
-	// resolve to one file: process it once, then reuse it for every later ref.
+	// outputByName caches the full URL -> the <hash>.jpg already written this run.
+	// Two refs that share a URL resolve to one file: process it once, then reuse
+	// it for every later ref. Keying on the URL (not the basename) keeps distinct
+	// images that happen to share a filename separate.
 	outputByName := map[string]string{}
 
 	lines := strings.Split(md, "\n")
@@ -365,11 +366,14 @@ func rewriteImages(md, outDir string) string {
 			continue
 		}
 
-		// same basename already processed this run: reuse the on-disk file (the
-		// output name is derived from the basename) instead of re-downloading.
-		if outputFile := outputByName[fileName]; outputFile != "" {
-			lines[i] = fmt.Sprintf("![%s]({{hp_storage_service_endpoint}}/%s/%s?ipn=s800x)",
-				alt, dateStr, outputFile)
+		// Identity key is the FULL URL, not the basename: many CDNs serve every
+		// asset under a generic name (e.g. ".../Desktop-Light.png"), so keying on
+		// the basename collapses distinct images into one file. The full URL is the
+		// real identity; refs that share a URL still reuse one file (real dedup).
+		key := v2
+		if outputFile := outputByName[key]; outputFile != "" {
+			lines[i] = fmt.Sprintf("![%s]({{hp_storage_service_endpoint}}/%s/%s%s)",
+				alt, dateStr, outputFile, imageRefSuffix(outputFile))
 			continue
 		}
 
@@ -385,18 +389,30 @@ func rewriteImages(md, outDir string) string {
 			continue
 		}
 
-		img, err := decodeImage(imgBytes, ext)
-		if err != nil || img == nil {
-			fmt.Fprintln(os.Stderr, "skip image (decode):", fileName, err)
-			continue
-		}
-
-		outputFile := fmt.Sprintf("%x.jpg", xxhash.Sum64String(fileName))
-
-		var buf bytes.Buffer
-		if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 80}); err != nil {
-			fmt.Fprintln(os.Stderr, "skip image (encode):", fileName, err)
-			continue
+		// Pick the stored bytes + output file name. SVG is a vector format: store
+		// the source verbatim with no decode and no re-encode/resize — the Go
+		// stdlib has no SVG decoder, and rasterizing a vector would only lose
+		// fidelity. Raster formats keep the original q80 JPEG re-encode path.
+		var (
+			outputFile string
+			outBytes   []byte
+		)
+		if ext == ".svg" {
+			outputFile = fmt.Sprintf("%x.svg", xxhash.Sum64String(key))
+			outBytes = imgBytes
+		} else {
+			img, err := decodeImage(imgBytes, ext)
+			if err != nil || img == nil {
+				fmt.Fprintln(os.Stderr, "skip image (decode):", fileName, err)
+				continue
+			}
+			var buf bytes.Buffer
+			if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 80}); err != nil {
+				fmt.Fprintln(os.Stderr, "skip image (encode):", fileName, err)
+				continue
+			}
+			outputFile = fmt.Sprintf("%x.jpg", xxhash.Sum64String(key))
+			outBytes = buf.Bytes()
 		}
 
 		relDir := filepath.Join(dateStr)
@@ -405,14 +421,14 @@ func rewriteImages(md, outDir string) string {
 			fmt.Fprintln(os.Stderr, "skip image (mkdir):", fileName, err)
 			continue
 		}
-		if err := os.WriteFile(filepath.Join(fullDir, outputFile), buf.Bytes(), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(fullDir, outputFile), outBytes, 0o644); err != nil {
 			fmt.Fprintln(os.Stderr, "skip image (write):", fileName, err)
 			continue
 		}
-		outputByName[fileName] = outputFile
+		outputByName[key] = outputFile
 
-		lines[i] = fmt.Sprintf("![%s]({{hp_storage_service_endpoint}}/%s/%s?ipn=s800x)",
-			alt, dateStr, outputFile)
+		lines[i] = fmt.Sprintf("![%s]({{hp_storage_service_endpoint}}/%s/%s%s)",
+			alt, dateStr, outputFile, imageRefSuffix(outputFile))
 	}
 
 	return strings.Join(lines, "\n")
@@ -432,8 +448,12 @@ var downloadImage = func(u string) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-// extensionByMime sniffs the first 512 bytes for an image MIME type.
+// extensionByMime sniffs the leading bytes for an image MIME type. SVG is
+// detected directly because http.DetectContentType reports it as text.
 func extensionByMime(b []byte) string {
+	if isSVG(b) {
+		return ".svg"
+	}
 	switch http.DetectContentType(b) {
 	case "image/jpeg":
 		return ".jpg"
@@ -448,6 +468,29 @@ func extensionByMime(b []byte) string {
 	default:
 		return ""
 	}
+}
+
+// isSVG reports whether b is an inline SVG image. SVG is XML text, so
+// http.DetectContentType reports "text/plain"/"text/xml" rather than
+// "image/svg+xml"; detect it directly by scanning the leading bytes for an <svg
+// root, which may be preceded by an XML prolog or comment.
+func isSVG(b []byte) bool {
+	head := b
+	if len(head) > 1024 {
+		head = head[:1024]
+	}
+	return strings.Contains(strings.ToLower(string(head)), "<svg")
+}
+
+// imageRefSuffix returns the query hint appended to a storage image placeholder
+// reference. Raster images carry the on-the-fly resize hint (ipn=s800x); SVG is
+// vector and skips it — the front end serves SVG verbatim regardless of the
+// query, so the hint would only imply a resize that never happens.
+func imageRefSuffix(name string) string {
+	if strings.HasSuffix(name, ".svg") {
+		return ""
+	}
+	return "?ipn=s800x"
 }
 
 func decodeImage(b []byte, ext string) (image.Image, error) {

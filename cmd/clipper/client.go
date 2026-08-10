@@ -200,10 +200,17 @@ func (c *Client) NodeSet(modname, modelID string, node *hpapi.Node) (*hpapi.Node
 
 // S2Put uploads a file (raw bytes) to storage path "/deft/<date>/<file>".
 func (c *Client) S2Put(storagePath string, data []byte) error {
+	// The data-URL media type follows the stored extension. The server ignores it
+	// for storage (it splits on ";base64," and decodes the tail), but the correct
+	// type keeps the upload self-describing; SVG is stored verbatim (vector).
+	mime := "image/jpeg"
+	if strings.HasSuffix(storagePath, ".svg") {
+		mime = "image/svg+xml"
+	}
 	req := hpapi.FsFile{
 		Path:   storagePath,
 		Encode: "base64",
-		Body:   "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(data),
+		Body:   "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data),
 	}
 	body, err := json.Marshal(&req)
 	if err != nil {

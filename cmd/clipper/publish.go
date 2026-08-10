@@ -35,8 +35,10 @@ import (
 var (
 	// mdImageRefRe matches the markdown image placeholder written by extract:
 	//   ![alt]({{hp_storage_service_endpoint}}/2026/08/03/<hash>.jpg?ipn=s800x)
-	// capturing the <date>/<file> tail (storage path under /deft).
-	mdImageRefRe = regexp.MustCompile(`\{\{hp_storage_service_endpoint\}\}/([0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9a-fA-F]+\.jpg)`)
+	//   ![alt]({{hp_storage_service_endpoint}}/2026/08/03/<hash>.svg)
+	// capturing the <date>/<file> tail (storage path under /deft). Raster refs
+	// carry the resize query; SVG (vector) does not.
+	mdImageRefRe = regexp.MustCompile(`\{\{hp_storage_service_endpoint\}\}/([0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9a-fA-F]+\.(?:jpg|svg))`)
 )
 
 // publishScopes are the IAM access-key scopes a publish-capable key must carry.
@@ -442,7 +444,7 @@ func uploadReferencedImages(client *Client, md, outDir string, prior []ArticleIm
 		images = append(images, ArticleImage{
 			Local:       localPath,
 			StoragePath: storagePath,
-			Ref:         "{{hp_storage_service_endpoint}}/" + rel + "?ipn=s800x",
+			Ref:         "{{hp_storage_service_endpoint}}/" + rel + imageRefSuffix(rel),
 		})
 		fmt.Printf("  uploaded %s\n", storagePath)
 	}

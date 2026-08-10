@@ -16,8 +16,10 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/png"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -197,13 +199,13 @@ func TestSaveKeywordsState(t *testing.T) {
 	}
 }
 
-// TestRewriteImagesDedupSameBasename locks in the image dedup fix: two image
-// refs that share a basename (different paths) must both be rewritten to the SAME
-// on-disk file, and the second one must NOT be re-downloaded. The previous code
-// left the second ref as a raw external URL (it cached "already downloaded" but
-// never reused the bytes, so a nil image was skipped). No real network: the
-// downloadImage func is stubbed.
-func TestRewriteImagesDedupSameBasename(t *testing.T) {
+// TestRewriteImagesKeysOnURLNotBasename locks in the image-identity fix: the
+// dedup key and output filename are derived from the FULL URL, not the basename.
+// Many CDNs serve every asset under a generic name (e.g. "Desktop-Light.png"), so
+// two distinct images can share a basename; they must each be downloaded and
+// stored under their own file. Only refs with the SAME url reuse one file. No
+// real network: the downloadImage func is stubbed.
+func TestRewriteImagesKeysOnURLNotBasename(t *testing.T) {
 	pngBytes := testPNGBytes(t)
 	calls := map[string]int{}
 	orig := downloadImage
@@ -214,16 +216,16 @@ func TestRewriteImagesDedupSameBasename(t *testing.T) {
 	t.Cleanup(func() { downloadImage = orig })
 
 	outDir := t.TempDir()
-	md := "![a](http://h/x/p1/1.png)\n" +
-		"![b](http://h/x/p2/1.png)\n" + // same basename "1.png", different path
-		"![c](http://h/x/p3/2.png)\n" // distinct basename "2.png"
+	md := "![a](http://h/x/p1/1.png)\n" + // basename 1.png, url A
+		"![b](http://h/x/p2/1.png)\n" + // SAME basename, DIFFERENT url -> distinct file
+		"![c](http://h/x/p1/1.png)\n" + // SAME url as line 1 -> reuse (real dedup)
+		"![d](http://h/x/p3/2.png)\n" // distinct basename -> distinct file
 	got := rewriteImages(md, outDir)
 
 	lines := strings.Split(got, "\n")
 
-	// every ref is rewritten to the placeholder; no raw URL survives (the bug
-	// left the second same-basename ref untouched).
-	for i := range 3 {
+	// every ref is rewritten to the placeholder; no raw URL survives.
+	for i := range 4 {
 		if strings.Contains(lines[i], "http://h") {
 			t.Errorf("line %d still carries a raw url: %q", i, lines[i])
 		}
@@ -232,30 +234,36 @@ func TestRewriteImagesDedupSameBasename(t *testing.T) {
 		}
 	}
 
-	// the two same-basename refs point at the same file; the third at a different one.
 	refA := placeholderFile(t, lines[0])
 	refB := placeholderFile(t, lines[1])
 	refC := placeholderFile(t, lines[2])
-	if refA == "" || refB == "" || refC == "" {
-		t.Fatalf("missing placeholder: a=%q b=%q c=%q", refA, refB, refC)
-	}
-	if refA != refB {
-		t.Errorf("same-basename refs should share one file: a=%s b=%s", refA, refB)
-	}
-	if refC == refA {
-		t.Errorf("distinct basename should map to a different file: c=%s a=%s", refC, refA)
+	refD := placeholderFile(t, lines[3])
+	if refA == "" || refB == "" || refC == "" || refD == "" {
+		t.Fatalf("missing placeholder: a=%q b=%q c=%q d=%q", refA, refB, refC, refD)
 	}
 
-	// dedup: first and third URLs fetched once each; the second (same basename)
-	// is never fetched because the file is reused.
+	// same basename, DIFFERENT url -> distinct files (the old code collapsed them).
+	if refA == refB {
+		t.Errorf("distinct urls sharing a basename must NOT share a file: a=%s b=%s", refA, refB)
+	}
+	// identical url -> reuse the same file (legitimate dedup).
+	if refA != refC {
+		t.Errorf("identical url should reuse one file: a=%s c=%s", refA, refC)
+	}
+	// distinct url -> its own file.
+	if refD == refA || refD == refB {
+		t.Errorf("distinct url should map to its own file: d=%s a=%s b=%s", refD, refA, refB)
+	}
+
+	// each distinct url is fetched exactly once; the repeated url is not re-fetched.
 	if calls["http://h/x/p1/1.png"] != 1 {
 		t.Errorf("p1/1.png fetched %d times, want 1", calls["http://h/x/p1/1.png"])
 	}
+	if calls["http://h/x/p2/1.png"] != 1 {
+		t.Errorf("p2/1.png fetched %d times, want 1", calls["http://h/x/p2/1.png"])
+	}
 	if calls["http://h/x/p3/2.png"] != 1 {
 		t.Errorf("p3/2.png fetched %d times, want 1", calls["http://h/x/p3/2.png"])
-	}
-	if calls["http://h/x/p2/1.png"] != 0 {
-		t.Errorf("p2/1.png fetched %d times, want 0 (reused)", calls["http://h/x/p2/1.png"])
 	}
 }
 
@@ -283,4 +291,125 @@ func testPNGBytes(t *testing.T) []byte {
 		t.Fatalf("encode png: %v", err)
 	}
 	return buf.Bytes()
+}
+
+// testSVGBytes returns a minimal inline SVG so the extract path is exercised
+// without shipping fixture bytes or hitting the network.
+func testSVGBytes() []byte {
+	return []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">` +
+		`<circle cx="5" cy="5" r="4"/></svg>`)
+}
+
+// TestIsSVG verifies SVG detection. Go's http.DetectContentType reports SVG as
+// text, so extensionByMime relies on isSVG; this locks in the cases it must
+// cover (bare svg root, xml-prolog-prefixed, leading whitespace) and the
+// negatives it must not over-match (plain text, raster bytes).
+func TestIsSVG(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []byte
+		want bool
+	}{
+		{"bare svg root", []byte(`<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>`), true},
+		{"xml prolog", append([]byte(`<?xml version="1.0"?>`+"\n"), []byte(`<svg><rect/></svg>`)...), true},
+		{"leading whitespace", []byte("\n  <svg><rect/></svg>"), true},
+		{"upper case", []byte(`<SVG><RECT/></SVG>`), true},
+		{"plain text", []byte("hello world"), false},
+		{"png bytes", testPNGBytes(t), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isSVG(tt.in); got != tt.want {
+				t.Errorf("isSVG(%q) = %v, want %v", tt.in, got, tt.want)
+			}
+			if tt.want && extensionByMime(tt.in) != ".svg" {
+				t.Errorf("extensionByMime(%q) = %q, want .svg", tt.in, extensionByMime(tt.in))
+			}
+		})
+	}
+}
+
+// TestRewriteImagesSVG locks in the SVG path: an inline SVG is stored verbatim
+// under a .svg name with no resize query (vector images are not resized), while a
+// raster image in the same run keeps the q80 JPEG + ipn=s800x behavior. No real
+// network: downloadImage is stubbed.
+func TestRewriteImagesSVG(t *testing.T) {
+	svgBytes := testSVGBytes()
+	pngBytes := testPNGBytes(t)
+	orig := downloadImage
+	downloadImage = func(u string) ([]byte, error) {
+		switch u {
+		case "http://h/vector.svg":
+			return svgBytes, nil
+		case "http://h/raster.png":
+			return pngBytes, nil
+		}
+		return nil, fmt.Errorf("unexpected url %s", u)
+	}
+	t.Cleanup(func() { downloadImage = orig })
+
+	outDir := t.TempDir()
+	md := "![vec](http://h/vector.svg)\n" +
+		"![ras](http://h/raster.png)\n"
+	got := rewriteImages(md, outDir)
+	lines := strings.Split(got, "\n")
+
+	vecTail := placeholderFile(t, lines[0]) // <date>/<hash>.svg
+	rasTail := placeholderFile(t, lines[1]) // <date>/<hash>.jpg
+	if vecTail == "" || rasTail == "" {
+		t.Fatalf("missing placeholder tails: vec=%q ras=%q", vecTail, rasTail)
+	}
+
+	// SVG: .svg name, verbatim bytes, no resize query.
+	if !strings.HasSuffix(vecTail, ".svg") {
+		t.Errorf("svg tail = %q, want .svg suffix", vecTail)
+	}
+	if strings.Contains(lines[0], "ipn=") {
+		t.Errorf("svg ref must not carry a resize hint: %q", lines[0])
+	}
+	if got := readFile(t, filepath.Join(outDir, vecTail)); !bytes.Equal(got, svgBytes) {
+		t.Errorf("svg stored bytes differ from source (len got=%d want=%d)", len(got), len(svgBytes))
+	}
+
+	// Raster: still .jpg + resize hint (unchanged behavior).
+	if !strings.HasSuffix(rasTail, ".jpg") {
+		t.Errorf("raster tail = %q, want .jpg suffix", rasTail)
+	}
+	if !strings.Contains(lines[1], "ipn=s800x") {
+		t.Errorf("raster ref must keep the resize hint: %q", lines[1])
+	}
+}
+
+// TestMdImageRefReMatchesSVG confirms the publish-side regex still finds SVG
+// references (which carry no resize query) as well as JPEG references.
+func TestMdImageRefReMatchesSVG(t *testing.T) {
+	tests := []struct {
+		name string
+		line string
+		want string // captured <date>/<file> tail
+	}{
+		{"jpg with resize", `![]({{hp_storage_service_endpoint}}/2026/08/10/1a2b3c.jpg?ipn=s800x)`, "2026/08/10/1a2b3c.jpg"},
+		{"svg no resize", `![]({{hp_storage_service_endpoint}}/2026/08/10/1a2b3c.svg)`, "2026/08/10/1a2b3c.svg"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := mdImageRefRe.FindStringSubmatch(tt.line)
+			if m == nil {
+				t.Fatalf("no match for %q", tt.line)
+			}
+			if m[1] != tt.want {
+				t.Errorf("capture = %q, want %q", m[1], tt.want)
+			}
+		})
+	}
+}
+
+// readFile reads a file, failing the test on any error.
+func readFile(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return b
 }
