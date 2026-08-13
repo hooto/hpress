@@ -329,16 +329,6 @@ func moduleInit() error {
 	return nil
 }
 
-func SpecRefresh(modname string) {
-
-	for srvname, spec := range Modules {
-		if spec.Meta.Name == modname {
-			SpecSrvRefresh(srvname)
-			break
-		}
-	}
-}
-
 func SpecSrvRefresh(srvname string) {
 
 	if strings.Contains(srvname, "/") {

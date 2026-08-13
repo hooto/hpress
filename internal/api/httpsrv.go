@@ -73,11 +73,4 @@ func Register(router fiber.Router) {
 	router.All("/mod-set/spec-lang-list", web.Auth(), ModSetSpecLangList)
 	router.All("/mod-set/fs-tpl-list", web.Auth(), ModSetFsTplList)
 	router.All("/mod-set/spec-upload-commit", web.Auth(), ModSetSpecUploadCommit)
-
-	// ModSetFs
-	router.All("/mod-set-fs/list", web.Auth(), ModSetFsList)
-	router.All("/mod-set-fs/get", web.Auth(), ModSetFsGet)
-	router.All("/mod-set-fs/put", web.Auth(), ModSetFsPut)
-	router.All("/mod-set-fs/del", web.Auth(), ModSetFsDel)
-	router.All("/mod-set-fs/rename", web.Auth(), ModSetFsRename)
 }

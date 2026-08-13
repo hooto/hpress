@@ -48,7 +48,7 @@ const purgeCssOptions = {
 }
 
 // kebab-case a chunk/asset stem: S2Section -> s2-section,
-// SpecEditorSection -> spec-editor-section. Already-lowercase names (codemirror,
+// NodeSection -> node-section. Already-lowercase names (codemirror,
 // node-editor, fonts, images) pass through unchanged.
 const toKebab = (s: string) =>
   s
@@ -160,23 +160,21 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        // CodeMirror core (lib/codemirror.js) is imported by BOTH editors
-        // (node's HpEditor and spec-editor's LcEditor). Rolldown already shares
-        // it, but by default it lands tangled with marked/DOMPurify in the
-        // node editor's chunk — so opening the spec editor drags in those
-        // preview libs it never uses. Extract the core into its own chunk so
-        // the shared dependency is clean and independently cached. Modes/addons
-        // stay with their editors (per-editor optimal loading). Matching only
-        // node_modules vendor leaves avoids the manualChunks-on-app-code trap.
+        // CodeMirror core (lib/codemirror.js) is imported by the node editor
+        // (HpEditor). By default it lands tangled with marked/DOMPurify in the
+        // node-section chunk; extract the core into its own chunk so the big
+        // editor lib is cached independently and node-section stays lean.
+        // Modes/addons stay with the editor. Matching only node_modules vendor
+        // leaves avoids the manualChunks-on-app-code trap.
         manualChunks(id) {
           if (id.includes('/node_modules/codemirror/lib/')) return 'codemirror'
         },
         // chunkFileNames governs emitted JS chunk filenames. "markdown" is an
         // auto-chunk Rolldown names after the markdown mode; rename it to its
         // functional role (node-editor), then kebab-case every name so
-        // S2Section -> s2-section, SpecEditorSection -> spec-editor-section.
-        // The entry chunk (index) uses entryFileNames, so it is unaffected.
-        // Pure filename mapping — no chunk restructuring, no graph change.
+        // S2Section -> s2-section, NodeSection -> node-section. The entry chunk
+        // (index) uses entryFileNames, so it is unaffected. Pure filename
+        // mapping — no chunk restructuring, no graph change.
         chunkFileNames: (chunkInfo) =>
           `assets/${toKebab(chunkInfo.name === 'markdown' ? 'node-editor' : chunkInfo.name)}-[hash].js`,
         // assetFileNames governs extracted CSS (and fonts/images). CSS takes its

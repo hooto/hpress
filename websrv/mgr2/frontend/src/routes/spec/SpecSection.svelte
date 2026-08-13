@@ -1,15 +1,14 @@
 <script lang="ts">
   // spec module dashboard. Ports spec/index.tpl + spec/list.tpl + spec.js
-  // Index/List. Lists modules with counts; row actions: Develop (file IDE),
-  // Setting (InfoSet). Count buttons open resource Manager modals. Toolbar:
-  // Upload (package install/upgrade), New Module (InfoSet). On InfoSet save,
-  // refreshes the global spec list (so the node nav updates).
+  // Index/List. Lists modules with counts; row action: Setting (InfoSet).
+  // Count buttons open resource Manager modals. Toolbar: Upload (package
+  // install/upgrade), New Module (InfoSet). On InfoSet save, refreshes the
+  // global spec list (so the node nav updates).
   import { onMount } from "svelte";
   import { api, ApiError } from "../../lib/api";
   import { openModal } from "../../lib/modal";
   import { innerShow } from "../../lib/alert";
   import { refreshSpecList } from "../../lib/boot";
-  import { navigate } from "../../lib/router";
   import Alert from "../../lib/Alert.svelte";
   import InfoSet from "./InfoSet.svelte";
   import Upload from "./Upload.svelte";
@@ -76,10 +75,6 @@
       body: Upload,
       props: { onDone: load },
     });
-  }
-
-  function develop(name: string) {
-    navigate("spec-editor/" + name);
   }
 
   function openMgr(which: "node" | "term" | "action" | "route", name: string) {
@@ -174,10 +169,6 @@
                 {/if}
               </td>
               <td align="right">
-                <button
-                  class="btn btn-sm btn-outline-dark"
-                  onclick={() => develop(v.meta.name)}>Develop</button
-                >
                 <button
                   class="btn btn-sm btn-outline-dark"
                   onclick={() => infoSet(v.meta.name)}>Setting</button

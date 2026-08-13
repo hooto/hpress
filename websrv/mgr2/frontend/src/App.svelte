@@ -16,13 +16,11 @@
   // Route section dispatchers, loaded on demand. Each dynamic import becomes
   // its own dist/assets chunk named after the file (e.g. node-section-<hash>.js),
   // fetched only on first navigation to that section. CodeMirror / marked /
-  // DOMPurify live in the spec-editor-section / node-section chunks, so the
-  // initial load never pulls them. sys is the default/landing route, so it
-  // stays eager.
+  // DOMPurify live in the node-section chunk, so the initial load never pulls
+  // them. sys is the default/landing route, so it stays eager.
   const lazySections: Record<string, () => Promise<{ default: Component<any> }>> = {
     s2: () => import('./routes/s2/S2Section.svelte'),
     spec: () => import('./routes/spec/SpecSection.svelte'),
-    'spec-editor': () => import('./routes/spec-editor/SpecEditorSection.svelte'),
     node: () => import('./routes/node/NodeSection.svelte'),
   }
 

@@ -5,7 +5,6 @@ import { marked } from 'marked'
 
 import './styles/hp-main-v2.css'
 import './styles/hpm-main.css'
-import './styles/hpm-defx.css'
 import App from './App.svelte'
 
 // marked config mirrors webui/hpm/js/main.js:98 (gfm, smartLists, smartypants).

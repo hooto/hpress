@@ -62,12 +62,6 @@
     <td align="right">
       <button
         class="btn btn-outline-dark btn-sm"
-        onclick="hpSpecEditor.Open('{[=v.meta.name]}')"
-      >
-        Develop
-      </button>
-      <button
-        class="btn btn-outline-dark btn-sm"
         onclick="hpSpec.InfoSet('{[=v.meta.name]}')"
       >
         Setting

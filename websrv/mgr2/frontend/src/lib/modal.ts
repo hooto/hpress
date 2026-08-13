@@ -70,14 +70,3 @@ export function prevModal(cb?: () => void) {
 export function closeAllModals() {
   modals.set([])
 }
-
-// legacy lynkui.modal.open used a synchronous html/eval body. For simple
-// confirm dialogs (e.g. node single-delete) this helper builds an html-body
-// modal with buttons in one call.
-export function confirmModal(opts: {
-  title?: string
-  html?: string
-  buttons?: ModalButton[]
-}) {
-  return openModal({ title: opts.title, html: opts.html, buttons: opts.buttons })
-}
