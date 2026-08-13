@@ -64,6 +64,6 @@ import { flashThen } from "../../lib/feedback";
 
 <Alert id={alertId} />
 <div class="mb-2">
-  <label class="form-label" for="specupload-file">Select package file (.txz / .tgz)</label>
-  <input id="specupload-file" type="file" class="form-control" bind:this={fileInput} />
+  <label class="form-label" for="specupload-file">Select package file (.ipk)</label>
+  <input id="specupload-file" type="file" class="form-control" accept=".ipk" bind:this={fileInput} />
 </div>

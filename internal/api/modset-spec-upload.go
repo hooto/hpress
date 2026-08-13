@@ -19,6 +19,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/binary"
+	stdjson "encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -29,12 +31,24 @@ import (
 	"github.com/hooto/iam/v2/pkg/iamapi"
 	"github.com/lessos/lessgo/encoding/json"
 	"github.com/lessos/lessgo/types"
+	"github.com/sysinner/innerstack/v2/pkg/inapi"
 	"github.com/ulikunitz/xz"
 
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/modset"
 	"github.com/hooto/hpress/internal/web"
+)
+
+const (
+	// ipkMagic is the 4-byte magic prefix of an innerstack v2 .ipk container.
+	ipkMagic = "IPK1"
+	// ipkMaxHeaderLen bounds the declared JSON header length (DoS guard);
+	// real headers are a few KB, 1 MiB is a generous upper bound.
+	ipkMaxHeaderLen = 1 << 20
+	// ipkDecompressCap bounds the uncompressed payload read from a package
+	// (decompression-bomb guard; the upload size cap only limits compressed size).
+	ipkDecompressCap = 64 << 20
 )
 
 var (
@@ -64,8 +78,8 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 		return nil
 	}
 	ext := filepath.Ext(set.Name)
-	if ext != ".txz" && ext != ".tgz" {
-		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid file name extension")
+	if ext != ".ipk" {
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid file name extension, expected .ipk")
 		return nil
 	}
 
@@ -90,34 +104,19 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 		return nil
 	}
 
-	var cpr io.Reader
-
-	switch ext {
-	case ".txz":
-		if cpr, err = xz.NewReader(bytes.NewReader(filedata)); err != nil {
-			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
-			return nil
-		}
-
-	case ".tgz":
-		if cpr, err = gzip.NewReader(bytes.NewReader(filedata)); err != nil {
-			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
-			return nil
-		}
-
-	default:
-		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Invalid EXT")
+	_, cpr, err := parseIpkPackage(filedata)
+	if err != nil {
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 		return nil
 	}
+	// Guard against decompression bombs: the upload size cap only bounds the
+	// compressed bytes, so cap the uncompressed stream explicitly.
+	cpr = io.LimitReader(cpr, ipkDecompressCap)
 
 	tr := tar.NewReader(cpr)
-	if tr == nil {
-		set.Error = types.NewErrorMeta("400", "Invalid Encoded Data")
-		return nil
-	}
 
 	var (
-		pkgName = set.Name[:len(set.Name)-4]
+		pkgName = strings.TrimSuffix(set.Name, filepath.Ext(set.Name))
 		tmpdir  = config.Prefix + "/var/tmp/" + pkgName
 		files   = map[string]int64{}
 	)
@@ -132,18 +131,37 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
-		// fmt.Printf("Contents of %s\n", hdr.Name)
 
-		if hdr.Name[len(hdr.Name)-1] == '/' {
-			os.MkdirAll(tmpdir+"/"+hdr.Name, 0755)
+		// Guard against path traversal (zip-slip): reject absolute or
+		// parent-escaping names and confine every extraction under tmpdir.
+		clean := filepath.Clean(hdr.Name)
+		if filepath.IsAbs(clean) || clean == ".." ||
+			strings.HasPrefix(clean, ".."+string(os.PathSeparator)) {
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument,
+				"unsafe path in archive: "+hdr.Name)
+			return nil
+		}
+		full := filepath.Join(tmpdir, clean)
+		if !strings.HasPrefix(full, tmpdir+string(os.PathSeparator)) && full != tmpdir {
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument,
+				"path escapes extract dir: "+hdr.Name)
+			return nil
+		}
+
+		if hdr.FileInfo().IsDir() {
+			if err := os.MkdirAll(full, 0755); err != nil {
+				set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
+				return nil
+			}
 			continue
 		}
 
-		// if strings.Index(hdr.Name, "/") > 0 {
-		// 	os.MkdirAll(tmpdir+"/"+filepath.Dir(hdr.Name), 0755)
-		// }
+		if err := os.MkdirAll(filepath.Dir(full), 0755); err != nil {
+			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
+			return nil
+		}
 
-		fpo, err := os.OpenFile(tmpdir+"/"+hdr.Name, os.O_RDWR|os.O_CREATE, os.FileMode(hdr.Mode))
+		fpo, err := os.OpenFile(full, os.O_RDWR|os.O_CREATE, os.FileMode(hdr.Mode))
 		if err != nil {
 			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
@@ -152,13 +170,14 @@ func ModSetSpecUploadCommit(c fiber.Ctx) error {
 		fpo.Truncate(0)
 
 		if _, err := io.Copy(fpo, tr); err != nil {
+			fpo.Close()
 			set.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, err.Error())
 			return nil
 		}
 
 		fpo.Close()
 
-		files[hdr.Name] = hdr.Mode
+		files[clean] = hdr.Mode
 	}
 
 	var spec hpapi.Spec
@@ -234,4 +253,62 @@ func specFileSync(src, dst string, mod os.FileMode) error {
 	}
 
 	return nil
+}
+
+// parseIpkPackage parses an innerstack v2 IPK1 container and returns the
+// package header plus a reader over the (still-compressed) data block. The
+// data block is a tar archive compressed per the header's release.compress.
+// Mirrors the canonical reader in innerstack internal/cli/pkg_info.go.
+func parseIpkPackage(filedata []byte) (*inapi.Package, io.Reader, error) {
+	if len(filedata) < 8 {
+		return nil, nil, fmt.Errorf("ipk: package too small")
+	}
+	if string(filedata[:4]) != ipkMagic {
+		return nil, nil, fmt.Errorf("ipk: bad magic (expected %q)", ipkMagic)
+	}
+
+	headerLen := binary.LittleEndian.Uint32(filedata[4:8])
+	if headerLen > ipkMaxHeaderLen {
+		return nil, nil, fmt.Errorf("ipk: header too large (%d)", headerLen)
+	}
+	// Overflow-safe bounds check (a plain uint32 add can wrap past the cap).
+	if uint64(8)+uint64(headerLen) > uint64(len(filedata)) {
+		return nil, nil, fmt.Errorf("ipk: header length out of bounds")
+	}
+	headerEnd := 8 + int(headerLen)
+
+	var pkg inapi.Package
+	if err := stdjson.Unmarshal(filedata[8:headerEnd], &pkg); err != nil {
+		return nil, nil, fmt.Errorf("ipk: bad header json: %w", err)
+	}
+	if pkg.Release == nil {
+		return nil, nil, fmt.Errorf("ipk: header missing release")
+	}
+
+	dataBlock := filedata[headerEnd:]
+	if len(dataBlock) == 0 {
+		return nil, nil, fmt.Errorf("ipk: empty data block")
+	}
+
+	var cpr io.Reader
+	switch pkg.Release.GetCompress() {
+	case "xz":
+		r, err := xz.NewReader(bytes.NewReader(dataBlock))
+		if err != nil {
+			return nil, nil, fmt.Errorf("ipk: xz init: %w", err)
+		}
+		cpr = r
+	case "gzip":
+		r, err := gzip.NewReader(bytes.NewReader(dataBlock))
+		if err != nil {
+			return nil, nil, fmt.Errorf("ipk: gzip init: %w", err)
+		}
+		cpr = r
+	case "":
+		cpr = bytes.NewReader(dataBlock) // uncompressed tar
+	default:
+		return nil, nil, fmt.Errorf("ipk: unsupported compression %q", pkg.Release.GetCompress())
+	}
+
+	return &pkg, cpr, nil
 }
