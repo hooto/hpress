@@ -800,3 +800,84 @@ ul.pagination {
   margin: 0 !important;
   padding: 0 !important;
 }
+
+/** mobile layout (below md breakpoint) */
+
+@media (max-width: 767.98px) {
+  /* shrink the shared spacing token: block gaps and node view paddings
+     derive from it, cutting the doubled side gutters on small screens */
+  #hp-body {
+    --hp-block-cap: 0.75rem;
+  }
+
+  #hp-body .container {
+    /* bootstrap caps .container at 540px from 576px up; below md let it
+       flow full width so wide phones and small tablets get no dead margins */
+    max-width: 100%;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  #hp-body > .navbar > .container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .hp-ctn-title {
+    font-size: 125%;
+    line-height: 1.8;
+  }
+
+  .hp-node-view .hp-header {
+    font-size: 150%;
+    line-height: 1.4;
+  }
+
+  .hp-node-view .hp-info {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .hp-node-view .hp-info .info-item {
+    display: block;
+    margin: 0.25rem 0;
+    font-size: 90%;
+  }
+
+  .hp-node-view .hp-content {
+    padding: 0.75rem;
+  }
+
+  .hp-content h1 {
+    font-size: 1.5em;
+  }
+
+  .hp-content h2 {
+    font-size: 1.35em;
+  }
+
+  .hp-content h3 {
+    font-size: 1.2em;
+  }
+
+  .hp-content li {
+    line-height: 1.8;
+  }
+
+  .hp-content blockquote {
+    padding: 10px 14px;
+  }
+
+  .hp-content pre,
+  .hp-content code {
+    font-size: 12px;
+  }
+
+  .hp-content table {
+    font-size: 13px;
+  }
+
+  .hp-content table th,
+  .hp-content table td {
+    padding: 0.35rem 0.5rem;
+  }
+}
