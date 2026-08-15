@@ -52,15 +52,6 @@ export const permalinkDef = [
 
 export const namereg = /^[a-z][a-z0-9_]+$/
 
-export const specdef = {
-  kind: 'Spec',
-  meta: { id: '', name: '' },
-  srvname: '',
-  title: '',
-  status: 1,
-  theme_config: '',
-}
-
 export const termdef = {
   kind: 'TermModel',
   meta: { name: '' },

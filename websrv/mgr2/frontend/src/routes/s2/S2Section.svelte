@@ -101,16 +101,15 @@
 </script>
 
 <div class="hpm-block-gap-column">
-  <div class="d-flex flex-row justify-content-between hpm-block-gap-row">
-    <div class="breadcrumb">
-      <ol class="breadcrumb">
-        {#each dirnav as d (d.path)}
-          <li class="breadcrumb-item">
-            <button type="button" class="hp-link-btn" onclick={() => load(d.path)}>{d.name}</button>
-          </li>
-        {/each}
-      </ol>
-    </div>
+  <div class="d-flex flex-row align-items-center justify-content-between hpm-block-gap-row">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item">Storage</li>
+      {#each dirnav as d (d.path)}
+        <li class="breadcrumb-item">
+          <button type="button" class="hp-link-btn" onclick={() => load(d.path)}>{d.name}</button>
+        </li>
+      {/each}
+    </ol>
     <div class="hpm-node-nav hpm-nav-right">
       <button class="btn btn-primary" onclick={upload}>Upload New File</button>
     </div>

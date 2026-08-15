@@ -17,7 +17,6 @@ package modset
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -81,38 +80,6 @@ func SpecFetch(modname string) (hpapi.Spec, error) {
 	file := fmt.Sprintf("%s/modules/%s/spec.json", config.Prefix, modname)
 	err := json.DecodeFile(file, &entry)
 	return entry, err
-}
-
-func SpecInfoNew(entry hpapi.Spec) error {
-
-	if entry.Meta.Name == "" {
-		return errors.New("Name Not Found")
-	}
-
-	if entry.Title == "" {
-		return errors.New("Title Not Found")
-	}
-
-	if entry.SrvName == "" {
-		return errors.New("SrvName Not Found")
-	}
-
-	_, err := SpecFetch(entry.Meta.Name)
-	if err == nil {
-		return errors.New("Spec Already Exists ")
-	}
-
-	entry.Status = 1
-
-	entry.Meta.Version = "0.1.0"
-	entry.Meta.Created = types.MetaTimeNow()
-
-	dir := fmt.Sprintf("%s/modules/%s", config.Prefix, entry.Meta.Name)
-	if err := os.MkdirAll(dir, 0750); err != nil {
-		return err
-	}
-
-	return specConfigFileSync(entry)
 }
 
 func SpecInfoSet(entry hpapi.Spec) error {

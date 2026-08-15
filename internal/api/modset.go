@@ -140,18 +140,16 @@ func ModSetSpecInfoSet(c fiber.Ctx) error {
 	}
 
 	if _, err = modset.SpecFetch(set.Meta.Name); err != nil {
+		// Module creation is CLI-only (hpress module-init + .ipk upload);
+		// this endpoint updates an installed module's info only.
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeNotFound,
+			"Spec Not Found, please install a module package first")
+		return nil
+	}
 
-		if err = modset.SpecInfoNew(set); err != nil {
-			set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
-			return nil
-		}
-
-	} else {
-
-		if err = modset.SpecInfoSet(set); err != nil {
-			set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
-			return nil
-		}
+	if err = modset.SpecInfoSet(set); err != nil {
+		set.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
+		return nil
 	}
 
 	specUpdated, err := modset.SpecFetch(set.Meta.Name)

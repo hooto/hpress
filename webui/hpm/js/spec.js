@@ -13,15 +13,6 @@
 // limitations under the License.
 
 var hpSpec = {
-  specdef: {
-    kind: "Spec",
-    meta: {
-      id: "",
-      name: "",
-    },
-    srvname: "",
-    title: "",
-  },
   statuses: [
     {
       name: "Enable",
@@ -453,16 +444,11 @@ hpSpec.InfoSet = function (name) {
       return alert("Spec Not Found");
     }
 
-    var ptitle = "Info Settings";
-    if (!name) {
-      ptitle = "New Module";
-    }
-
     lynkui.modal.open({
       tplsrc: tpl,
       width: 1200,
       height: 800,
-      title: ptitle,
+      title: "Info Settings",
       data: data,
       buttons: [
         {
@@ -487,13 +473,9 @@ hpSpec.InfoSet = function (name) {
     callback: ep.done("tpl"),
   });
 
-  if (name) {
-    hpMgr.ApiCmd("mod-set/spec-entry?name=" + name, {
-      callback: ep.done("data"),
-    });
-  } else {
-    ep.emit("data", lynkui.utilx.objectClone(hpSpec.specdef));
-  }
+  hpMgr.ApiCmd("mod-set/spec-entry?name=" + name, {
+    callback: ep.done("data"),
+  });
 };
 
 hpSpec.InfoSetCommit = function () {

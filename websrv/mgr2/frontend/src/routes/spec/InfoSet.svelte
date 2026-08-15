@@ -1,22 +1,31 @@
 <script lang="ts">
   // spec InfoSet modal body / carousel pagelet. Ports spec/info-set.tpl +
-  // InfoSet/InfoSetCommit. Save/Cancel live in the modal's fixed footer (only
+  // InfoSet/InfoSetCommit (edit only; module creation moved to the hpress
+  // CLI module-init). Save/Cancel live in the modal's fixed footer (only
   // the body scrolls) via patchTopModal — matches NodeSet. On Save →
   // spec-info-set, then onSaved() + closeModal.
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { api, ApiError } from "../../lib/api";
   import { closeModal, patchTopModal } from "../../lib/modal";
   import { innerShow } from "../../lib/alert";
-import { flashThen } from "../../lib/feedback";
+  import { flashThen } from "../../lib/feedback";
   import Alert from "../../lib/Alert.svelte";
-  import { objectClone, specdef, statuses } from "./defs";
+  import { statuses } from "./defs";
 
   let {
-    name = undefined,
+    name = "",
     onSaved = () => {},
   }: { name?: string; onSaved?: () => void } = $props();
 
-  let form: any = $state(objectClone(specdef));
+  // skeleton holding the module name until spec-entry loads; the prop is
+  // read once at mount (modal bodies are fresh instances per open)
+  let form: any = $state({
+    meta: { name: untrack(() => name) },
+    srvname: "",
+    title: "",
+    status: 1,
+    theme_config: "",
+  });
   const alertId = "hpm-specset-alert";
 
   onMount(async () => {
@@ -27,24 +36,25 @@ import { flashThen } from "../../lib/feedback";
         { title: "Cancel", class: "btn-outline-primary" },
       ],
     });
-    if (name) {
-      try {
-        const data = await api.get<any>("mod-set/spec-entry", { name });
-        if (data && data.kind === "Spec") {
-          // theme_config is edited as text in a textarea; if the server returns
-          // a JSON object, stringify it so the field doesn't render [object Object].
-          const tc = data.theme_config;
-          form = {
-            ...data,
-            theme_config:
-              tc && typeof tc === "object"
-                ? JSON.stringify(tc, null, 2)
-                : tc || "",
-          };
-        }
-      } catch {
-        /* ignore */
+    try {
+      const data = await api.get<any>("mod-set/spec-entry", { name });
+      if (!data || data.kind !== "Spec") {
+        innerShow(alertId, "danger", "Spec Not Found");
+        return;
       }
+      // theme_config is edited as text in a textarea; if the server returns
+      // a JSON object, stringify it so the field doesn't render [object Object].
+      const tc = data.theme_config;
+      form = {
+        ...data,
+        theme_config:
+          tc && typeof tc === "object"
+            ? JSON.stringify(tc, null, 2)
+            : tc || "",
+      };
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : String(e);
+      innerShow(alertId, "danger", msg);
     }
   });
 
@@ -79,8 +89,7 @@ import { flashThen } from "../../lib/feedback";
         type="text"
         class="form-control"
         bind:value={form.meta.name}
-        placeholder="lowercase, [a-z][a-z0-9_]+"
-        disabled={!!name}
+        disabled
       />
     </div>
   </div>

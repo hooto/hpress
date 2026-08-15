@@ -10,9 +10,7 @@
         name="name"
         placeholder="Module Name"
         value="{[=it.meta.name]}"
-        {[?
-        it.meta.name]}
-        readonly{[?]}
+        readonly
       />
     </div>
   </div>

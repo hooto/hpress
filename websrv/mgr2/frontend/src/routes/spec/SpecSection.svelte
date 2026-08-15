@@ -2,8 +2,8 @@
   // spec module dashboard. Ports spec/index.tpl + spec/list.tpl + spec.js
   // Index/List. Lists modules with counts; row action: Setting (InfoSet).
   // Count buttons open resource Manager modals. Toolbar: Upload (package
-  // install/upgrade), New Module (InfoSet). On InfoSet save, refreshes the
-  // global spec list (so the node nav updates).
+  // install/upgrade; module creation moved to the hpress CLI module-init).
+  // On InfoSet save, refreshes the global spec list (so the node nav updates).
   import { onMount } from "svelte";
   import { api, ApiError } from "../../lib/api";
   import { openModal } from "../../lib/modal";
@@ -51,9 +51,9 @@
     }
   }
 
-  function infoSet(name?: string) {
+  function infoSet(name: string) {
     openModal({
-      title: name ? "Info Settings" : "New Module",
+      title: "Info Settings",
       width: 1200,
       height: 800,
       body: InfoSet,
@@ -104,13 +104,13 @@
 
 <div class="hpm-block-gap-column">
   <div
-    class="d-flex flex-row align-items-center hpm-block-gap-row-sm"
+    class="d-flex flex-row align-items-center justify-content-between hpm-block-gap-row-sm"
     style="margin-bottom:8px"
   >
-    <button class="btn btn-primary" onclick={() => infoSet()}
-      >New Module</button
-    >
-    <button class="btn btn-outline-primary ms-auto" onclick={upload}>
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item active">Module</li>
+    </ol>
+    <button class="btn btn-outline-primary" onclick={upload}>
       Install or Upgrade from Package
     </button>
   </div>
