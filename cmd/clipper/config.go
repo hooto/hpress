@@ -23,9 +23,12 @@ import (
 	"strings"
 
 	"github.com/hooto/htoml4g/htoml"
+
+	"github.com/hooto/hpress/internal/hpclient"
 )
 
-// ClientConfig is the on-disk CLI config at ~/.hooto-press.toml.
+// ClientConfig is the on-disk CLI config ($HOOTOPRESS_CONFIG_FILE, default
+// ~/.hooto-press.toml).
 type ClientConfig struct {
 	Server  ClientServer  `toml:"server"`
 	Auth    ClientAuth    `toml:"auth"`
@@ -72,19 +75,11 @@ type ClientLLM struct {
 	Prefilter string `toml:"prefilter"`
 }
 
-// clientConfigPath returns ~/.hooto-press.toml.
-func clientConfigPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".hooto-press.toml"), nil
-}
-
-// LoadClientConfig reads ~/.hooto-press.toml. A missing file yields a zero
-// config + nil error so callers can detect "not configured" by empty fields.
+// LoadClientConfig reads the CLI config ($HOOTOPRESS_CONFIG_FILE, default
+// ~/.hooto-press.toml). A missing file yields a zero config + nil error so
+// callers can detect "not configured" by empty fields.
 func LoadClientConfig() (*ClientConfig, error) {
-	path, err := clientConfigPath()
+	path, err := hpclient.ConfigFilePath()
 	if err != nil {
 		return nil, err
 	}
@@ -98,9 +93,9 @@ func LoadClientConfig() (*ClientConfig, error) {
 	return cfg, nil
 }
 
-// SaveClientConfig writes ~/.hooto-press.toml.
+// SaveClientConfig writes the CLI config (same path resolution as Load).
 func SaveClientConfig(cfg *ClientConfig) error {
-	path, err := clientConfigPath()
+	path, err := hpclient.ConfigFilePath()
 	if err != nil {
 		return err
 	}

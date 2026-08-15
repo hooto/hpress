@@ -30,6 +30,7 @@ import (
 	"github.com/lessos/lessgo/types"
 
 	"github.com/hooto/hpress/internal/hpapi"
+	"github.com/hooto/hpress/internal/hpclient"
 )
 
 var (
@@ -65,7 +66,7 @@ func scopeHint() string {
 // gate — so the user sees exactly which scopes to grant. Returns "" for
 // unrelated errors to keep them terse.
 func authScopeSuffix(err error) string {
-	var ae *apiError
+	var ae *hpclient.ApiError
 	if errors.As(err, &ae) && (ae.Code == "Unauthorized" || ae.Code == "AccessDenied") {
 		return "\n  hint: " + scopeHint() + "\n  (app=<app_id> = hpress [iam_auth].app_id)"
 	}
@@ -94,7 +95,7 @@ func runPublish(mdPath string, isUpdate bool) error {
 	}
 	mdContent := string(md)
 
-	client, err := NewClient(cfg.Server.BaseURL, cfg.Auth.AccessKey)
+	client, err := hpclient.NewClient(cfg.Server.BaseURL, cfg.Auth.AccessKey)
 	if err != nil {
 		return err
 	}
@@ -293,7 +294,7 @@ func pickNodeModel(reader *bufio.Reader, spec *hpapi.Spec, configured string, st
 
 // pickTermInteractive fetches a taxonomy's terms, prints the tree, and returns
 // the selected term id. Pressing Enter keeps the defaultID (used on update).
-func pickTermInteractive(reader *bufio.Reader, client *Client, modname string, tm hpapi.TermModel, defaultID string) (string, error) {
+func pickTermInteractive(reader *bufio.Reader, client *hpclient.Client, modname string, tm hpapi.TermModel, defaultID string) (string, error) {
 	tl, err := client.TermList(modname, tm.Meta.Name)
 	if err != nil {
 		return "", err
@@ -407,7 +408,7 @@ func promptExtraFields(reader *bufio.Reader, model *hpapi.NodeModel) ([]*hpapi.N
 // Any reference already present in prior (uploaded in a previous run) is skipped
 // — its manifest entry is carried over unchanged and flagged "(skip)" on the
 // terminal — so updates don't re-push images that are already on the server.
-func uploadReferencedImages(client *Client, md, outDir string, prior []ArticleImage) ([]ArticleImage, error) {
+func uploadReferencedImages(client *hpclient.Client, md, outDir string, prior []ArticleImage) ([]ArticleImage, error) {
 	matches := mdImageRefRe.FindAllStringSubmatch(md, -1)
 	seen := map[string]bool{}
 	priorByPath := make(map[string]ArticleImage, len(prior))

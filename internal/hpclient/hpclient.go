@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// hpress REST API client used by the publish/update flow.
+// hpress REST API client shared by the CLI tools (cmd/clipper, cmd/cli).
 //
 // Auth model: the CLI holds an IAM user access key (ak_<id>_<secret>). For each
 // request it mints a short-lived access-token JWT signed with the key's secret
@@ -22,7 +22,9 @@
 // access-key secret never leaves the CLI; only the signed token traverses the
 // network.
 
-package main
+// Package hpclient provides an access-key-authenticated client for the hpress
+// /hp/v1 REST API.
+package hpclient
 
 import (
 	"bytes"
@@ -42,8 +44,8 @@ import (
 )
 
 // tokenLifetime is how long a minted access-key token is good for. It must
-// comfortably exceed a publish run (image uploads); IAM enforces no upper bound
-// on user-type tokens, only that Exp > now.
+// comfortably exceed a CLI run (image / package uploads); IAM enforces no upper
+// bound on user-type tokens, only that Exp > now.
 const tokenLifetime = 3600 // seconds
 
 // Client is an access-key-authenticated hpress API client.
@@ -219,16 +221,40 @@ func (c *Client) S2Put(storagePath string, data []byte) error {
 	return c.do(http.MethodPost, "/hp/v1/s2-obj/put", nil, body, nil)
 }
 
-// apiError carries a hpress application-level error parsed from the response
+// SpecUploadCommit uploads a module package (.ipk, raw bytes) to
+// mod-set/spec-upload-commit. name must end in ".ipk" and len(data) must stay
+// under the server's upload cap (8 MiB).
+func (c *Client) SpecUploadCommit(name string, data []byte) error {
+	req := hpapi.SpecUploadCommit{
+		Size: int64(len(data)),
+		Name: name,
+		Data: "data:application/octet-stream;base64," + base64.StdEncoding.EncodeToString(data),
+	}
+	body, err := json.Marshal(&req)
+	if err != nil {
+		return err
+	}
+	// on success the handler echoes the request struct back with kind "Spec"
+	var rsp hpapi.Spec
+	if err := c.do(http.MethodPost, "/hp/v1/mod-set/spec-upload-commit", nil, body, &rsp); err != nil {
+		return err
+	}
+	if rsp.Kind != "Spec" {
+		return fmt.Errorf("unexpected response kind %q", rsp.Kind)
+	}
+	return nil
+}
+
+// ApiError carries a hpress application-level error parsed from the response
 // body ({"error":{"code","message"}}). It is returned as a concrete type so
 // callers can branch on Code (e.g. an auth/access denial) without string
 // matching the formatted message.
-type apiError struct {
+type ApiError struct {
 	Code    string
 	Message string
 }
 
-func (e *apiError) Error() string {
+func (e *ApiError) Error() string {
 	return fmt.Sprintf("hpress %s: %s", e.Code, e.Message)
 }
 
@@ -241,7 +267,7 @@ func checkAPIError(body []byte, status int) error {
 		} `json:"error"`
 	}
 	if err := json.Unmarshal(body, &probe); err == nil && probe.Error != nil && probe.Error.Code != "" {
-		return &apiError{Code: probe.Error.Code, Message: probe.Error.Message}
+		return &ApiError{Code: probe.Error.Code, Message: probe.Error.Message}
 	}
 	if status >= 400 {
 		return fmt.Errorf("hpress HTTP %d: %s", status, truncBody(body))

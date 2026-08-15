@@ -18,10 +18,12 @@
 //	clipper preview <file.md>  [--port N] [--open] [--out DIR]
 //	clipper publish <file.md>  # publish (create) a node
 //	clipper update  <file.md>  # update an existing node from its state file
-//	clipper auth [flags]       # configure ~/.hooto-press.toml
+//	clipper auth [flags]       # configure the CLI config file
 //
 // The access key ("ak_<id>_<secret>") is generated in IAM (user access-key CRUD);
-// store it in ~/.hooto-press.toml via the "auth" subcommand.
+// store it in the CLI config via the "auth" subcommand. The config file is
+// ~/.hooto-press.toml by default; set HOOTOPRESS_CONFIG_FILE to target a
+// different hpress server.
 package main
 
 import (
@@ -30,6 +32,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/hooto/hpress/internal/hpclient"
 )
 
 const defaultOutDir = "./var/output"
@@ -179,8 +183,8 @@ func newUpdateCmd() *cobra.Command {
 	}
 }
 
-// newAuthCmd writes/updates ~/.hooto-press.toml with the provided fields. Only
-// the flags passed are applied; the rest of the config is preserved. --key and
+// newAuthCmd writes/updates the CLI config with the provided fields. Only the
+// flags passed are applied; the rest of the config is preserved. --key and
 // --server are required (a prior config may already satisfy them).
 func newAuthCmd() *cobra.Command {
 	var (
@@ -199,10 +203,11 @@ func newAuthCmd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "auth",
-		Short: "Configure ~/.hooto-press.toml (server, access key, module, llm backend)",
-		Long: "Configure ~/.hooto-press.toml. Only the flags passed are changed; the " +
-			"rest of the config is preserved. --key and --server are required (a prior " +
-			"config may already satisfy them).",
+		Short: "Configure the CLI config file (server, access key, module, llm backend)",
+		Long: "Configure the CLI config file ($HOOTOPRESS_CONFIG_FILE, default " +
+			"~/.hooto-press.toml). Only the flags passed are changed; the rest of the " +
+			"config is preserved. --key and --server are required (a prior config may " +
+			"already satisfy them).",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := LoadClientConfig()
@@ -256,7 +261,7 @@ func newAuthCmd() *cobra.Command {
 			if err := SaveClientConfig(cfg); err != nil {
 				return err
 			}
-			path, _ := clientConfigPath()
+			path, _ := hpclient.ConfigFilePath()
 			fmt.Println("saved config to", path)
 			fmt.Println("publish requires IAM access-key scopes:", strings.Join(publishScopes, ", "))
 			fmt.Println("  (app=<app_id> = hpress [iam_auth].app_id; bind them to the key in IAM)")
