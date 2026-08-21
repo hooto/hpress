@@ -89,13 +89,13 @@ func Worker() {
 					q := store.Data.NewQueryer().From(ks[0]).Limit(1)
 					q.Where().And("id", ks[1])
 
-					if rs, err := store.Data.Query(q); err == nil && len(rs) > 0 {
+					if rs := store.Data.Query(q); rs.OK() && !rs.NotFound() {
 
 						ft := store.Data.NewFilter()
 						ft.And("id", ks[1])
 
 						store.Data.Update(ks[0], map[string]interface{}{
-							"ext_access_counter": rs[0].Field("ext_access_counter").Int() + num,
+							"ext_access_counter": rs.Field("ext_access_counter").Int() + num,
 						}, ft)
 					}
 				}

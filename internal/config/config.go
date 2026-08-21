@@ -34,6 +34,7 @@ import (
 	"github.com/lessos/lessgo/types"
 	"github.com/lynkdb/iomix/connect"
 	"github.com/lynkdb/kvgo/v2/pkg/storage"
+	"github.com/lynkdb/lynkapi/go/lynktable/modeler"
 	"github.com/sysinner/innerstack/v2/pkg/inconf"
 
 	"github.com/hooto/hpress/internal/hpapi"
@@ -256,17 +257,17 @@ func Setup() error {
 
 	//
 	{
-		rs, err := store.Data.Query(store.Data.NewQueryer().From("hp_sys_config").Limit(1000))
-		if err != nil {
-			slog.Error(err.Error())
-			return err
+		rs := store.Data.Query(store.Data.NewQueryer().From("hp_sys_config").Limit(1000))
+		if rs.Err() != nil {
+			slog.Error(rs.Err().Error())
+			return rs.Err()
 		}
 
-		for _, v := range rs {
+		for rs.Valid() {
 
 			item := hpapi.SysConfig{
-				Key:   v.Field("key").String(),
-				Value: v.Field("value").String(),
+				Key:   rs.Field("key").String(),
+				Value: rs.Field("value").String(),
 			}
 
 			if item.Key == "router_basepath_default" {
@@ -294,6 +295,8 @@ func Setup() error {
 			}
 
 			SysConfigList.Insert(item)
+
+			rs.Next()
 		}
 	}
 
@@ -515,13 +518,13 @@ func storeSetup() error {
 		return err
 	}
 
-	dm, err := store.Data.Modeler()
-	if err != nil {
+	ds := &modeler.Schema{}
+	if err := json.Decode([]byte(dsBase), ds); err != nil {
 		slog.Error(fmt.Sprintf("storeSetup %s", err.Error()))
 		return err
 	}
 
-	err = dm.SchemaSyncByJson(dsBase)
+	err := store.Data.Modeler().SchemaSync(ds)
 	if err != nil {
 		slog.Error(fmt.Sprintf("storeSetup %s", err.Error()))
 	}

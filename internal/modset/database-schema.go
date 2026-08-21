@@ -53,34 +53,28 @@ const (
     ],
     "indexes": [
         {
-            "name": "PRIMARY",
-            "type": 3,
-            "cols": ["id"]
+            "type": "pri",
+            "columns": ["id"]
         },
         {
-            "name": "pid",
-            "type": 1,
-            "cols": ["pid"]
+            "type": "idx",
+            "columns": ["pid"]
         },
         {
-            "name": "status",
-            "type": 1,
-            "cols": ["status"]
+            "type": "idx",
+            "columns": ["status"]
         },
         {
-            "name": "userid",
-            "type": 1,
-            "cols": ["userid"]
+            "type": "idx",
+            "columns": ["userid"]
         },
         {
-            "name": "created",
-            "type": 1,
-            "cols": ["created"]
+            "type": "idx",
+            "columns": ["created"]
         },
         {
-            "name": "updated",
-            "type": 1,
-            "cols": ["updated"]
+            "type": "idx",
+            "columns": ["updated"]
         }
     ]
 }
@@ -92,7 +86,7 @@ const (
         {
             "name": "id",
             "type": "uint32",
-            "IncrAble": true
+            "incr_able": true
         },
         {
             "name": "status",
@@ -119,29 +113,24 @@ const (
     ],
     "indexes": [
         {
-            "name": "PRIMARY",
-            "type": 3,
-            "cols": ["id"]
+            "type": "pri",
+            "columns": ["id"]
         },
         {
-            "name": "status",
-            "type": 1,
-            "cols": ["status"]
+            "type": "idx",
+            "columns": ["status"]
         },
         {
-            "name": "userid",
-            "type": 1,
-            "cols": ["userid"]
+            "type": "idx",
+            "columns": ["userid"]
         },
         {
-            "name": "created",
-            "type": 1,
-            "cols": ["created"]
+            "type": "idx",
+            "columns": ["created"]
         },
         {
-            "name": "updated",
-            "type": 1,
-            "cols": ["updated"]
+            "type": "idx",
+            "columns": ["updated"]
         }
     ]
 }

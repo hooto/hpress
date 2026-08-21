@@ -20,7 +20,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/lynkdb/iomix/rdb"
+	"github.com/lynkdb/lynkapi/go/lynktable"
 
 	"github.com/hooto/hpress/internal/store"
 )
@@ -33,7 +33,7 @@ type QuerySet struct {
 	order   string
 	limit   int64
 	offset  int64
-	filter  rdb.Filter
+	filter  lynktable.Filter
 	Pager   bool
 }
 
@@ -66,7 +66,9 @@ func (q *QuerySet) Hash() string {
 	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
 
-func (q *QuerySet) Query() []rdb.Entry {
+// Query executes the QuerySet and returns a cursor-style Result.
+// The Result is single-pass; iterate with Valid/Next and read via Field.
+func (q *QuerySet) Query() lynktable.Result {
 
 	qs := store.Data.NewQueryer().
 		Select(q.cols).
@@ -77,22 +79,14 @@ func (q *QuerySet) Query() []rdb.Entry {
 
 	qs.SetFilter(q.filter)
 
-	rs, err := store.Data.Query(qs)
-	if err != nil {
-		return rs
-	}
-
-	return rs
+	return store.Data.Query(qs)
 }
 
-func (q *QuerySet) QueryEntry() *rdb.Entry {
+func (q *QuerySet) QueryEntry() lynktable.Result {
 
 	q.limit = 1
-	if ls := q.Query(); len(ls) > 0 {
-		return &ls[0]
-	}
 
-	return nil
+	return q.Query()
 }
 
 func (q *QuerySet) Select(s string) string {
@@ -120,7 +114,7 @@ func (q *QuerySet) Offset(num int64) string {
 	return ""
 }
 
-func (q *QuerySet) Where() rdb.Filter {
+func (q *QuerySet) Where() lynktable.Filter {
 	if q.filter == nil {
 		q.filter = store.Data.NewFilter()
 	}

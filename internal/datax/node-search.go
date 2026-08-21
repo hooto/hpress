@@ -55,19 +55,21 @@ func dataSearchSync() error {
 	dataSearchOn := false
 
 	q := store.Data.NewQueryer().From("hp_modules").Limit(100)
-	rs, err := store.Data.Query(q)
-	if err != nil {
+	rs := store.Data.Query(q)
+	if rs.Err() != nil {
 		return nil
 	}
 
 	dataModOn := map[string]bool{}
-	for _, v := range rs {
+	for rs.Valid() {
 		var entry hpapi.Spec
-		if err := v.Field("body").JsonDecode(&entry); err == nil {
+		if err := rs.Field("body").JsonDecode(&entry); err == nil {
 			if entry.Status == 1 {
 				dataModOn[entry.Meta.Name] = true
 			}
 		}
+
+		rs.Next()
 	}
 
 	for _, mod := range config.Modules {
@@ -151,13 +153,15 @@ func dataSearchSync() error {
 				table := hpapi.TermTableName(mod.Meta.Name, term.Meta.Name)
 				qs := store.Data.NewQueryer().From(table).Limit(2000)
 
-				if rs, err := store.Data.Query(qs); err == nil && len(rs) > 0 {
-					for _, v := range rs {
-						modCache.termTaxonomy[term.Meta.Name+"."+v.Field("id").String()] = hpapi.Term{
-							ID:    v.Field("id").Uint32(),
-							Title: v.Field("title").String(),
+				if rs2 := store.Data.Query(qs); rs2.OK() {
+					for rs2.Valid() {
+						modCache.termTaxonomy[term.Meta.Name+"."+rs2.Field("id").String()] = hpapi.Term{
+							ID:    rs2.Field("id").Uint32(),
+							Title: rs2.Field("title").String(),
 						}
-						// fmt.Println(table, v.Field("id").Uint32(), v.Field("title").String())
+						// fmt.Println(table, rs2.Field("id").Uint32(), rs2.Field("title").String())
+
+						rs2.Next()
 					}
 				}
 			}
@@ -190,14 +194,14 @@ func dataSearchSync() error {
 
 			for {
 
-				rs, err := store.Data.Query(q)
-				if err != nil {
+				rs := store.Data.Query(q)
+				if rs.Err() != nil {
 					break
 				}
 
-				for _, v := range rs {
+				for rs.Valid() {
 
-					id := v.Field("id").String()
+					id := rs.Field("id").String()
 
 					u64 := hex16ToUint64(id)
 					if u64 == 0 {
@@ -205,20 +209,20 @@ func dataSearchSync() error {
 					}
 
 					item := hpapi.Node{
-						ID:      v.Field("id").String(),
-						PID:     v.Field("pid").String(),
-						Status:  v.Field("status").Int16(),
-						UserID:  v.Field("userid").String(),
-						Created: v.Field("created").Uint32(),
-						Updated: v.Field("updated").Uint32(),
+						ID:      rs.Field("id").String(),
+						PID:     rs.Field("pid").String(),
+						Status:  rs.Field("status").Int16(),
+						UserID:  rs.Field("userid").String(),
+						Created: rs.Field("created").Uint32(),
+						Updated: rs.Field("updated").Uint32(),
 					}
 
 					if model.Extensions.AccessCounter {
-						item.ExtAccessCounter = v.Field("ext_access_counter").Uint32()
+						item.ExtAccessCounter = rs.Field("ext_access_counter").Uint32()
 					}
 
 					if model.Extensions.CommentEnable {
-						if model.Extensions.CommentPerEntry && v.Field("ext_comment_perentry").Bool() == false {
+						if model.Extensions.CommentPerEntry && rs.Field("ext_comment_perentry").Bool() == false {
 							item.ExtCommentEnable = false
 							item.ExtCommentPerEntry = false
 						} else {
@@ -227,8 +231,8 @@ func dataSearchSync() error {
 						}
 					}
 
-					if model.Extensions.Permalink != "" && v.Field("ext_permalink_name").String() != "" {
-						item.ExtPermalinkName = v.Field("ext_permalink_name").String()
+					if model.Extensions.Permalink != "" && rs.Field("ext_permalink_name").String() != "" {
+						item.ExtPermalinkName = rs.Field("ext_permalink_name").String()
 						item.SelfLink = fmt.Sprintf("%s", item.ExtPermalinkName)
 					} else {
 						item.SelfLink = fmt.Sprintf("%s.html", item.ID)
@@ -238,23 +242,23 @@ func dataSearchSync() error {
 
 						nodeField := hpapi.NodeField{
 							Name:  field.Name,
-							Value: v.Field("field_" + field.Name).String(),
+							Value: rs.Field("field_" + field.Name).String(),
 						}
 
 						if field.Type == "text" &&
-							len(v.Field("field_"+field.Name+"_attrs").String()) > 10 {
+							len(rs.Field("field_"+field.Name+"_attrs").String()) > 10 {
 
 							var attrs types.KvPairs
-							if err := v.Field("field_" + field.Name + "_attrs").JsonDecode(&attrs); err == nil {
+							if err := rs.Field("field_" + field.Name + "_attrs").JsonDecode(&attrs); err == nil {
 								nodeField.Attrs = attrs
 							}
 						}
 
 						if l := field.Attrs.Get("langs"); len(l) > 3 {
 
-							if len(v.Field("field_"+field.Name+"_langs").String()) > 5 {
+							if len(rs.Field("field_"+field.Name+"_langs").String()) > 5 {
 								var nodeLangs hpapi.NodeFieldLangs
-								if err := v.Field("field_" + field.Name + "_langs").JsonDecode(&nodeLangs); err == nil {
+								if err := rs.Field("field_" + field.Name + "_langs").JsonDecode(&nodeLangs); err == nil {
 									nodeField.Langs = &nodeLangs
 								}
 							}
@@ -272,10 +276,10 @@ func dataSearchSync() error {
 						switch term.Type {
 						case hpapi.TermTaxonomy:
 
-							if ttv, ok := modCache.termTaxonomy[term.Meta.Name+"."+v.Field("term_"+term.Meta.Name).String()]; ok {
+							if ttv, ok := modCache.termTaxonomy[term.Meta.Name+"."+rs.Field("term_"+term.Meta.Name).String()]; ok {
 								termItem := hpapi.NodeTerm{
 									Name:  term.Meta.Name,
-									Value: v.Field("term_" + term.Meta.Name).String(),
+									Value: rs.Field("term_" + term.Meta.Name).String(),
 									Type:  term.Type,
 								}
 
@@ -286,12 +290,12 @@ func dataSearchSync() error {
 
 						case hpapi.TermTag:
 
-							tags := strings.Split(v.Field("term_"+term.Meta.Name).String(), ",")
+							tags := strings.Split(rs.Field("term_"+term.Meta.Name).String(), ",")
 
 							if len(tags) > 0 {
 								termItem := hpapi.NodeTerm{
 									Name:  term.Meta.Name,
-									Value: v.Field("term_" + term.Meta.Name).String(),
+									Value: rs.Field("term_" + term.Meta.Name).String(),
 									Type:  term.Type,
 								}
 
@@ -307,16 +311,18 @@ func dataSearchSync() error {
 						}
 					}
 
-					// fmt.Println(id, v.Field("title").String())
+					// fmt.Println(id, rs.Field("title").String())
 
 					if err := nodeSearcher.Put(tblname, item); err != nil {
 						return err
 					}
 
 					indexNum += 1
+
+					rs.Next()
 				}
 
-				if len(rs) < int(limit) {
+				if n, _ := rs.RowsAffected(); n < limit {
 					break
 				}
 

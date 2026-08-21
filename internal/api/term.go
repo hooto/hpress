@@ -16,7 +16,6 @@ package api
 
 import (
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -181,8 +180,8 @@ func TermSet(c fiber.Ctx) error {
 
 		q.Where().And("uid", rsp.UID)
 
-		rs, err := store.Data.Query(q)
-		if err != nil {
+		rs := store.Data.Query(q)
+		if rs.Err() != nil {
 			rsp.Error = &types.ErrorMeta{
 				Code:    "500",
 				Message: "Can not pull database instance",
@@ -190,15 +189,15 @@ func TermSet(c fiber.Ctx) error {
 			return nil
 		}
 
-		if len(rs) == 1 {
+		if !rs.NotFound() {
 
-			rsp.ID = rs[0].Field("id").Uint32()
+			rsp.ID = rs.Field("id").Uint32()
 
-			if rs[0].Field("title").String() != rsp.Title {
+			if rs.Field("title").String() != rsp.Title {
 				set["title"] = rsp.Title
 			}
 
-			if rs[0].Field("status").Int16() != rsp.Status {
+			if rs.Field("status").Int16() != rsp.Status {
 				set["status"] = rsp.Status
 			}
 
@@ -217,8 +216,8 @@ func TermSet(c fiber.Ctx) error {
 
 			q.Where().And("id", rsp.ID)
 
-			rs, err := store.Data.Query(q)
-			if err != nil {
+			rs := store.Data.Query(q)
+			if rs.Err() != nil {
 				rsp.Error = &types.ErrorMeta{
 					Code:    "500",
 					Message: "Can not pull database instance",
@@ -226,7 +225,7 @@ func TermSet(c fiber.Ctx) error {
 				return nil
 			}
 
-			if len(rs) < 1 {
+			if rs.NotFound() {
 				rsp.Error = &types.ErrorMeta{
 					Code:    "404",
 					Message: "Term Not Found",
@@ -234,23 +233,23 @@ func TermSet(c fiber.Ctx) error {
 				return nil
 			}
 
-			if rs[0].Field("title").String() != rsp.Title {
+			if rs.Field("title").String() != rsp.Title {
 				set["title"] = rsp.Title
 			}
 
-			if rs[0].Field("status").Int16() != rsp.Status {
+			if rs.Field("status").Int16() != rsp.Status {
 				set["status"] = rsp.Status
 			}
 
-			if rs[0].Field("pid").Uint32() != rsp.PID {
+			if rs.Field("pid").Uint32() != rsp.PID {
 				set["pid"] = rsp.PID
 			}
 
-			if rs[0].Field("weight").Int32() != rsp.Weight {
+			if rs.Field("weight").Int32() != rsp.Weight {
 				set["weight"] = rsp.Weight
 			}
 
-			if rs[0].Field("userid").String() == "" {
+			if rs.Field("userid").String() == "" {
 				set["userid"] = username
 			}
 
@@ -282,17 +281,18 @@ func TermSet(c fiber.Ctx) error {
 
 			ft := store.Data.NewFilter()
 			ft.And("id", rsp.ID)
-			_, err = store.Data.Update(table, set, ft)
+			err = store.Data.Update(table, set, ft).Err()
 
 		} else {
 
 			// fmt.Println("SET", table, "___", set)
-			rs, err := store.Data.Insert(table, set)
+			rs := store.Data.Insert(table, set)
+			err = rs.Err()
 			if err == nil {
-				if incrid, err := rs.LastInsertId(); err == nil && incrid > 0 {
+				// LastInsertId is unsupported on pgsqlgo; the id is
+				// re-queried by callers when needed.
+				if incrid, ierr := rs.LastInsertId(); ierr == nil && incrid > 0 {
 					rsp.ID = uint32(incrid)
-				} else {
-					err = errors.New("Can Not Get LastInsertId")
 				}
 			}
 		}

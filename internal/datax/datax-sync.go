@@ -22,7 +22,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/lessos/lessgo/types"
-	"github.com/lynkdb/iomix/rdb"
+	"github.com/lynkdb/lynkapi/go/lynktable"
 	"github.com/lynkdb/mysqlgo"
 	"github.com/lynkdb/pgsqlgo"
 
@@ -54,7 +54,7 @@ func dataSyncPull() error {
 
 	var (
 		limit int64 = 50
-		src   rdb.Connector
+		src   lynktable.Connector
 		err   error
 		tng   = uint32(time.Now().Unix())
 		dtbs  types.ArrayString
@@ -65,18 +65,15 @@ func dataSyncPull() error {
 		}
 	}()
 
-	dmr, err := store.Data.Modeler()
+	dmr := store.Data.Modeler()
+
+	tbs, err := dmr.TableList()
 	if err != nil {
 		return err
 	}
 
-	if tbs, err := dmr.TableDump(); err != nil {
-		return err
-	} else {
-
-		for _, vt := range tbs {
-			dtbs.Set(vt.Name)
-		}
+	for _, vt := range tbs {
+		dtbs.Set(vt.Name)
 	}
 
 	for _, cv := range config.Config.ExtUpDatabases {
@@ -90,10 +87,10 @@ func dataSyncPull() error {
 
 		switch cv.Driver {
 		case "lynkdb/mysqlgo":
-			src, err = mysqlgo.NewConnector(*cv)
+			src, err = mysqlgo.NewConnector(store.ConnOptsMap(cv))
 
 		case "lynkdb/pgsqlgo":
-			src, err = pgsqlgo.NewConnector(*cv)
+			src, err = pgsqlgo.NewConnector(store.ConnOptsMap(cv))
 
 		default:
 			continue
@@ -109,12 +106,9 @@ func dataSyncPull() error {
 			continue
 		}
 
-		mr, err := src.Modeler()
-		if err != nil {
-			return err
-		}
+		mr := src.Modeler()
 
-		tbs, err := mr.TableDump()
+		tbs, err := mr.TableList()
 		if err != nil {
 			return err
 		}
@@ -152,33 +146,33 @@ func dataSyncPull() error {
 
 			for {
 
-				rs, err := src.Query(q)
-				if err != nil {
-					slog.Warn(fmt.Sprintf("%s query error %s", vt.Name, err.Error()))
+				rs := src.Query(q)
+				if rs.Err() != nil {
+					slog.Warn(fmt.Sprintf("%s query error %s", vt.Name, rs.Err().Error()))
 					break
 				}
 
-				for _, v := range rs {
+				for rs.Valid() {
 
-					tup := v.Field("updated").Uint32()
+					tup := rs.Field("updated").Uint32()
 					if tup < tng && tup > upOffset {
 						upOffset = tup
 					}
 
 					sets := map[string]interface{}{}
 					extCounter := 0
-					for k, f := range v.Fields {
+					for _, k := range rs.Columns() {
 						if k == "ext_access_counter" {
-							extCounter = f.Int()
+							extCounter = rs.Field(k).Int()
 							continue
 						}
-						sets[k] = f.String()
+						sets[k] = rs.Field(k).String()
 					}
 
 					qr := store.Data.NewQueryer().From(vt.Name)
-					fr := store.Data.NewFilter().And("id", v.Field("id").String())
+					fr := store.Data.NewFilter().And("id", rs.Field("id").String())
 					qr.SetFilter(fr)
-					rsi, err := store.Data.Fetch(qr)
+					rsi := store.Data.Query(qr)
 
 					if rsi.NotFound() {
 
@@ -186,7 +180,7 @@ func dataSyncPull() error {
 							sets["ext_access_counter"] = extCounter
 						}
 
-						_, err = store.Data.Insert(vt.Name, sets)
+						err = store.Data.Insert(vt.Name, sets).Err()
 						if err != nil {
 							if strings.Contains(err.Error(), "invalid byte sequence for encoding") {
 								for sk, sv := range sets {
@@ -195,23 +189,23 @@ func dataSyncPull() error {
 										sets[sk] = utf8RuneFilter(sv.(string))
 									}
 								}
-								_, err = store.Data.Insert(vt.Name, sets)
+								err = store.Data.Insert(vt.Name, sets).Err()
 							}
 						}
 
 						if err != nil {
 							slog.Warn(fmt.Sprintf("data sync (%s) ErrInsert %s %s",
-								upName, v.Field("id").String(), err.Error()))
+								upName, rs.Field("id").String(), err.Error()))
 							break
 
 						} else {
-							// fmt.Println("  OK INSERT", vt.Name, v.Field("id").String())
+							// fmt.Println("  OK INSERT", vt.Name, rs.Field("id").String())
 							cnew += 1
 						}
 
-					} else if err != nil {
+					} else if rsi.Err() != nil {
 						slog.Warn(fmt.Sprintf("data sync (%s), ID: %s, QueryError %s",
-							vt.Name, v.Field("id").String(), err.Error()))
+							vt.Name, rs.Field("id").String(), rsi.Err().Error()))
 						break
 					} else {
 
@@ -235,7 +229,7 @@ func dataSyncPull() error {
 
 						if tup > tlc || syncCounter {
 
-							_, err = store.Data.Update(vt.Name, sets, fr)
+							err = store.Data.Update(vt.Name, sets, fr).Err()
 
 							if err != nil {
 								if strings.Contains(err.Error(), "invalid byte sequence for encoding") {
@@ -245,30 +239,29 @@ func dataSyncPull() error {
 											sets[sk] = utf8RuneFilter(sv.(string))
 										}
 									}
-									_, err = store.Data.Update(vt.Name, sets, fr)
+									err = store.Data.Update(vt.Name, sets, fr).Err()
 								}
 							}
 
 							if err != nil {
 								slog.Warn(fmt.Sprintf("data sync (%s) ErrUpdate %s %s",
-									upName, v.Field("id").String(), err.Error()))
-								// fmt.Println("  ER UPDATE", vt.Name, v.Field("id").String())
+									upName, rs.Field("id").String(), err.Error()))
+								// fmt.Println("  ER UPDATE", vt.Name, rs.Field("id").String())
 								break
 							} else {
-								// fmt.Println("  OK UPDATE", vt.Name, v.Field("id").String())
+								// fmt.Println("  OK UPDATE", vt.Name, rs.Field("id").String())
 								cupd += 1
 							}
 						} else {
-							// fmt.Println("  OK IGNORE ", vt.Name, v.Field("id").String())
+							// fmt.Println("  OK IGNORE ", vt.Name, rs.Field("id").String())
 							cign += 1
 						}
-
-						continue
 					}
 
+					rs.Next()
 				}
 
-				if err != nil || len(rs) < int(limit) {
+				if n, _ := rs.RowsAffected(); err != nil || n < limit {
 					// fmt.Printf("  DONE INSERT/IGNORE %d, UPDATE %d, ALL %d\n",
 					// 	cnew, cupd, int(offset)+len(rs))
 					break

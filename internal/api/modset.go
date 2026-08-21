@@ -40,20 +40,22 @@ func ModSetSpecList(c fiber.Ctx) error {
 	}
 
 	q := store.Data.NewQueryer().From("hp_modules").Limit(100)
-	rs, err := store.Data.Query(q)
-	if err != nil {
+	rs := store.Data.Query(q)
+	if rs.Err() != nil {
 		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, "Can not pull database instance")
 		return nil
 	}
 
-	for _, v := range rs {
+	for rs.Valid() {
 
 		var entry hpapi.Spec
 
-		if err := v.Field("body").JsonDecode(&entry); err == nil {
-			entry.SrvName, _ = hpapi.SrvNameFilter(v.Field("srvname").String())
+		if err := rs.Field("body").JsonDecode(&entry); err == nil {
+			entry.SrvName, _ = hpapi.SrvNameFilter(rs.Field("srvname").String())
 			rsp.Items = append(rsp.Items, entry)
 		}
+
+		rs.Next()
 	}
 
 	rsp.Kind = "SpecList"
@@ -86,23 +88,23 @@ func ModSetSpecEntry(c fiber.Ctx) error {
 
 	q := store.Data.NewQueryer().From("hp_modules").Limit(1)
 	q.Where().And("name", name)
-	rs, err := store.Data.Query(q)
-	if err != nil {
+	rs := store.Data.Query(q)
+	if rs.Err() != nil {
 		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, "Can not pull database instance")
 		return nil
 	}
 
-	if len(rs) < 1 {
+	if rs.NotFound() {
 		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeBadArgument, "Object Not Found")
 		return nil
 	}
 
-	if err := rs[0].Field("body").JsonDecode(&rsp); err != nil {
+	if err := rs.Field("body").JsonDecode(&rsp); err != nil {
 		rsp.Error = types.NewErrorMeta(hpapi.ErrCodeInternalError, err.Error())
 		return nil
 	}
 
-	rsp.SrvName, _ = hpapi.SrvNameFilter(rs[0].Field("srvname").String())
+	rsp.SrvName, _ = hpapi.SrvNameFilter(rs.Field("srvname").String())
 
 	rsp.Kind = "Spec"
 

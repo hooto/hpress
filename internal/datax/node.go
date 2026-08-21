@@ -62,8 +62,8 @@ func (q *QuerySet) NodeList(fields, terms []string) hpapi.NodeList {
 
 	qs.SetFilter(q.filter)
 
-	rs, err := store.Data.Query(qs)
-	if err != nil {
+	rs := store.Data.Query(qs)
+	if rs.Err() != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    hpapi.ErrCodeInternalError,
 			Message: "Can not pull database instance",
@@ -78,111 +78,110 @@ func (q *QuerySet) NodeList(fields, terms []string) hpapi.NodeList {
 		arTerms      = types.ArrayString(terms)
 	)
 
-	if len(rs) > 0 {
+	for rs.Valid() {
 
-		for _, v := range rs {
-
-			item := hpapi.Node{
-				ID:      v.Field("id").String(),
-				PID:     v.Field("pid").String(),
-				Status:  v.Field("status").Int16(),
-				UserID:  v.Field("userid").String(),
-				Created: v.Field("created").Uint32(),
-				Updated: v.Field("updated").Uint32(),
-			}
-
-			if model.Extensions.AccessCounter {
-				item.ExtAccessCounter = v.Field("ext_access_counter").Uint32()
-			}
-
-			if model.Extensions.CommentEnable {
-				if model.Extensions.CommentPerEntry && v.Field("ext_comment_perentry").Bool() == false {
-					item.ExtCommentEnable = false
-					item.ExtCommentPerEntry = false
-				} else {
-					item.ExtCommentEnable = true
-					item.ExtCommentPerEntry = true
-				}
-			}
-
-			if model.Extensions.Permalink != "" {
-				item.ExtPermalinkName = v.Field("ext_permalink_name").String()
-			}
-
-			if item.ExtPermalinkName == "" {
-				item.ExtPermalinkName = item.ID
-				item.SelfLink = fmt.Sprintf("%s.html", item.ID)
-			} else {
-				item.SelfLink = fmt.Sprintf("%s", item.ExtPermalinkName)
-			}
-
-			for _, field := range model.Fields {
-
-				if field.Name != "title" && len(arFields) > 0 && !arFields.Has(field.Name) {
-					continue
-				}
-
-				nodeField := hpapi.NodeField{
-					Name:  field.Name,
-					Value: v.Field("field_" + field.Name).String(),
-				}
-
-				if field.Type == "text" &&
-					len(v.Field("field_"+field.Name+"_attrs").String()) > 10 {
-
-					var attrs types.KvPairs
-					if err := v.Field("field_" + field.Name + "_attrs").JsonDecode(&attrs); err == nil {
-						nodeField.Attrs = attrs
-					}
-				}
-
-				if l := field.Attrs.Get("langs"); len(l) > 3 {
-
-					if len(v.Field("field_"+field.Name+"_langs").String()) > 5 {
-						var nodeLangs hpapi.NodeFieldLangs
-						if err := v.Field("field_" + field.Name + "_langs").JsonDecode(&nodeLangs); err == nil {
-							nodeField.Langs = &nodeLangs
-						}
-					}
-				}
-
-				if field.Name == "title" {
-					item.Title = nodeField.Value
-				}
-
-				item.Fields = append(item.Fields, &nodeField)
-			}
-
-			for _, term := range model.Terms {
-
-				if len(arTerms) > 0 && !arTerms.Has(term.Meta.Name) {
-					continue
-				}
-
-				termItem := hpapi.NodeTerm{
-					Name:  term.Meta.Name,
-					Value: v.Field("term_" + term.Meta.Name).String(),
-					Type:  term.Type,
-				}
-
-				item.Terms = append(item.Terms, termItem)
-				if term.Type == hpapi.TermTaxonomy {
-
-					if te := TermTaxonomyCacheEntry(q.ModName, term.Meta.Name, v.Field("term_"+term.Meta.Name).Uint32()); te != nil {
-
-						termTaxonomy[v.Field("term_"+term.Meta.Name).String()] = hpapi.Term{
-							ID:    te.ID,
-							Title: te.Title,
-						}
-
-					} else if !utilx.ArrayContain(termItem.Value, termBufs[termItem.Name]) {
-						termBufs[termItem.Name] = append(termBufs[termItem.Name], termItem.Value)
-					}
-				}
-			}
-
-			rsp.Items = append(rsp.Items, item)
+		item := hpapi.Node{
+			ID:      rs.Field("id").String(),
+			PID:     rs.Field("pid").String(),
+			Status:  rs.Field("status").Int16(),
+			UserID:  rs.Field("userid").String(),
+			Created: rs.Field("created").Uint32(),
+			Updated: rs.Field("updated").Uint32(),
 		}
+
+		if model.Extensions.AccessCounter {
+			item.ExtAccessCounter = rs.Field("ext_access_counter").Uint32()
+		}
+
+		if model.Extensions.CommentEnable {
+			if model.Extensions.CommentPerEntry && rs.Field("ext_comment_perentry").Bool() == false {
+				item.ExtCommentEnable = false
+				item.ExtCommentPerEntry = false
+			} else {
+				item.ExtCommentEnable = true
+				item.ExtCommentPerEntry = true
+			}
+		}
+
+		if model.Extensions.Permalink != "" {
+			item.ExtPermalinkName = rs.Field("ext_permalink_name").String()
+		}
+
+		if item.ExtPermalinkName == "" {
+			item.ExtPermalinkName = item.ID
+			item.SelfLink = fmt.Sprintf("%s.html", item.ID)
+		} else {
+			item.SelfLink = fmt.Sprintf("%s", item.ExtPermalinkName)
+		}
+
+		for _, field := range model.Fields {
+
+			if field.Name != "title" && len(arFields) > 0 && !arFields.Has(field.Name) {
+				continue
+			}
+
+			nodeField := hpapi.NodeField{
+				Name:  field.Name,
+				Value: rs.Field("field_" + field.Name).String(),
+			}
+
+			if field.Type == "text" &&
+				len(rs.Field("field_"+field.Name+"_attrs").String()) > 10 {
+
+				var attrs types.KvPairs
+				if err := rs.Field("field_" + field.Name + "_attrs").JsonDecode(&attrs); err == nil {
+					nodeField.Attrs = attrs
+				}
+			}
+
+			if l := field.Attrs.Get("langs"); len(l) > 3 {
+
+				if len(rs.Field("field_"+field.Name+"_langs").String()) > 5 {
+					var nodeLangs hpapi.NodeFieldLangs
+					if err := rs.Field("field_" + field.Name + "_langs").JsonDecode(&nodeLangs); err == nil {
+						nodeField.Langs = &nodeLangs
+					}
+				}
+			}
+
+			if field.Name == "title" {
+				item.Title = nodeField.Value
+			}
+
+			item.Fields = append(item.Fields, &nodeField)
+		}
+
+		for _, term := range model.Terms {
+
+			if len(arTerms) > 0 && !arTerms.Has(term.Meta.Name) {
+				continue
+			}
+
+			termItem := hpapi.NodeTerm{
+				Name:  term.Meta.Name,
+				Value: rs.Field("term_" + term.Meta.Name).String(),
+				Type:  term.Type,
+			}
+
+			item.Terms = append(item.Terms, termItem)
+			if term.Type == hpapi.TermTaxonomy {
+
+				if te := TermTaxonomyCacheEntry(q.ModName, term.Meta.Name, rs.Field("term_"+term.Meta.Name).Uint32()); te != nil {
+
+					termTaxonomy[rs.Field("term_"+term.Meta.Name).String()] = hpapi.Term{
+						ID:    te.ID,
+						Title: te.Title,
+					}
+
+				} else if !utilx.ArrayContain(termItem.Value, termBufs[termItem.Name]) {
+					termBufs[termItem.Name] = append(termBufs[termItem.Name], termItem.Value)
+				}
+			}
+		}
+
+		rsp.Items = append(rsp.Items, item)
+
+		rs.Next()
 	}
 
 	// Fetch Terms
@@ -205,13 +204,16 @@ func (q *QuerySet) NodeList(fields, terms []string) hpapi.NodeList {
 			qs := store.Data.NewQueryer().From(table).Limit(1000)
 			qs.Where().And("id.in", ids...)
 
-			if rs, err := store.Data.Query(qs); err == nil && len(rs) > 0 {
+			if rs2 := store.Data.Query(qs); rs2.OK() {
 
-				for _, v := range rs {
-					termTaxonomy[v.Field("id").String()] = hpapi.Term{
-						ID:    v.Field("id").Uint32(),
-						Title: v.Field("title").String(),
+				for rs2.Valid() {
+
+					termTaxonomy[rs2.Field("id").String()] = hpapi.Term{
+						ID:    rs2.Field("id").Uint32(),
+						Title: rs2.Field("title").String(),
 					}
+
+					rs2.Next()
 				}
 			}
 		}
@@ -296,11 +298,19 @@ func (q *QuerySet) NodeEntry() hpapi.Node {
 	qs.SetFilter(q.filter)
 	// qs.Where().And("id", c.Params.Get("id"))
 
-	rs, err := store.Data.Fetch(qs)
-	if err != nil {
+	rs := store.Data.Query(qs)
+	if rs.Err() != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    hpapi.ErrCodeInternalError,
-			Message: err.Error(),
+			Message: rs.Err().Error(),
+		}
+		return rsp
+	}
+
+	if rs.NotFound() {
+		rsp.Error = &types.ErrorMeta{
+			Code:    hpapi.ErrCodeInternalError,
+			Message: "Node Not Found",
 		}
 		return rsp
 	}

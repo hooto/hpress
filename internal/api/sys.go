@@ -80,8 +80,8 @@ func SysConfigSet(c fiber.Ctx) error {
 		q := store.Data.NewQueryer().From("hp_sys_config").Limit(1)
 		q.Where().And("key", entry.Key)
 
-		rs, err := store.Data.Query(q)
-		if err != nil {
+		rs := store.Data.Query(q)
+		if rs.Err() != nil {
 			ls.Error = &types.ErrorMeta{
 				Code:    hpapi.ErrCodeInternalError,
 				Message: "Can not pull database instance",
@@ -95,13 +95,13 @@ func SysConfigSet(c fiber.Ctx) error {
 
 		sync := false
 
-		if len(rs) > 0 {
+		if !rs.NotFound() {
 
-			if rs[0].Field("value").String() != entry.Value {
+			if rs.Field("value").String() != entry.Value {
 
 				ft := store.Data.NewFilter()
 				ft.And("key", entry.Key)
-				_, err = store.Data.Update("hp_sys_config", set, ft)
+				err = store.Data.Update("hp_sys_config", set, ft).Err()
 				sync = true
 			}
 
@@ -109,7 +109,7 @@ func SysConfigSet(c fiber.Ctx) error {
 
 			set["key"] = entry.Key
 
-			_, err = store.Data.Insert("hp_sys_config", set)
+			err = store.Data.Insert("hp_sys_config", set).Err()
 			sync = true
 		}
 

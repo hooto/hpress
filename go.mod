@@ -25,8 +25,8 @@ require (
 	github.com/lynkdb/lynkapi v0.0.15
 	github.com/lynkdb/lynksearch v0.1.2
 	github.com/lynkdb/lynkui v0.0.6
-	github.com/lynkdb/mysqlgo v0.0.0-20210408130716-96edd6491cba
-	github.com/lynkdb/pgsqlgo v0.0.0-20210408130625-1c1f97eedf2c
+	github.com/lynkdb/mysqlgo v0.1.0
+	github.com/lynkdb/pgsqlgo v0.1.0
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/oliamb/cutter v0.2.2

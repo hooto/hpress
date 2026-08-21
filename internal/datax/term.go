@@ -81,8 +81,8 @@ func (q *QuerySet) TermList() hpapi.TermList {
 
 	qs.SetFilter(q.filter)
 
-	rs, err := store.Data.Query(qs)
-	if err != nil {
+	rs := store.Data.Query(qs)
+	if rs.Err() != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    hpapi.ErrCodeInternalError,
 			Message: "Can not pull database instance",
@@ -90,30 +90,29 @@ func (q *QuerySet) TermList() hpapi.TermList {
 		return rsp
 	}
 
-	if len(rs) > 0 {
+	for rs.Valid() {
 
-		for _, v := range rs {
-
-			item := hpapi.Term{
-				ID:      v.Field("id").Uint32(),
-				PID:     v.Field("pid").Uint32(),
-				Status:  v.Field("status").Int16(),
-				UserID:  v.Field("userid").String(),
-				Title:   v.Field("title").String(),
-				Created: v.Field("created").Uint32(),
-				Updated: v.Field("updated").Uint32(),
-			}
-
-			switch model.Type {
-			case hpapi.TermTag:
-				item.UID = v.Field("uid").String()
-			case hpapi.TermTaxonomy:
-				item.PID = v.Field("pid").Uint32()
-				item.Weight = v.Field("weight").Int32()
-			}
-
-			rsp.Items = append(rsp.Items, item)
+		item := hpapi.Term{
+			ID:      rs.Field("id").Uint32(),
+			PID:     rs.Field("pid").Uint32(),
+			Status:  rs.Field("status").Int16(),
+			UserID:  rs.Field("userid").String(),
+			Title:   rs.Field("title").String(),
+			Created: rs.Field("created").Uint32(),
+			Updated: rs.Field("updated").Uint32(),
 		}
+
+		switch model.Type {
+		case hpapi.TermTag:
+			item.UID = rs.Field("uid").String()
+		case hpapi.TermTaxonomy:
+			item.PID = rs.Field("pid").Uint32()
+			item.Weight = rs.Field("weight").Int32()
+		}
+
+		rsp.Items = append(rsp.Items, item)
+
+		rs.Next()
 	}
 
 	rsp.Model = model
@@ -208,8 +207,8 @@ func (q *QuerySet) TermEntry() hpapi.Term {
 
 	qs.SetFilter(q.filter)
 
-	rs, err := store.Data.Query(qs)
-	if err != nil {
+	rs := store.Data.Query(qs)
+	if rs.Err() != nil {
 		rsp.Error = &types.ErrorMeta{
 			Code:    hpapi.ErrCodeInternalError,
 			Message: "Can not pull database instance",
@@ -217,7 +216,7 @@ func (q *QuerySet) TermEntry() hpapi.Term {
 		return rsp
 	}
 
-	if len(rs) < 1 {
+	if rs.NotFound() {
 		rsp.Error = &types.ErrorMeta{
 			Code:    hpapi.ErrCodeBadArgument,
 			Message: "Term Not Found",
@@ -227,10 +226,10 @@ func (q *QuerySet) TermEntry() hpapi.Term {
 
 	switch rsp.Model.Type {
 	case hpapi.TermTaxonomy:
-		rsp.PID = rs[0].Field("pid").Uint32()
-		rsp.Weight = rs[0].Field("weight").Int32()
+		rsp.PID = rs.Field("pid").Uint32()
+		rsp.Weight = rs.Field("weight").Int32()
 	case hpapi.TermTag:
-		rsp.UID = rs[0].Field("uid").String()
+		rsp.UID = rs.Field("uid").String()
 	default:
 		rsp.Error = &types.ErrorMeta{
 			Code:    hpapi.ErrCodeInternalError,
@@ -239,13 +238,13 @@ func (q *QuerySet) TermEntry() hpapi.Term {
 		return rsp
 	}
 
-	rsp.ID = rs[0].Field("id").Uint32()
-	rsp.PID = rs[0].Field("pid").Uint32()
-	rsp.Status = rs[0].Field("status").Int16()
-	rsp.UserID = rs[0].Field("userid").String()
-	rsp.Title = rs[0].Field("title").String()
-	rsp.Created = rs[0].Field("created").Uint32()
-	rsp.Updated = rs[0].Field("updated").Uint32()
+	rsp.ID = rs.Field("id").Uint32()
+	rsp.PID = rs.Field("pid").Uint32()
+	rsp.Status = rs.Field("status").Int16()
+	rsp.UserID = rs.Field("userid").String()
+	rsp.Title = rs.Field("title").String()
+	rsp.Created = rs.Field("created").Uint32()
+	rsp.Updated = rs.Field("updated").Uint32()
 
 	rsp.Kind = "Term"
 
@@ -319,11 +318,11 @@ func NodeTermQuery(modname string, model *hpapi.NodeModel, terms []hpapi.NodeTer
 				q.Limit(1)
 				q.Where().And("id", term.Value)
 
-				if rs, err := store.Data.Query(q); err == nil && len(rs) > 0 {
+				if rs := store.Data.Query(q); rs.OK() && !rs.NotFound() {
 
 					terms[k].Items = append(terms[k].Items, hpapi.Term{
-						ID:    rs[0].Field("id").Uint32(),
-						Title: rs[0].Field("title").String(),
+						ID:    rs.Field("id").Uint32(),
+						Title: rs.Field("title").String(),
 					})
 				}
 			}
@@ -384,18 +383,20 @@ func TermSync(modname, modelid, terms string) (TermList, error) {
 		q := store.Data.NewQueryer().From(table).Limit(int64(len(ids)))
 		q.Where().And("uid.in", ids...)
 
-		if rs, err := store.Data.Query(q); err == nil {
+		if rs := store.Data.Query(q); rs.OK() {
 
-			for _, v := range rs {
+			for rs.Valid() {
 
 				for tk, tv := range ls.Items {
 
-					if v.Field("uid").String() == tv.UID {
+					if rs.Field("uid").String() == tv.UID {
 
-						ls.Items[tk].ID = v.Field("id").Uint32()
+						ls.Items[tk].ID = rs.Field("id").Uint32()
 						break
 					}
 				}
+
+				rs.Next()
 			}
 		}
 	}
@@ -408,21 +409,21 @@ func TermSync(modname, modelid, terms string) (TermList, error) {
 			continue
 		}
 
-		if _, err := store.Data.Insert(table, map[string]interface{}{
+		if rs := store.Data.Insert(table, map[string]interface{}{
 			"uid":     tv.UID,
 			"title":   tv.Title,
 			"userid":  "sysadmin",
 			"status":  1,
 			"created": timenow,
 			"updated": timenow,
-		}); err == nil {
+		}); rs.Err() == nil {
 
 			// LastInsertId() is unsupported on pgsqlgo, so re-read the row by
 			// its deterministic uid to get the server-assigned id.
 			q := store.Data.NewQueryer().From(table).Limit(1)
 			q.Where().And("uid", tv.UID)
-			if rs2, err := store.Data.Query(q); err == nil && len(rs2) > 0 {
-				ls.Items[tk].ID = rs2[0].Field("id").Uint32()
+			if rs2 := store.Data.Query(q); rs2.OK() && !rs2.NotFound() {
+				ls.Items[tk].ID = rs2.Field("id").Uint32()
 			}
 		}
 	}

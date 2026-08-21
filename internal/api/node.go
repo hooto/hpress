@@ -197,8 +197,8 @@ func NodeSet(c fiber.Ctx) error {
 
 		q := store.Data.NewQueryer().From(table).Limit(1)
 		q.Where().And("id", rsp.ID)
-		rs, err := store.Data.Query(q)
-		if err != nil {
+		rs := store.Data.Query(q)
+		if rs.Err() != nil {
 			rsp.Error = &types.ErrorMeta{
 				Code:    "500",
 				Message: "Can not pull database instance",
@@ -206,7 +206,7 @@ func NodeSet(c fiber.Ctx) error {
 			return nil
 		}
 
-		if len(rs) < 1 {
+		if rs.NotFound() {
 			rsp.Error = &types.ErrorMeta{
 				Code:    "404",
 				Message: "Node Not Found",
@@ -215,21 +215,21 @@ func NodeSet(c fiber.Ctx) error {
 		}
 
 		/*
-			if rs[0].Field("title").String() != rsp.Title {
+			if rs.Field("title").String() != rsp.Title {
 				set["title"] = rsp.Title
 			}
 		*/
 
-		if rs[0].Field("status").Int16() != rsp.Status {
+		if rs.Field("status").Int16() != rsp.Status {
 			set["status"] = rsp.Status
 		}
 
 		if model.Extensions.Permalink != "" {
-			set["ext_permalink_name"] = rs[0].Field("ext_permalink_name").String()
+			set["ext_permalink_name"] = rs.Field("ext_permalink_name").String()
 		}
 
 		if model.Extensions.NodeRefer != "" {
-			set["ext_node_refer"] = rs[0].Field("ext_node_refer").String()
+			set["ext_node_refer"] = rs.Field("ext_node_refer").String()
 		}
 
 		//
@@ -241,7 +241,7 @@ func NodeSet(c fiber.Ctx) error {
 					continue
 				}
 
-				if rs[0].Field("field_"+modField.Name).String() != valField.Value {
+				if rs.Field("field_"+modField.Name).String() != valField.Value {
 					set["field_"+modField.Name] = valField.Value
 				}
 
@@ -262,7 +262,7 @@ func NodeSet(c fiber.Ctx) error {
 
 					if len(attrs) > 0 {
 						attrsJSON, _ := json.Encode(attrs, "  ")
-						if string(attrsJSON) != rs[0].Field("field_"+modField.Name+"_attrs").String() {
+						if string(attrsJSON) != rs.Field("field_"+modField.Name+"_attrs").String() {
 							set["field_"+modField.Name+"_attrs"] = string(attrsJSON)
 						}
 					}
@@ -273,8 +273,8 @@ func NodeSet(c fiber.Ctx) error {
 					if attr := modField.Attrs.Get("langs"); attr != nil && valField.Langs != nil {
 
 						var langs hpapi.NodeFieldLangs
-						if len(rs[0].Field("field_"+modField.Name+"_langs").String()) > 5 {
-							rs[0].Field("field_" + modField.Name + "_langs").JsonDecode(&langs)
+						if len(rs.Field("field_"+modField.Name+"_langs").String()) > 5 {
+							rs.Field("field_" + modField.Name + "_langs").JsonDecode(&langs)
 						}
 
 						attrLangs := hpapi.LangsStringFilterArray(attr.String())
@@ -310,7 +310,7 @@ func NodeSet(c fiber.Ctx) error {
 
 					tags, _ := datax.TermSync(web.Param(c, "modname"), modTerm.Meta.Name, term.Value)
 
-					if rs[0].Field("term_"+term.Name).String() != term.Value {
+					if rs.Field("term_"+term.Name).String() != term.Value {
 						set["term_"+modTerm.Meta.Name] = tags.Content()
 						set["term_"+modTerm.Meta.Name+"_idx"] = tags.Index()
 					}
@@ -494,7 +494,7 @@ func NodeSet(c fiber.Ctx) error {
 						q.Where().And("id.ne", rsp.ID)
 					}
 
-					if rs, err := store.Data.Query(q); err == nil && len(rs) < 1 {
+					if rs := store.Data.Query(q); rs.OK() && rs.NotFound() {
 
 						set["ext_permalink_name"] = permaname
 						set["ext_permalink_idx"] = permaidx
@@ -528,10 +528,10 @@ func NodeSet(c fiber.Ctx) error {
 		if prev, ok := set["ext_node_refer"]; !ok || prev != rsp.ExtNodeRefer {
 			refQ := store.Data.NewQueryer().From(hpapi.NodeTableName(web.Param(c, "modname"), model.Extensions.NodeRefer)).Limit(1)
 			refQ.Where().And("id", rsp.ExtNodeRefer)
-			if rs, err := store.Data.Query(refQ); err != nil {
+			if rs := store.Data.Query(refQ); rs.Err() != nil {
 				rsp.Error = types.NewErrorMeta("500", "Server Error")
 				return nil
-			} else if len(rs) < 1 {
+			} else if rs.NotFound() {
 				rsp.Error = types.NewErrorMeta("400", "Node Refer ID Not Found")
 				return nil
 			}
@@ -547,11 +547,11 @@ func NodeSet(c fiber.Ctx) error {
 
 			ft := store.Data.NewFilter()
 			ft.And("id", rsp.ID)
-			_, err = store.Data.Update(table, set, ft)
+			err = store.Data.Update(table, set, ft).Err()
 
 		} else {
 			rsp.ID = set["id"].(string)
-			_, err = store.Data.Insert(table, set)
+			err = store.Data.Insert(table, set).Err()
 		}
 
 		// clean frontend cache
@@ -611,13 +611,13 @@ func NodeDel(c fiber.Ctx) error {
 		q := store.Data.NewQueryer().From(table).Limit(1)
 		q.Where().And("id", id)
 
-		if rs, err := store.Data.Query(q); err != nil {
+		if rs := store.Data.Query(q); rs.Err() != nil {
 			rsp.Error = &types.ErrorMeta{
 				Code:    "500",
 				Message: "Can not pull database instance",
 			}
 			return nil
-		} else if len(rs) < 1 {
+		} else if rs.NotFound() {
 			rsp.Error = &types.ErrorMeta{
 				Code:    "404",
 				Message: "Node Not Found",
@@ -628,7 +628,7 @@ func NodeDel(c fiber.Ctx) error {
 		ft := store.Data.NewFilter()
 		ft.And("id", id)
 
-		if _, err := store.Data.Update(table, set, ft); err != nil {
+		if err := store.Data.Update(table, set, ft).Err(); err != nil {
 			rsp.Error = &types.ErrorMeta{
 				Code:    "500",
 				Message: fmt.Sprintf("id:%s err:%s", id, err.Error()),

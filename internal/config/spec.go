@@ -25,7 +25,7 @@ import (
 
 	"github.com/hooto/htoml4g/htoml"
 	"github.com/lessos/lessgo/encoding/json"
-	"github.com/lynkdb/iomix/rdb/modeler"
+	"github.com/lynkdb/lynkapi/go/lynktable/modeler"
 
 	"github.com/hooto/hpress/internal/hpapi"
 	"github.com/hooto/hpress/internal/store"
@@ -135,15 +135,15 @@ func moduleInit() error {
 	//
 	q := store.Data.NewQueryer().From("hp_modules").Limit(200)
 	// q.Where.And("status", 1)
-	if rs, err := store.Data.Query(q); err == nil {
+	if rs := store.Data.Query(q); rs.OK() {
 
-		for _, v := range rs {
+		for rs.Valid() {
 
 			var mod hpapi.Spec
 
-			if err := v.Field("body").JsonDecode(&mod); err == nil && mod.Meta.Name != "" {
+			if err := rs.Field("body").JsonDecode(&mod); err == nil && mod.Meta.Name != "" {
 				if mod.SrvName == "" || strings.Contains(mod.SrvName, "/") {
-					mod.SrvName, _ = hpapi.SrvNameFilter(v.Field("srvname").String())
+					mod.SrvName, _ = hpapi.SrvNameFilter(rs.Field("srvname").String())
 				}
 
 				// upgrade
@@ -178,27 +178,31 @@ func moduleInit() error {
 						From(table).
 						Limit(10000)
 
-					if rs, err := store.Data.Query(qs); err == nil && len(rs) > 0 {
+					if rs2 := store.Data.Query(qs); rs2.OK() && !rs2.NotFound() {
 
 						num := 0
 
-						for _, v3 := range rs {
-							if len(v3.Field("field_title").String()) < 2 {
+						for rs2.Valid() {
+							if len(rs2.Field("field_title").String()) < 2 {
 
-								// fmt.Println("id", v3.Field("id").String(), v3.Field("title").String())
+								// fmt.Println("id", rs2.Field("id").String(), rs2.Field("title").String())
 
 								fr := store.Data.NewFilter()
-								fr.And("id", v3.Field("id").String())
+								fr.And("id", rs2.Field("id").String())
 
 								set := map[string]interface{}{
-									"field_title": v3.Field("title").String(),
+									"field_title": rs2.Field("title").String(),
 								}
 								store.Data.Update(table, set, fr)
 								num++
 							}
+
+							rs2.Next()
 						}
 
-						slog.Warn(fmt.Sprintf("upgrade %s/%s %d/%d", mod.Meta.Name, table, num, len(rs)))
+						if n, _ := rs2.RowsAffected(); n > 0 {
+							slog.Warn(fmt.Sprintf("upgrade %s/%s %d/%d", mod.Meta.Name, table, num, n))
+						}
 					}
 				}
 
@@ -220,8 +224,10 @@ func moduleInit() error {
 
 				Modules[mod.SrvName] = &mod
 			} else {
-				slog.Error(fmt.Sprintf("Module.Init(%s) Failed", v.Field("name").String()))
+				slog.Error(fmt.Sprintf("Module.Init(%s) Failed", rs.Field("name").String()))
 			}
+
+			rs.Next()
 		}
 	}
 
@@ -292,10 +298,10 @@ func moduleInit() error {
 			"body":    string(jsb),
 		}
 
-		q = store.Data.NewQueryer().From("hp_modules")
+		q = store.Data.NewQueryer().From("hp_modules").Limit(1)
 		q.Where().And("name", spec.Meta.Name)
 
-		if _, err := store.Data.Fetch(q); err == nil {
+		if rs := store.Data.Query(q); rs.OK() && !rs.NotFound() {
 
 			fr := store.Data.NewFilter()
 			fr.And("name", spec.Meta.Name)
@@ -356,6 +362,18 @@ func SpecSrvRefresh(srvname string) {
 		[]string{fmt.Sprintf("%s/modules/%s/views", Prefix, spec.Meta.Name)})
 }
 
+// specIndexType maps the legacy hpapi int index type, as stored in
+// serialized spec.json payloads, to the modeler string type.
+func specIndexType(t int) (modeler.IndexType, bool) {
+	switch t {
+	case 2:
+		return modeler.IndexTypeUnique, true
+	case 1:
+		return modeler.IndexTypeIndex, true
+	}
+	return "", false
+}
+
 func instanceSchemaSync(spec *hpapi.Spec) error {
 
 	if store.Data == nil {
@@ -403,9 +421,8 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 				Length: "12",
 			})
 			tbl.AddIndex(&modeler.Index{
-				Name: "ext_permalink_idx",
-				Type: modeler.IndexTypeIndex,
-				Cols: []string{"ext_permalink_idx"},
+				Type:    modeler.IndexTypeIndex,
+				Columns: []string{"ext_permalink_idx"},
 			})
 		}
 
@@ -416,9 +433,8 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 				Length: "16",
 			})
 			tbl.AddIndex(&modeler.Index{
-				Name: "ext_node_refer",
-				Type: modeler.IndexTypeIndex,
-				Cols: []string{"ext_node_refer"},
+				Type:    modeler.IndexTypeIndex,
+				Columns: []string{"ext_node_refer"},
 			})
 		}
 
@@ -445,12 +461,10 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 					})
 				}
 
-				switch field.IndexType {
-				case modeler.IndexTypeUnique, modeler.IndexTypeIndex:
+				if idxType, ok := specIndexType(field.IndexType); ok {
 					tbl.AddIndex(&modeler.Index{
-						Name: "field_" + field.Name,
-						Type: field.IndexType,
-						Cols: []string{"field_" + field.Name},
+						Type:    idxType,
+						Columns: []string{"field_" + field.Name},
 					})
 				}
 
@@ -508,9 +522,8 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 				})
 
 				tbl.AddIndex(&modeler.Index{
-					Name: "term_" + term.Meta.Name + "_idx",
-					Type: modeler.IndexTypeIndex,
-					Cols: []string{"term_" + term.Meta.Name + "_idx"},
+					Type:    modeler.IndexTypeIndex,
+					Columns: []string{"term_" + term.Meta.Name + "_idx"},
 				})
 
 			case hpapi.TermTaxonomy:
@@ -521,9 +534,8 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 				})
 
 				tbl.AddIndex(&modeler.Index{
-					Name: "term_" + term.Meta.Name,
-					Type: modeler.IndexTypeIndex,
-					Cols: []string{"term_" + term.Meta.Name},
+					Type:    modeler.IndexTypeIndex,
+					Columns: []string{"term_" + term.Meta.Name},
 				})
 			}
 
@@ -554,9 +566,8 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 			})
 
 			tbl.AddIndex(&modeler.Index{
-				Name: "uid",
-				Type: modeler.IndexTypeUnique,
-				Cols: []string{"uid"},
+				Type:    modeler.IndexTypeUnique,
+				Columns: []string{"uid"},
 			})
 
 		case hpapi.TermTaxonomy:
@@ -567,9 +578,8 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 			})
 
 			tbl.AddIndex(&modeler.Index{
-				Name: "pid",
-				Type: modeler.IndexTypeIndex,
-				Cols: []string{"pid"},
+				Type:    modeler.IndexTypeIndex,
+				Columns: []string{"pid"},
 			})
 
 			tbl.AddColumn(&modeler.Column{
@@ -578,9 +588,8 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 			})
 
 			tbl.AddIndex(&modeler.Index{
-				Name: "weight",
-				Type: modeler.IndexTypeIndex,
-				Cols: []string{"weight"},
+				Type:    modeler.IndexTypeIndex,
+				Columns: []string{"weight"},
 			})
 
 		default:
@@ -591,10 +600,7 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 	}
 
 	// sync
-	dm, err := store.Data.Modeler()
-	if err != nil {
-		return err
-	}
+	dm := store.Data.Modeler()
 
 	// SchemaSync is intentionally disabled during the module table-naming
 	// migration stabilization window: hpn_/hpt_ table structures must not be
@@ -602,7 +608,7 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 	// expected to already exist (from the rename upgrade or a prior run).
 	// Re-enable the call below once the upgrade is stable.
 	//
-	// err = dm.SchemaSync(ds)
+	// err := dm.SchemaSync(ds)
 	// if err != nil {
 	// 	return err
 	// }
@@ -616,7 +622,7 @@ func instanceSchemaSync(spec *hpapi.Spec) error {
 		case hpapi.TermTaxonomy:
 
 			tblName := hpapi.TermTableName(spec.Meta.Name, termModel.Meta.Name)
-			rs, _ := store.Data.Fetch(store.Data.NewQueryer().From(tblName))
+			rs := store.Data.Query(store.Data.NewQueryer().From(tblName))
 			if rs.NotFound() {
 				store.Data.Insert(tblName, map[string]interface{}{
 					"pid":     0,

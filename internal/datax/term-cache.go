@@ -49,8 +49,8 @@ func termTaxonomyCacheRefresh(modname, table string) {
 	qs := store.Data.NewQueryer().From(txTable).Limit(200).Order("weight desc")
 	qs.Where().And("status", 1)
 
-	rs, err := store.Data.Query(qs)
-	if err != nil || len(rs) < 1 {
+	rs := store.Data.Query(qs)
+	if rs.Err() != nil || rs.NotFound() {
 		return
 	}
 
@@ -59,18 +59,20 @@ func termTaxonomyCacheRefresh(modname, table string) {
 
 	ls := hpapi.TermList{}
 
-	for _, v := range rs {
+	for rs.Valid() {
 
 		ls.Items = append(ls.Items, hpapi.Term{
-			ID:      v.Field("id").Uint32(),
-			PID:     v.Field("pid").Uint32(),
-			Status:  v.Field("status").Int16(),
-			UserID:  v.Field("userid").String(),
-			Title:   v.Field("title").String(),
-			Weight:  v.Field("weight").Int32(),
-			Created: v.Field("created").Uint32(),
-			Updated: v.Field("updated").Uint32(),
+			ID:      rs.Field("id").Uint32(),
+			PID:     rs.Field("pid").Uint32(),
+			Status:  rs.Field("status").Int16(),
+			UserID:  rs.Field("userid").String(),
+			Title:   rs.Field("title").String(),
+			Weight:  rs.Field("weight").Int32(),
+			Created: rs.Field("created").Uint32(),
+			Updated: rs.Field("updated").Uint32(),
 		})
+
+		rs.Next()
 	}
 
 	ls.Model = model

@@ -63,29 +63,24 @@ const dsBase = `
             ],
             "indexes": [
                 {
-                    "name": "PRIMARY",
-                    "type": 3,
-                    "cols": ["name"]
+                    "type": "pri",
+                    "columns": ["name"]
                 },
                 {
-                    "name": "srvname",
-                    "type": 2,
-                    "cols": ["srvname"]
+                    "type": "uni",
+                    "columns": ["srvname"]
                 },
                 {
-                    "name": "status",
-                    "type": 1,
-                    "cols": ["status"]
+                    "type": "idx",
+                    "columns": ["status"]
                 },
                 {
-                    "name": "created",
-                    "type": 1,
-                    "cols": ["created"]
+                    "type": "idx",
+                    "columns": ["created"]
                 },
                 {
-                    "name": "updated",
-                    "type": 1,
-                    "cols": ["updated"]
+                    "type": "idx",
+                    "columns": ["updated"]
                 }
             ]
         },
@@ -104,9 +99,8 @@ const dsBase = `
             ],
             "indexes": [
                 {
-                    "name": "PRIMARY",
-                    "type": 3,
-                    "cols": ["key"]
+                    "type": "pri",
+                    "columns": ["key"]
                 }
             ]
         }
@@ -153,34 +147,28 @@ const (
     ],
     "indexes": [
         {
-            "name": "PRIMARY",
-            "type": 3,
-            "cols": ["id"]
+            "type": "pri",
+            "columns": ["id"]
         },
         {
-            "name": "pid",
-            "type": 1,
-            "cols": ["pid"]
+            "type": "idx",
+            "columns": ["pid"]
         },
         {
-            "name": "status",
-            "type": 1,
-            "cols": ["status"]
+            "type": "idx",
+            "columns": ["status"]
         },
         {
-            "name": "userid",
-            "type": 1,
-            "cols": ["userid"]
+            "type": "idx",
+            "columns": ["userid"]
         },
         {
-            "name": "created",
-            "type": 1,
-            "cols": ["created"]
+            "type": "idx",
+            "columns": ["created"]
         },
         {
-            "name": "updated",
-            "type": 1,
-            "cols": ["updated"]
+            "type": "idx",
+            "columns": ["updated"]
         }
     ]
 }
@@ -219,29 +207,24 @@ const (
     ],
     "indexes": [
         {
-            "name": "PRIMARY",
-            "type": 3,
-            "cols": ["id"]
+            "type": "pri",
+            "columns": ["id"]
         },
         {
-            "name": "status",
-            "type": 1,
-            "cols": ["status"]
+            "type": "idx",
+            "columns": ["status"]
         },
         {
-            "name": "userid",
-            "type": 1,
-            "cols": ["userid"]
+            "type": "idx",
+            "columns": ["userid"]
         },
         {
-            "name": "created",
-            "type": 1,
-            "cols": ["created"]
+            "type": "idx",
+            "columns": ["created"]
         },
         {
-            "name": "updated",
-            "type": 1,
-            "cols": ["updated"]
+            "type": "idx",
+            "columns": ["updated"]
         }
     ]
 }

@@ -336,8 +336,8 @@ func gdocRefreshItem(docId, userId, ver, dir string) error {
 
 		q.Where().And("id", nodeId)
 
-		rs, err := store.Data.Fetch(q)
-		if err != nil && !rs.NotFound() {
+		rs := store.Data.Query(q)
+		if rs.Err() != nil {
 			continue
 		}
 
@@ -367,13 +367,12 @@ func gdocRefreshItem(docId, userId, ver, dir string) error {
 		if rs.NotFound() {
 			sets["id"] = nodeId
 			sets["created"] = sets["updated"]
-			_, err = store.Data.Insert(table, sets)
+			err = store.Data.Insert(table, sets).Err()
 		} else {
 			if rs.Field("field_repo_sumcheck").String() != sumCheck {
 				fr := store.Data.NewFilter().And("id", nodeId)
-				_, err = store.Data.Update(table, sets, fr)
+				err = store.Data.Update(table, sets, fr).Err()
 			} else {
-				err = nil
 				slog.Debug(fmt.Sprintf("doc %s, page %s, path %s, skip",
 					docId, nodeId, subPath))
 			}
@@ -408,9 +407,9 @@ func gdocRefreshItem(docId, userId, ver, dir string) error {
 
 	// store.Data.Delete(tableDoc, store.Data.NewFilter().And("id", docId))
 
-	rs, err := store.Data.Fetch(q)
+	rs := store.Data.Query(q)
 
-	if err != nil && rs.NotFound() {
+	if rs.NotFound() {
 
 		sets["id"] = docId
 		sets["created"] = time.Now().Unix()
@@ -420,9 +419,9 @@ func gdocRefreshItem(docId, userId, ver, dir string) error {
 		sets["status"] = 1
 		sets["ext_permalink_name"] = docId
 
-		_, err = store.Data.Insert(tableDoc, sets)
+		err = store.Data.Insert(tableDoc, sets).Err()
 	} else {
-		_, err = store.Data.Update(tableDoc, sets, store.Data.NewFilter().And("id", docId))
+		err = store.Data.Update(tableDoc, sets, store.Data.NewFilter().And("id", docId)).Err()
 	}
 
 	if err != nil {

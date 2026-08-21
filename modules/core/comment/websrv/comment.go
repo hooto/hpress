@@ -22,7 +22,7 @@ import (
 	"github.com/hooto/hcaptcha/captcha4g"
 	"github.com/lessos/lessgo/types"
 	"github.com/lessos/lessgo/utils"
-	"github.com/lynkdb/iomix/rdb"
+	"github.com/lynkdb/lynkapi/go/lynktable"
 
 	"github.com/hooto/hpress/internal/config"
 	"github.com/hooto/hpress/internal/datax"
@@ -138,7 +138,7 @@ func CommentSet(c fiber.Ctx) error {
 	}
 
 	set.Meta.ID = utils.StringNewRand(16)
-	set.Meta.Created = rdb.TimeNow("datetime")
+	set.Meta.Created = lynktable.TimeNow("datetime")
 
 	tn := uint32(time.Now().Unix())
 
@@ -160,7 +160,7 @@ func CommentSet(c fiber.Ctx) error {
 		"field_content_attrs": "[]",
 	}
 
-	if _, err := store.Data.Insert(hpapi.NodeTableName("core/comment", "entry"), item); err != nil {
+	if err := store.Data.Insert(hpapi.NodeTableName("core/comment", "entry"), item).Err(); err != nil {
 		set.Error = &types.ErrorMeta{
 			Code:    "500",
 			Message: err.Error(),

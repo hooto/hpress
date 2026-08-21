@@ -20,20 +20,36 @@ import (
 	"log/slog"
 
 	"github.com/lynkdb/iomix/connect"
-	"github.com/lynkdb/iomix/rdb"
 	"github.com/lynkdb/kvgo/v2/pkg/kvapi"
 	"github.com/lynkdb/kvgo/v2/pkg/kvrep"
 	"github.com/lynkdb/kvgo/v2/pkg/storage"
+	"github.com/lynkdb/lynkapi/go/lynktable"
 	"github.com/lynkdb/mysqlgo"
 	"github.com/lynkdb/pgsqlgo"
 )
 
 var (
 	err         error
-	Data        rdb.Connector
+	Data        lynktable.Connector
 	DataOptions *connect.ConnOptions
 	DataLocal   kvapi.Client
 )
+
+// ConnOptsMap converts a connect.ConnOptions into the flat map
+// consumed by mysqlgo/pgsqlgo NewConnector.
+func ConnOptsMap(opts *connect.ConnOptions) map[string]string {
+
+	m := map[string]string{}
+	if opts == nil {
+		return m
+	}
+
+	for _, v := range opts.Items {
+		m[v.Name] = v.Value
+	}
+
+	return m
+}
 
 func Setup(dbc *storage.Options, cfg connect.MultiConnOptions) error {
 
@@ -54,10 +70,10 @@ func Setup(dbc *storage.Options, cfg connect.MultiConnOptions) error {
 	switch opts.Driver {
 
 	case "lynkdb/mysqlgo":
-		Data, err = mysqlgo.NewConnector(*opts)
+		Data, err = mysqlgo.NewConnector(ConnOptsMap(opts))
 
 	case "lynkdb/pgsqlgo":
-		Data, err = pgsqlgo.NewConnector(*opts)
+		Data, err = pgsqlgo.NewConnector(ConnOptsMap(opts))
 
 	default:
 		return errors.New("Invalid lynkdb/driver")
